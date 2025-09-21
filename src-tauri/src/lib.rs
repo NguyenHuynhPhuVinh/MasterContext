@@ -10,7 +10,15 @@ use tauri::Manager;
 use ignore::{WalkBuilder, overrides::OverrideBuilder};
 use tiktoken_rs::cl100k_base; // <--- Import tiktoken
 
-// --- CÁC STRUCT GIỮ NGUYÊN ---
+// --- STRUCT MỚI: Thống kê chi tiết cho một nhóm ---
+#[derive(Serialize, Deserialize, Debug, Default, Clone, Copy)]
+struct GroupStats {
+    total_files: u64,
+    total_dirs: u64,
+    total_size: u64, 
+    token_count: usize,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 struct DirEntry {
     name: String,
@@ -36,8 +44,8 @@ struct Group {
     id: String,
     name: String,
     description: String,
-    paths: Vec<String>, // <-- Thêm paths
-    token_count: usize, // <-- Thêm token_count
+    paths: Vec<String>,
+    stats: GroupStats, // <-- Thay thế token_count bằng stats
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -58,7 +66,7 @@ struct FileNode {
 #[derive(Serialize, Deserialize, Debug)]
 struct GroupContextResult {
     context: String,
-    token_count: usize,
+    stats: GroupStats, // <-- Trả về cả đối tượng stats
 }
 
 // Hàm quét lõi, thực hiện tất cả công việc nặng nhọc CHỈ MỘT LẦN
@@ -348,7 +356,9 @@ fn get_project_file_tree(path: String) -> Result<FileNode, String> {
 fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Result<GroupContextResult, String> {
     let root_path = Path::new(&root_path_str);
     let mut all_files_to_include = HashSet::new();
+    let mut all_dirs_to_include = HashSet::new(); // <-- Để đếm thư mục duy nhất
     let mut file_contents_string = String::new();
+    let mut stats = GroupStats::default();
 
     // --- PHẦN MỚI: Xây dựng cây thư mục từ các đường dẫn đã chọn ---
     let mut selected_tree_root = BTreeMap::new();
@@ -390,16 +400,34 @@ fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Resu
     for relative_path_str in paths {
         let full_path = root_path.join(&relative_path_str);
         if full_path.is_dir() {
+            // Thêm thư mục gốc vào danh sách đếm
+            all_dirs_to_include.insert(full_path.clone());
             let walker = WalkBuilder::new(full_path).build();
             for entry in walker.filter_map(Result::ok) {
-                if entry.file_type().map_or(false, |ft| ft.is_file()) {
-                    all_files_to_include.insert(entry.path().to_path_buf());
+                let entry_path = entry.path();
+                if let Ok(metadata) = entry.metadata() {
+                    if metadata.is_file() {
+                        if all_files_to_include.insert(entry_path.to_path_buf()) {
+                            // Chỉ cộng dồn nếu file này chưa được thêm trước đó
+                            stats.total_size += metadata.len();
+                        }
+                    } else if metadata.is_dir() {
+                        all_dirs_to_include.insert(entry_path.to_path_buf());
+                    }
                 }
             }
         } else if full_path.is_file() {
-            all_files_to_include.insert(full_path);
+            if all_files_to_include.insert(full_path.clone()) {
+                if let Ok(metadata) = fs::metadata(full_path) {
+                    stats.total_size += metadata.len();
+                }
+            }
         }
     }
+
+    // Cập nhật số lượng
+    stats.total_files = all_files_to_include.len() as u64;
+    stats.total_dirs = all_dirs_to_include.len() as u64;
 
     let mut sorted_files: Vec<PathBuf> = all_files_to_include.into_iter().collect();
     sorted_files.sort();
@@ -423,11 +451,11 @@ fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Resu
     );
 
     let bpe = cl100k_base().map_err(|e| e.to_string())?;
-    let token_count = bpe.encode_with_special_tokens(&final_context).len();
+    stats.token_count = bpe.encode_with_special_tokens(&final_context).len();
 
     Ok(GroupContextResult {
         context: final_context,
-        token_count,
+        stats, // <-- Trả về đối tượng stats
     })
 }
 

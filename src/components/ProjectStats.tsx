@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 // --- CẬP NHẬT: Thêm icon BrainCircuit ---
 import { File, Folder, HardDrive, Info, BrainCircuit } from "lucide-react";
-import { type ProjectStats as ProjectStatsData } from "@/hooks/useProjectStats"; // Import type
+import { type ProjectStats as ProjectStatsData } from "@/store/appStore"; // Import type từ store
 import { formatBytes } from "@/lib/utils"; // Import hàm tiện ích
 // --- CẬP NHẬT: Import Tooltip ---
 import {

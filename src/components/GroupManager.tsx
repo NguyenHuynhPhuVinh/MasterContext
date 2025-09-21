@@ -3,6 +3,7 @@ import { useAppStore, useAppActions, type Group } from "@/store/appStore";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { formatBytes } from "@/lib/utils"; // <-- Import hàm tiện ích
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,9 @@ import {
   Download,
   BrainCircuit,
   ListChecks,
+  File, // <-- Thêm icon
+  Folder, // <-- Thêm icon
+  HardDrive, // <-- Thêm icon
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -144,12 +148,35 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                 </div>
               </CardHeader>
               <CardContent className="flex-grow">
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <BrainCircuit className="h-4 w-4 mr-2" />
-                  <span>
-                    Ước tính: {group.tokenCount.toLocaleString()} tokens
-                  </span>
+                {/* --- PHẦN UI MỚI CHO STATS --- */}
+                <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <File className="h-4 w-4" />
+                    <span>
+                      {group.stats.total_files.toLocaleString()} tệp tin
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Folder className="h-4 w-4" />
+                    <span>
+                      {group.stats.total_dirs.toLocaleString()} thư mục
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="h-4 w-4" />
+                    <span>
+                      Tổng dung lượng: {formatBytes(group.stats.total_size)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <BrainCircuit className="h-4 w-4" />
+                    <span>
+                      Ước tính: {group.stats.token_count.toLocaleString()}{" "}
+                      tokens
+                    </span>
+                  </div>
                 </div>
+                {/* --- KẾT THÚC PHẦN UI MỚI --- */}
               </CardContent>
               <CardFooter className="flex justify-end gap-2">
                 <Button

@@ -34,7 +34,7 @@ export function GroupEditorScene() {
   const handleTogglePath = (
     path: string,
     isSelected: boolean,
-    children?: FileNode[]
+    children?: FileNode[] | null
   ) => {
     const newSelectedPaths = new Set(selectedPaths);
     const allPathsToToggle = [path];

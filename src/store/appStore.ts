@@ -8,12 +8,15 @@ interface ProjectData {
   groups: Group[];
 }
 
-// --- INTERFACE MỚI TỪ RUST ---
-interface GroupContextResult {
-  context: string;
+// --- INTERFACE MỚI CHO THỐNG KÊ NHÓM ---
+export interface GroupStats {
+  total_files: number;
+  total_dirs: number;
+  total_size: number;
   token_count: number;
 }
 
+// --- INTERFACE CHO THỐNG KÊ TỔNG QUAN DỰ ÁN ---
 export interface ProjectStats {
   total_files: number;
   total_dirs: number;
@@ -21,12 +24,26 @@ export interface ProjectStats {
   total_tokens: number;
 }
 
+// --- HÀM TẠO STATS MẶC ĐỊNH ---
+const defaultGroupStats = (): GroupStats => ({
+  total_files: 0,
+  total_dirs: 0,
+  total_size: 0,
+  token_count: 0,
+});
+
 export interface Group {
   id: string; // Dùng ID duy nhất để dễ dàng cập nhật/xóa
   name: string;
   description: string;
   paths: string[]; // <-- Thêm
-  tokenCount: number; // <-- Thêm
+  stats: GroupStats; // <-- Thay thế tokenCount
+}
+
+// --- INTERFACE MỚI TỪ RUST ---
+interface GroupContextResult {
+  context: string;
+  stats: GroupStats; // <-- Nhận về stats
 }
 
 interface AppState {
@@ -44,8 +61,8 @@ interface AppState {
     navigateTo: (dirName: string) => Promise<void>;
     goBack: () => Promise<void>;
     reset: () => void;
-    addGroup: (group: Omit<Group, "id" | "paths" | "tokenCount">) => void;
-    updateGroup: (group: Omit<Group, "paths" | "tokenCount">) => void;
+    addGroup: (group: Omit<Group, "id" | "paths" | "stats">) => void;
+    updateGroup: (group: Omit<Group, "paths" | "stats">) => void;
     deleteGroup: (groupId: string) => void;
     // --- ACTIONS MỚI ---
     editGroupContent: (groupId: string) => void;
@@ -98,7 +115,7 @@ export const useAppStore = create<AppState>((set, get) => {
             groups: (projectData.groups || []).map((g) => ({
               ...g,
               paths: g.paths || [],
-              tokenCount: g.tokenCount || 0,
+              stats: g.stats || defaultGroupStats(),
             })),
             activeScene: "dashboard",
             projectStats: stats, // <-- Lưu stats vào store
@@ -140,13 +157,12 @@ export const useAppStore = create<AppState>((set, get) => {
           editingGroupId: null,
         }), // Reset cả groups
 
-      // --- CẬP NHẬT: Gọi hàm save sau mỗi lần thay đổi ---
       addGroup: (newGroup) => {
         const groupWithDefaults: Group = {
           ...newGroup,
           id: Date.now().toString(),
           paths: [],
-          tokenCount: 0,
+          stats: defaultGroupStats(), // <-- Dùng stats mặc định
         };
         set((state) => ({ groups: [...state.groups, groupWithDefaults] }));
         saveCurrentProjectData(); // <-- LƯU
@@ -191,7 +207,7 @@ export const useAppStore = create<AppState>((set, get) => {
           set((state) => ({
             groups: state.groups.map((g) =>
               g.id === groupId
-                ? { ...g, paths, tokenCount: result.token_count }
+                ? { ...g, paths, stats: result.stats } // <-- Cập nhật cả stats
                 : g
             ),
           }));
