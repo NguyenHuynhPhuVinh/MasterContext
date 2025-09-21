@@ -1,6 +1,13 @@
 // src/components/Sidebar.tsx
 import { FolderKanban, Shapes, Settings, LayoutDashboard } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button"; // <-- Import
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"; // <-- Import
+import { ScrollArea } from "@/components/ui/scroll-area"; // <-- Import
 
 // Tách các mục menu chính và phụ
 const mainNavItems = [
@@ -14,64 +21,53 @@ const secondaryNavItems = [
 
 export function Sidebar() {
   return (
-    // --- CẬP NHẬT: Thay đổi border-l thành border-r và sử dụng màu sidebar ---
-    <aside className="flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      {/* 1. Header của Sidebar */}
-      <div className="flex h-16 items-center border-b border-sidebar-border px-6">
-        <a href="#" className="flex items-center gap-2 font-semibold">
-          <LayoutDashboard className="h-6 w-6" />
-          <span>Master Context</span>
-        </a>
-      </div>
+    <TooltipProvider delayDuration={0}>
+      <aside className="flex h-full w-64 flex-col border-r border-border bg-muted/40">
+        <div className="flex h-16 items-center border-b px-6">
+          <a href="#" className="flex items-center gap-2 font-semibold">
+            <LayoutDashboard className="h-6 w-6" />
+            <span>Master Context</span>
+          </a>
+        </div>
 
-      {/* 2. Container chính cho các menu, dùng flex-1 để nó lấp đầy không gian */}
-      <div className="flex flex-1 flex-col justify-between overflow-y-auto">
-        {/* Menu chính */}
-        <nav className="flex-grow px-4 py-4">
-          <ul className="flex flex-col gap-2">
-            {mainNavItems.map((item) => (
-              <li key={item.key}>
-                <a
-                  href="#"
-                  onClick={(e) => e.preventDefault()}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    item.active
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                      : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.text}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <ScrollArea className="flex-1">
+          <div className="flex flex-1 flex-col justify-between py-4">
+            <nav className="grid items-start gap-1 px-4">
+              {mainNavItems.map((item) => (
+                <Tooltip key={item.key}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={item.active ? "secondary" : "ghost"}
+                      className="w-full justify-start gap-3"
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.text}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{item.text}</TooltipContent>
+                </Tooltip>
+              ))}
+            </nav>
 
-        {/* Menu phụ (ở dưới cùng) */}
-        <nav className="mt-auto border-t border-sidebar-border px-4 py-4">
-          <ul className="flex flex-col gap-2">
-            {secondaryNavItems.map((item) => (
-              <li key={item.key}>
-                <a
-                  href="#"
-                  onClick={(e) => e.preventDefault()}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    item.active
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                      : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.text}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </div>
-    </aside>
+            <nav className="mt-auto grid items-start gap-1 px-4 pt-4">
+              {secondaryNavItems.map((item) => (
+                <Tooltip key={item.key}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3"
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.text}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{item.text}</TooltipContent>
+                </Tooltip>
+              ))}
+            </nav>
+          </div>
+        </ScrollArea>
+      </aside>
+    </TooltipProvider>
   );
 }

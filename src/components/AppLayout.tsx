@@ -1,19 +1,31 @@
 // src/components/AppLayout.tsx
-import React from "react";
 import { Sidebar } from "./Sidebar";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable"; // <-- Import
 
-interface AppLayoutProps {
-  children: React.ReactNode;
-}
-
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-full w-full">
-      {/* --- CẬP NHẬT: Đưa Sidebar lên trước --- */}
-      <Sidebar />
+    <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+      {/* Panel cho Sidebar */}
+      <ResizablePanel
+        defaultSize={20}
+        minSize={15}
+        maxSize={25}
+        className="min-w-[200px]"
+      >
+        <Sidebar />
+      </ResizablePanel>
 
-      {/* Phần nội dung chính, vẫn chiếm phần lớn không gian */}
-      <main className="flex-1 overflow-y-auto">{children}</main>
-    </div>
+      {/* Tay cầm để kéo */}
+      <ResizableHandle withHandle />
+
+      {/* Panel cho nội dung chính */}
+      <ResizablePanel defaultSize={80}>
+        <main className="h-full overflow-y-auto">{children}</main>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 }

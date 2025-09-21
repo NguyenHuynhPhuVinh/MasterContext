@@ -2,6 +2,7 @@
 import { Folder } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAppActions } from "@/store/appStore";
+import { Button } from "@/components/ui/button"; // <-- Import Button từ Shadcn
 
 export function WelcomeScene() {
   const { selectRootPath } = useAppActions();
@@ -27,13 +28,11 @@ export function WelcomeScene() {
       <p className="text-sm text-muted-foreground">
         Công cụ quản lý và tạo ngữ cảnh cho dự án của bạn.
       </p>
-      <button
-        onClick={handleSelectFolder}
-        className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      >
-        <Folder className="h-6 w-6" />
-        <span>Chọn Thư Mục</span>
-      </button>
+      {/* --- CẬP NHẬT: Thay thế <button> bằng <Button> --- */}
+      <Button size="lg" onClick={handleSelectFolder}>
+        <Folder className="mr-2 h-6 w-6" />
+        Chọn Thư Mục
+      </Button>
     </main>
   );
 }

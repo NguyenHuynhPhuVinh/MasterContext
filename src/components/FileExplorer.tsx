@@ -1,6 +1,7 @@
 // src/components/FileExplorer.tsx
 
 import { Folder, File, ArrowLeft } from "lucide-react";
+import { Button } from "./ui/button"; // Import Button
 
 // Định nghĩa kiểu dữ liệu cho một mục trong thư mục, khớp với struct Rust
 export interface DirEntry {
@@ -24,16 +25,14 @@ export function FileExplorer({
   onDirectoryClick,
 }: FileExplorerProps) {
   return (
-    <div className="flex w-full max-w-4xl flex-1 flex-col p-8">
+    <div className="flex h-full w-full flex-col p-6">
       {/* Header */}
-      <div className="mb-6 flex items-center gap-4">
-        <button
-          onClick={onBack}
-          className="inline-flex items-center justify-center rounded-md p-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Quay lại"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
+      <div className="mb-4 flex items-center gap-4">
+        {/* Sử dụng Button của Shadcn cho nút Back */}
+        <Button variant="outline" size="icon" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
+          <span className="sr-only">Quay lại</span>
+        </Button>
         <div>
           <h2 className="text-2xl font-bold">Nội dung thư mục</h2>
           <p className="break-all font-mono text-sm text-muted-foreground">
@@ -43,15 +42,16 @@ export function FileExplorer({
       </div>
 
       {/* Danh sách file và thư mục */}
-      <div className="flex-1 overflow-y-auto rounded-lg border bg-card">
+      <div className="flex-1 overflow-y-auto rounded-lg border">
         <ul className="divide-y divide-border">
           {contents.map((item) => (
             // --- CẬP NHẬT DÒNG NÀY ---
             <li
               key={item.name}
+              // --- CẬP NHẬT: Dùng accent color của Shadcn cho hover ---
               className={`flex items-center gap-3 px-4 py-3 transition-colors ${
                 item.is_directory
-                  ? "cursor-pointer hover:bg-muted/50"
+                  ? "cursor-pointer hover:bg-accent hover:text-accent-foreground"
                   : "cursor-default"
               }`}
               onClick={() => item.is_directory && onDirectoryClick(item.name)}
@@ -62,7 +62,7 @@ export function FileExplorer({
               ) : (
                 <File className="h-5 w-5 text-muted-foreground" />
               )}
-              <span className="text-sm text-card-foreground">{item.name}</span>
+              <span className="text-sm">{item.name}</span>
             </li>
           ))}
         </ul>
