@@ -6,6 +6,7 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use tauri::Manager;
+use ignore::WalkBuilder; // <--- Import WalkBuilder từ crate ignore
 
 // --- CÁC ĐỊNH NGHĨA STRUCT TOÀN CỤC ---
 
@@ -36,22 +37,7 @@ struct ProjectData {
 }
 // --- KẾT THÚC FIX ---
 
-fn recursive_scan(path: &Path, stats: &mut ProjectStats) -> std::io::Result<()> {
-    for entry_result in fs::read_dir(path)? {
-        let entry = entry_result?;
-        let entry_path = entry.path();
-        if entry_path.is_dir() {
-            stats.total_dirs += 1;
-            recursive_scan(&entry_path, stats)?;
-        } else if entry_path.is_file() {
-            stats.total_files += 1;
-            if let Ok(metadata) = entry.metadata() {
-                stats.total_size += metadata.len();
-            }
-        }
-    }
-    Ok(())
-}
+// --- XÓA HOÀN TOÀN HÀM `recursive_scan` CŨ ---
 
 fn get_data_file_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     // --- FIX: Xử lý Result một cách chính xác bằng toán tử `?` ---
@@ -122,18 +108,50 @@ fn save_project_data(app_handle: tauri::AppHandle, path: String, data: ProjectDa
     Ok(())
 }
 
+// --- VIẾT LẠI HOÀN TOÀN COMMAND `get_project_stats` ---
 #[tauri::command]
 fn get_project_stats(path: String) -> Result<ProjectStats, String> {
     let mut stats = ProjectStats::default();
     let root_path = Path::new(&path);
+
     if !root_path.is_dir() {
         return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
     }
-    match recursive_scan(root_path, &mut stats) {
-        Ok(_) => Ok(stats),
-        Err(e) => Err(format!("Lỗi khi quét thư mục: {}", e)),
+
+    // Sử dụng WalkBuilder từ crate 'ignore'
+    // Nó sẽ tự động đọc .gitignore, .ignore, etc.
+    let walker = WalkBuilder::new(root_path).build();
+
+    for result in walker {
+        match result {
+            Ok(entry) => {
+                // Bỏ qua thư mục gốc mà chúng ta bắt đầu quét
+                if entry.depth() == 0 {
+                    continue;
+                }
+
+                if let Some(file_type) = entry.file_type() {
+                    if file_type.is_dir() {
+                        stats.total_dirs += 1;
+                    } else if file_type.is_file() {
+                        stats.total_files += 1;
+                        if let Ok(metadata) = entry.metadata() {
+                            stats.total_size += metadata.len();
+                        }
+                    }
+                    // Các loại khác như symlinks sẽ được bỏ qua
+                }
+            }
+            Err(e) => {
+                // Ghi lại lỗi nhưng không làm dừng quá trình quét
+                eprintln!("[Master Context] Lỗi khi quét: {}", e);
+            }
+        }
     }
+
+    Ok(stats)
 }
+// --- KẾT THÚC VIẾT LẠI ---
 
 #[tauri::command]
 fn greet(name: &str) -> String {
