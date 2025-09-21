@@ -219,23 +219,18 @@ fn generate_project_context(path: String) -> Result<String, String> {
         return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
     }
 
-    // --- PHẦN MỚI: Thêm quy tắc loại trừ tùy chỉnh ---
     let mut override_builder = OverrideBuilder::new(root_path);
-    // Để LOẠI TRỪ (ignore) một file, chúng ta dùng dấu chấm than (!) ở đầu.
-    // Quy tắc này sẽ được áp dụng sau các quy tắc trong .gitignore.
     override_builder.add("!package-lock.json").map_err(|e| e.to_string())?;
     override_builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
     override_builder.add("!yarn.lock").map_err(|e| e.to_string())?;
     override_builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
     let overrides = override_builder.build().map_err(|e| e.to_string())?;
-    // --- KẾT THÚC PHẦN MỚI ---
 
     let mut root = BTreeMap::new();
     let mut file_contents = String::new();
     
-    // Sắp xếp các file để đảm bảo thứ tự nhất quán
     let walker = WalkBuilder::new(root_path)
-        .overrides(overrides.clone()) // <-- Áp dụng quy tắc loại trừ
+        .overrides(overrides.clone())
         .sort_by_file_path(|a, b| a.cmp(b))
         .build();
 
@@ -246,7 +241,7 @@ fn generate_project_context(path: String) -> Result<String, String> {
                     continue;
                 }
 
-                // 1. Xây dựng cây thư mục trong bộ nhớ
+                // 1. Xây dựng cây thư mục trong bộ nhớ (logic này không đổi)
                 let mut current_level = &mut root;
                 for component in relative_path.components().map(|c| c.as_os_str().to_string_lossy().into_owned()) {
                     let entry_type = if entry.path().is_dir() {
@@ -256,37 +251,41 @@ fn generate_project_context(path: String) -> Result<String, String> {
                     };
                     current_level = match current_level.entry(component).or_insert(entry_type) {
                         FsEntry::Directory(children) => children,
-                        FsEntry::File => break, // Không thể đi vào file
+                        FsEntry::File => break,
                     };
                 }
 
-                // 2. Thu thập nội dung file
+                // --- CẬP NHẬT LOGIC ĐỌC FILE ---
+                // 2. Thu thập nội dung CHỈ KHI file là văn bản UTF-8 hợp lệ
                 if entry.file_type().map_or(false, |ft| ft.is_file()) {
-                    let header = format!(
-                        "================================================\nFILE: {}\n================================================\n",
-                        relative_path.display().to_string().replace("\\", "/")
-                    );
-                    file_contents.push_str(&header);
-
+                    // Thử đọc file thành chuỗi. Nếu thành công, nó là UTF-8.
                     match fs::read_to_string(entry.path()) {
                         Ok(content) => {
+                            // CHỈ KHI đọc thành công, chúng ta mới thêm header và nội dung
+                            let header = format!(
+                                "================================================\nFILE: {}\n================================================\n",
+                                relative_path.display().to_string().replace("\\", "/")
+                            );
+                            file_contents.push_str(&header);
                             file_contents.push_str(&content);
                             file_contents.push_str("\n\n");
                         }
                         Err(_) => {
-                            file_contents.push_str("[Nội dung không thể đọc dưới dạng văn bản (không phải UTF-8)]\n\n");
+                            // Nếu file không phải UTF-8 (ví dụ: ảnh, binary), chúng ta không làm gì cả.
+                            // File này sẽ chỉ xuất hiện trong cây thư mục.
                         }
                     }
                 }
+                // --- KẾT THÚC CẬP NHẬT LOGIC ĐỌC FILE ---
             }
         }
     }
 
-    // "Vẽ" cây thư mục đã xây dựng
+    // "Vẽ" cây thư mục đã xây dựng (logic này không đổi)
     let mut directory_structure = String::new();
     format_tree(&root, "", &mut directory_structure);
 
-    // Ghép tất cả lại
+    // Ghép tất cả lại (logic này không đổi)
     let final_context = format!(
         "Directory structure:\n└── {}\n{}\n\n{}",
         root_path.file_name().unwrap_or_default().to_string_lossy(),
