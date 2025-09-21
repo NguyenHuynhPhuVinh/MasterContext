@@ -7,6 +7,7 @@ export interface ProjectStats {
   total_files: number;
   total_dirs: number;
   total_size: number; // in bytes
+  total_tokens: number; // <-- THÊM DÒNG NÀY
 }
 
 export function useProjectStats(path: string | null) {

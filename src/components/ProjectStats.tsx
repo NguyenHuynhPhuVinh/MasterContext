@@ -1,7 +1,7 @@
 // src/components/ProjectStats.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// --- CẬP NHẬT: Thêm icon Info ---
-import { File, Folder, HardDrive, Info } from "lucide-react";
+// --- CẬP NHẬT: Thêm icon BrainCircuit ---
+import { File, Folder, HardDrive, Info, BrainCircuit } from "lucide-react";
 import { type ProjectStats as ProjectStatsData } from "@/hooks/useProjectStats"; // Import type
 import { formatBytes } from "@/lib/utils"; // Import hàm tiện ích
 // --- CẬP NHẬT: Import Tooltip ---
@@ -58,6 +58,13 @@ export function ProjectStats({ path, stats }: ProjectStatsProps) {
                 <div className="flex items-center gap-2">
                   <HardDrive className="h-4 w-4" />
                   <span>Tổng dung lượng: {formatBytes(stats.total_size)}</span>
+                </div>
+                {/* --- DÒNG MỚI: Hiển thị số token --- */}
+                <div className="flex items-center gap-2">
+                  <BrainCircuit className="h-4 w-4" />
+                  <span>
+                    Ước tính: {stats.total_tokens.toLocaleString()} tokens
+                  </span>
                 </div>
               </>
             ) : (

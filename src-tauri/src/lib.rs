@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::fmt::Write as FmtWrite; // Đổi tên để tránh xung đột với std::io::Write
 use tauri::Manager;
 use ignore::{WalkBuilder, overrides::OverrideBuilder};
+use tiktoken_rs::cl100k_base; // <--- Import tiktoken
 
 // --- CÁC STRUCT GIỮ NGUYÊN ---
 #[derive(Serialize, Deserialize, Debug)]
@@ -21,6 +22,13 @@ struct ProjectStats {
     total_files: u64,
     total_dirs: u64,
     total_size: u64,
+    total_tokens: usize, // Sử dụng usize vì kết quả từ .len() là usize
+}
+
+// Struct nội bộ để chứa kết quả quét
+struct ScanResult {
+    stats: ProjectStats,
+    context_string: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -33,6 +41,90 @@ struct Group {
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 struct ProjectData {
     groups: Vec<Group>,
+}
+
+// Hàm quét lõi, thực hiện tất cả công việc nặng nhọc CHỈ MỘT LẦN
+fn perform_full_scan(path: String) -> Result<ScanResult, String> {
+    let root_path = Path::new(&path);
+    if !root_path.is_dir() {
+        return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
+    }
+
+    let mut stats = ProjectStats::default();
+    let mut root_tree = BTreeMap::new();
+    let mut file_contents_string = String::new();
+
+    let override_builder = {
+        let mut builder = OverrideBuilder::new(root_path);
+        builder.add("!package-lock.json").map_err(|e| e.to_string())?;
+        builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
+        builder.add("!yarn.lock").map_err(|e| e.to_string())?;
+        builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
+        builder.build().map_err(|e| e.to_string())?
+    };
+
+    let walker = WalkBuilder::new(root_path)
+        .overrides(override_builder.clone())
+        .sort_by_file_path(|a, b| a.cmp(b))
+        .build();
+
+    for entry in walker.filter_map(Result::ok) {
+        let entry_path = entry.path();
+        if let Ok(relative_path) = entry_path.strip_prefix(root_path) {
+            if relative_path.as_os_str().is_empty() { continue; }
+
+            // Cập nhật thống kê
+            if let Ok(metadata) = entry.metadata() {
+                if metadata.is_dir() {
+                    stats.total_dirs += 1;
+                } else if metadata.is_file() {
+                    stats.total_files += 1;
+                    stats.total_size += metadata.len();
+                }
+            }
+            
+            // Xây dựng cây thư mục (cho context)
+            let mut current_level = &mut root_tree;
+            for component in relative_path.components().map(|c| c.as_os_str().to_string_lossy().into_owned()) {
+                let entry_type = if entry_path.is_dir() { FsEntry::Directory(BTreeMap::new()) } else { FsEntry::File };
+                current_level = match current_level.entry(component).or_insert(entry_type) {
+                    FsEntry::Directory(children) => children,
+                    FsEntry::File => break,
+                };
+            }
+
+            // Thu thập nội dung file (cho context)
+            if entry.file_type().map_or(false, |ft| ft.is_file()) {
+                if let Ok(content) = fs::read_to_string(entry.path()) {
+                    let header = format!("================================================\nFILE: {}\n================================================\n", relative_path.display().to_string().replace("\\", "/"));
+                    file_contents_string.push_str(&header);
+                    file_contents_string.push_str(&content);
+                    file_contents_string.push_str("\n\n");
+                }
+            }
+        }
+    }
+
+    // "Vẽ" cây thư mục
+    let mut directory_structure = String::new();
+    format_tree(&root_tree, "", &mut directory_structure);
+
+    // Ghép context lại
+    let final_context = format!(
+        "Directory structure:\n└── {}\n{}\n\n{}",
+        root_path.file_name().unwrap_or_default().to_string_lossy(),
+        directory_structure,
+        file_contents_string
+    );
+    
+    // Đếm token
+    let bpe = cl100k_base().map_err(|e| e.to_string())?;
+    stats.total_tokens = bpe.encode_with_special_tokens(&final_context).len();
+
+    Ok(ScanResult {
+        stats,
+        context_string: final_context,
+    })
 }
 
 // --- CÁC COMMAND KHÁC GIỮ NGUYÊN ---
@@ -104,53 +196,11 @@ fn save_project_data(app_handle: tauri::AppHandle, path: String, data: ProjectDa
     Ok(())
 }
 
+// Cập nhật command `get_project_stats` để sử dụng hàm quét lõi
 #[tauri::command]
 fn get_project_stats(path: String) -> Result<ProjectStats, String> {
-    let mut stats = ProjectStats::default();
-    let root_path = Path::new(&path);
-
-    if !root_path.is_dir() {
-        return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
-    }
-
-    // --- THÊM LOGIC OVERRIDE VÀO ĐÂY ---
-    let mut override_builder = OverrideBuilder::new(root_path);
-    override_builder.add("!package-lock.json").map_err(|e| e.to_string())?;
-    override_builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
-    override_builder.add("!yarn.lock").map_err(|e| e.to_string())?;
-    override_builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
-    let overrides = override_builder.build().map_err(|e| e.to_string())?;
-
-    let walker = WalkBuilder::new(root_path)
-        .overrides(overrides.clone()) // <-- Áp dụng quy tắc
-        .build();
-    // --- KẾT THÚC THÊM LOGIC ---
-
-    for result in walker {
-        match result {
-            Ok(entry) => {
-                if entry.depth() == 0 {
-                    continue;
-                }
-
-                if let Some(file_type) = entry.file_type() {
-                    if file_type.is_dir() {
-                        stats.total_dirs += 1;
-                    } else if file_type.is_file() {
-                        stats.total_files += 1;
-                        if let Ok(metadata) = entry.metadata() {
-                            stats.total_size += metadata.len();
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!("[Master Context] Lỗi khi quét: {}", e);
-            }
-        }
-    }
-
-    Ok(stats)
+    let scan_result = perform_full_scan(path)?;
+    Ok(scan_result.stats)
 }
 
 #[tauri::command]
@@ -211,91 +261,12 @@ fn format_tree(
 }
 
 
-// --- VIẾT LẠI HOÀN TOÀN COMMAND `generate_project_context` ---
+// Cập nhật command `generate_project_context` để sử dụng hàm quét lõi
 #[tauri::command]
 fn generate_project_context(path: String) -> Result<String, String> {
-    let root_path = Path::new(&path);
-    if !root_path.is_dir() {
-        return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
-    }
-
-    let mut override_builder = OverrideBuilder::new(root_path);
-    override_builder.add("!package-lock.json").map_err(|e| e.to_string())?;
-    override_builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
-    override_builder.add("!yarn.lock").map_err(|e| e.to_string())?;
-    override_builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
-    let overrides = override_builder.build().map_err(|e| e.to_string())?;
-
-    let mut root = BTreeMap::new();
-    let mut file_contents = String::new();
-    
-    let walker = WalkBuilder::new(root_path)
-        .overrides(overrides.clone())
-        .sort_by_file_path(|a, b| a.cmp(b))
-        .build();
-
-    for result in walker {
-        if let Ok(entry) = result {
-            if let Ok(relative_path) = entry.path().strip_prefix(root_path) {
-                if relative_path.as_os_str().is_empty() {
-                    continue;
-                }
-
-                // 1. Xây dựng cây thư mục trong bộ nhớ (logic này không đổi)
-                let mut current_level = &mut root;
-                for component in relative_path.components().map(|c| c.as_os_str().to_string_lossy().into_owned()) {
-                    let entry_type = if entry.path().is_dir() {
-                        FsEntry::Directory(BTreeMap::new())
-                    } else {
-                        FsEntry::File
-                    };
-                    current_level = match current_level.entry(component).or_insert(entry_type) {
-                        FsEntry::Directory(children) => children,
-                        FsEntry::File => break,
-                    };
-                }
-
-                // --- CẬP NHẬT LOGIC ĐỌC FILE ---
-                // 2. Thu thập nội dung CHỈ KHI file là văn bản UTF-8 hợp lệ
-                if entry.file_type().map_or(false, |ft| ft.is_file()) {
-                    // Thử đọc file thành chuỗi. Nếu thành công, nó là UTF-8.
-                    match fs::read_to_string(entry.path()) {
-                        Ok(content) => {
-                            // CHỈ KHI đọc thành công, chúng ta mới thêm header và nội dung
-                            let header = format!(
-                                "================================================\nFILE: {}\n================================================\n",
-                                relative_path.display().to_string().replace("\\", "/")
-                            );
-                            file_contents.push_str(&header);
-                            file_contents.push_str(&content);
-                            file_contents.push_str("\n\n");
-                        }
-                        Err(_) => {
-                            // Nếu file không phải UTF-8 (ví dụ: ảnh, binary), chúng ta không làm gì cả.
-                            // File này sẽ chỉ xuất hiện trong cây thư mục.
-                        }
-                    }
-                }
-                // --- KẾT THÚC CẬP NHẬT LOGIC ĐỌC FILE ---
-            }
-        }
-    }
-
-    // "Vẽ" cây thư mục đã xây dựng (logic này không đổi)
-    let mut directory_structure = String::new();
-    format_tree(&root, "", &mut directory_structure);
-
-    // Ghép tất cả lại (logic này không đổi)
-    let final_context = format!(
-        "Directory structure:\n└── {}\n{}\n\n{}",
-        root_path.file_name().unwrap_or_default().to_string_lossy(),
-        directory_structure,
-        file_contents
-    );
-
-    Ok(final_context)
+    let scan_result = perform_full_scan(path)?;
+    Ok(scan_result.context_string)
 }
-// --- KẾT THÚC VIẾT LẠI ---
 
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
