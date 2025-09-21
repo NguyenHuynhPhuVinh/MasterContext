@@ -8,8 +8,16 @@ function App() {
   const selectedPath = useAppStore((state) => state.selectedPath);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
-      {!selectedPath ? <WelcomeScene /> : <ExplorerScene />}
+    // --- CẬP NHẬT: Thêm w-screen và loại bỏ items-center, justify-center ---
+    <div className="h-screen w-screen flex flex-col bg-background text-foreground">
+      {!selectedPath ? (
+        // Thêm một div để căn giữa WelcomeScene
+        <div className="flex flex-1 items-center justify-center">
+          <WelcomeScene />
+        </div>
+      ) : (
+        <ExplorerScene />
+      )}
     </div>
   );
 }

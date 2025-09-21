@@ -2,6 +2,7 @@
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useDirectoryReader } from "@/hooks/useDirectoryReader";
 import { FileExplorer } from "@/components/FileExplorer";
+import { AppLayout } from "@/components/AppLayout"; // <-- Import layout mới
 
 export function ExplorerScene() {
   // Lấy state và actions từ store
@@ -41,12 +42,15 @@ export function ExplorerScene() {
     return null;
   }
 
+  // --- CẬP NHẬT: Sử dụng AppLayout để bao bọc FileExplorer ---
   return (
-    <FileExplorer
-      path={selectedPath}
-      contents={contents}
-      onBack={goBack}
-      onDirectoryClick={navigateTo}
-    />
+    <AppLayout>
+      <FileExplorer
+        path={selectedPath}
+        contents={contents}
+        onBack={goBack}
+        onDirectoryClick={navigateTo}
+      />
+    </AppLayout>
   );
 }
