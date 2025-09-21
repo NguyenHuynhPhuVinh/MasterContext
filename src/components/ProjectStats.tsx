@@ -29,8 +29,8 @@ export function ProjectStats({ path, stats }: ProjectStatsProps) {
             </TooltipTrigger>
             <TooltipContent>
               <p>
-                Các tệp và thư mục bị loại trừ bởi .gitignore sẽ không được
-                tính.
+                Các tệp bị loại trừ bởi .gitignore và các file lock (ví dụ:
+                package-lock.json, Cargo.lock) sẽ không được tính.
               </p>
             </TooltipContent>
           </Tooltip>

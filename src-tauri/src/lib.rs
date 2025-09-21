@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::fmt::Write as FmtWrite; // Đổi tên để tránh xung đột với std::io::Write
 use tauri::Manager;
-use ignore::WalkBuilder;
+use ignore::{WalkBuilder, overrides::OverrideBuilder};
 
 // --- CÁC STRUCT GIỮ NGUYÊN ---
 #[derive(Serialize, Deserialize, Debug)]
@@ -113,7 +113,18 @@ fn get_project_stats(path: String) -> Result<ProjectStats, String> {
         return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
     }
 
-    let walker = WalkBuilder::new(root_path).build();
+    // --- THÊM LOGIC OVERRIDE VÀO ĐÂY ---
+    let mut override_builder = OverrideBuilder::new(root_path);
+    override_builder.add("!package-lock.json").map_err(|e| e.to_string())?;
+    override_builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
+    override_builder.add("!yarn.lock").map_err(|e| e.to_string())?;
+    override_builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
+    let overrides = override_builder.build().map_err(|e| e.to_string())?;
+
+    let walker = WalkBuilder::new(root_path)
+        .overrides(overrides.clone()) // <-- Áp dụng quy tắc
+        .build();
+    // --- KẾT THÚC THÊM LOGIC ---
 
     for result in walker {
         match result {
@@ -208,11 +219,25 @@ fn generate_project_context(path: String) -> Result<String, String> {
         return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
     }
 
+    // --- PHẦN MỚI: Thêm quy tắc loại trừ tùy chỉnh ---
+    let mut override_builder = OverrideBuilder::new(root_path);
+    // Để LOẠI TRỪ (ignore) một file, chúng ta dùng dấu chấm than (!) ở đầu.
+    // Quy tắc này sẽ được áp dụng sau các quy tắc trong .gitignore.
+    override_builder.add("!package-lock.json").map_err(|e| e.to_string())?;
+    override_builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
+    override_builder.add("!yarn.lock").map_err(|e| e.to_string())?;
+    override_builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
+    let overrides = override_builder.build().map_err(|e| e.to_string())?;
+    // --- KẾT THÚC PHẦN MỚI ---
+
     let mut root = BTreeMap::new();
     let mut file_contents = String::new();
     
     // Sắp xếp các file để đảm bảo thứ tự nhất quán
-    let walker = WalkBuilder::new(root_path).sort_by_file_path(|a, b| a.cmp(b)).build();
+    let walker = WalkBuilder::new(root_path)
+        .overrides(overrides.clone()) // <-- Áp dụng quy tắc loại trừ
+        .sort_by_file_path(|a, b| a.cmp(b))
+        .build();
 
     for result in walker {
         if let Ok(entry) = result {
