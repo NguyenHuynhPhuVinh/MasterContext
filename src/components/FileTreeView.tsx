@@ -1,23 +1,53 @@
 // src/components/FileTreeView.tsx
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react"; // <-- Thêm useEffect, useRef
 import { ChevronRight, Folder, File as FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Định nghĩa lại interface ở đây để component có thể tự chứa
 export interface FileNode {
   name: string;
   path: string;
-  children?: FileNode[] | null; // <-- Cập nhật type để khớp với JSON từ Rust
+  children?: FileNode[] | null;
 }
+
+// --- HÀM HELPER: Lấy tất cả đường dẫn con cháu ---
+const getDescendantPaths = (node: FileNode): string[] => {
+  if (!Array.isArray(node.children)) return [];
+  return node.children.flatMap((child) => [
+    child.path,
+    ...getDescendantPaths(child),
+  ]);
+};
+
+// --- HÀM HELPER: Xác định trạng thái lựa chọn của một node ---
+const getNodeSelectionState = (
+  node: FileNode,
+  selectedPaths: Set<string>
+): "checked" | "unchecked" | "indeterminate" => {
+  if (!Array.isArray(node.children)) {
+    return selectedPaths.has(node.path) ? "checked" : "unchecked";
+  }
+
+  const descendantPaths = getDescendantPaths(node);
+  const selectedDescendants = descendantPaths.filter((p) =>
+    selectedPaths.has(p)
+  );
+
+  if (selectedDescendants.length === 0) {
+    return "unchecked";
+  }
+  if (
+    selectedDescendants.length === descendantPaths.length &&
+    selectedPaths.has(node.path)
+  ) {
+    return "checked";
+  }
+  return "indeterminate";
+};
 
 interface FileTreeViewProps {
   node: FileNode;
   selectedPaths: Set<string>;
-  onToggle: (
-    path: string,
-    isSelected: boolean,
-    children?: FileNode[] | null
-  ) => void;
+  onToggle: (node: FileNode, isSelected: boolean) => void; // <-- Sửa prop để truyền cả node
   level?: number;
 }
 
@@ -27,17 +57,24 @@ export function FileTreeView({
   onToggle,
   level = 0,
 }: FileTreeViewProps) {
-  // --- BẮT ĐẦU SỬA LỖI ---
-  // Thay đổi cách kiểm tra thư mục để chính xác hơn
+  const checkboxRef = useRef<HTMLInputElement>(null);
   const isDirectory = Array.isArray(node.children);
-  // --- KẾT THÚC SỬA LỖI ---
+  const [isOpen, setIsOpen] = useState(level < 2);
 
-  const [isOpen, setIsOpen] = useState(level < 2); // Mở sẵn 2 cấp đầu
+  const selectionState = isDirectory
+    ? getNodeSelectionState(node, selectedPaths)
+    : selectedPaths.has(node.path)
+    ? "checked"
+    : "unchecked";
 
-  const isSelected = selectedPaths.has(node.path);
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = selectionState === "indeterminate";
+    }
+  }, [selectionState]);
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onToggle(node.path, e.target.checked, node.children);
+    onToggle(node, e.target.checked);
   };
 
   const handleToggleDirectory = () => {
@@ -47,31 +84,36 @@ export function FileTreeView({
   return (
     <div>
       <div
-        className="flex items-center py-1 px-2 rounded-md hover:bg-accent cursor-pointer"
+        className="flex items-center py-1 px-2 rounded-md hover:bg-accent"
         style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
-        onClick={handleToggleDirectory}
       >
         <input
+          ref={checkboxRef}
           type="checkbox"
-          checked={isSelected}
+          checked={selectionState === "checked"}
           onChange={handleCheckboxChange}
-          onClick={(e) => e.stopPropagation()} // Ngăn việc click checkbox làm đóng/mở thư mục
+          onClick={(e) => e.stopPropagation()}
           className="mr-2 h-4 w-4"
         />
-        {isDirectory ? (
-          <>
-            <ChevronRight
-              className={cn(
-                "h-4 w-4 mr-1 shrink-0 transition-transform duration-200",
-                isOpen && "rotate-90"
-              )}
-            />
-            <Folder className="h-4 w-4 mr-2 text-yellow-500" />
-          </>
-        ) : (
-          <FileIcon className="h-4 w-4 mr-2 text-blue-500" />
-        )}
-        <span>{node.name}</span>
+        <div
+          onClick={handleToggleDirectory}
+          className="flex items-center cursor-pointer flex-grow"
+        >
+          {isDirectory ? (
+            <>
+              <ChevronRight
+                className={cn(
+                  "h-4 w-4 mr-1 shrink-0 transition-transform duration-200",
+                  isOpen && "rotate-90"
+                )}
+              />
+              <Folder className="h-4 w-4 mr-2 text-yellow-500" />
+            </>
+          ) : (
+            <FileIcon className="h-4 w-4 mr-2 text-blue-500" />
+          )}
+          <span>{node.name}</span>
+        </div>
       </div>
       {isDirectory && isOpen && node.children && (
         <div>
