@@ -1,16 +1,15 @@
 // src-tauri/src/lib.rs
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap; // Sử dụng BTreeMap để các mục được sắp xếp theo alphabet
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::fmt::Write as FmtWrite; // Thêm use này để tránh xung đột với std::io::Write
+use std::fmt::Write as FmtWrite; // Đổi tên để tránh xung đột với std::io::Write
 use tauri::Manager;
-use ignore::WalkBuilder; // <--- Import WalkBuilder từ crate ignore
+use ignore::WalkBuilder;
 
-// --- CÁC ĐỊNH NGHĨA STRUCT TOÀN CỤC ---
-
+// --- CÁC STRUCT GIỮ NGUYÊN ---
 #[derive(Serialize, Deserialize, Debug)]
 struct DirEntry {
     name: String,
@@ -24,7 +23,6 @@ struct ProjectStats {
     total_size: u64,
 }
 
-// --- FIX: Chuyển các struct này ra ngoài phạm vi toàn cục ---
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 struct Group {
     id: String,
@@ -36,16 +34,13 @@ struct Group {
 struct ProjectData {
     groups: Vec<Group>,
 }
-// --- KẾT THÚC FIX ---
 
-// --- XÓA HOÀN TOÀN HÀM `recursive_scan` CŨ ---
-
+// --- CÁC COMMAND KHÁC GIỮ NGUYÊN ---
 fn get_data_file_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
-    // --- FIX: Xử lý Result một cách chính xác bằng toán tử `?` ---
     let app_data_dir = app_handle
         .path()
         .app_data_dir()
-        .map_err(|e| e.to_string())?; // Chuyển đổi tauri::Error sang String
+        .map_err(|e| e.to_string())?;
     
     fs::create_dir_all(&app_data_dir)
         .map_err(|e| format!("Không thể tạo thư mục dữ liệu: {}", e))?;
@@ -72,7 +67,7 @@ fn load_project_data(app_handle: tauri::AppHandle, path: String) -> Result<Proje
         return Ok(ProjectData::default());
     }
 
-    let all_data: HashMap<String, ProjectData> = serde_json::from_str(&contents)
+    let all_data: std::collections::HashMap<String, ProjectData> = serde_json::from_str(&contents)
         .map_err(|e| format!("Lỗi phân tích cú pháp JSON: {}", e))?;
 
     Ok(all_data.get(&path).cloned().unwrap_or_default())
@@ -82,17 +77,17 @@ fn load_project_data(app_handle: tauri::AppHandle, path: String) -> Result<Proje
 fn save_project_data(app_handle: tauri::AppHandle, path: String, data: ProjectData) -> Result<(), String> {
     let data_file_path = get_data_file_path(&app_handle)?;
     
-    let mut all_data: HashMap<String, ProjectData> = if data_file_path.exists() {
+    let mut all_data: std::collections::HashMap<String, ProjectData> = if data_file_path.exists() {
         let mut file = File::open(&data_file_path).map_err(|e| format!("Không thể mở file: {}", e))?;
         let mut contents = String::new();
         file.read_to_string(&mut contents).map_err(|e| format!("Không thể đọc file: {}", e))?;
         if contents.is_empty() {
-            HashMap::new()
+            std::collections::HashMap::new()
         } else {
             serde_json::from_str(&contents).map_err(|e| format!("Lỗi phân tích cú pháp: {}", e))?
         }
     } else {
-        HashMap::new()
+        std::collections::HashMap::new()
     };
     
     all_data.insert(path, data);
@@ -109,7 +104,6 @@ fn save_project_data(app_handle: tauri::AppHandle, path: String, data: ProjectDa
     Ok(())
 }
 
-// --- VIẾT LẠI HOÀN TOÀN COMMAND `get_project_stats` ---
 #[tauri::command]
 fn get_project_stats(path: String) -> Result<ProjectStats, String> {
     let mut stats = ProjectStats::default();
@@ -119,14 +113,11 @@ fn get_project_stats(path: String) -> Result<ProjectStats, String> {
         return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
     }
 
-    // Sử dụng WalkBuilder từ crate 'ignore'
-    // Nó sẽ tự động đọc .gitignore, .ignore, etc.
     let walker = WalkBuilder::new(root_path).build();
 
     for result in walker {
         match result {
             Ok(entry) => {
-                // Bỏ qua thư mục gốc mà chúng ta bắt đầu quét
                 if entry.depth() == 0 {
                     continue;
                 }
@@ -140,11 +131,9 @@ fn get_project_stats(path: String) -> Result<ProjectStats, String> {
                             stats.total_size += metadata.len();
                         }
                     }
-                    // Các loại khác như symlinks sẽ được bỏ qua
                 }
             }
             Err(e) => {
-                // Ghi lại lỗi nhưng không làm dừng quá trình quét
                 eprintln!("[Master Context] Lỗi khi quét: {}", e);
             }
         }
@@ -152,81 +141,6 @@ fn get_project_stats(path: String) -> Result<ProjectStats, String> {
 
     Ok(stats)
 }
-// --- KẾT THÚC VIẾT LẠI ---
-
-// --- VIẾT LẠI HOÀN TOÀN COMMAND `generate_project_context` ---
-#[tauri::command]
-fn generate_project_context(path: String) -> Result<String, String> {
-    let root_path = Path::new(&path);
-    if !root_path.is_dir() {
-        return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
-    }
-
-    let mut directory_structure = String::new();
-    let mut file_contents = String::new();
-    
-    // Sử dụng WalkBuilder để duyệt qua tất cả các file và thư mục hợp lệ
-    // .sort_by_file_path() để đảm bảo thứ tự nhất quán
-    let walker = WalkBuilder::new(root_path).sort_by_file_path(|a, b| a.cmp(b)).build();
-
-    for result in walker {
-        match result {
-            Ok(entry) => {
-                let entry_path = entry.path();
-                if let Ok(relative_path) = entry_path.strip_prefix(root_path) {
-                    // Bỏ qua thư mục gốc (đường dẫn rỗng)
-                    if relative_path.as_os_str().is_empty() {
-                        continue;
-                    }
-                    
-                    let depth = entry.depth();
-                    let indent = "    ".repeat(depth.saturating_sub(1));
-                    let file_name = entry.file_name().to_string_lossy();
-                    
-                    // Xây dựng cây thư mục
-                    if entry.file_type().map_or(false, |ft| ft.is_dir()) {
-                        let _ = writeln!(directory_structure, "{}└── {}/", indent, file_name);
-                    } else {
-                        let _ = writeln!(directory_structure, "{}├── {}", indent, file_name);
-                    }
-
-                    // Nếu là file, đọc và thêm vào phần nội dung
-                    if entry_path.is_file() {
-                        let header = format!(
-                            "================================================\nFILE: {}\n================================================\n",
-                            relative_path.display().to_string().replace("\\", "/")
-                        );
-                        file_contents.push_str(&header);
-
-                        match fs::read_to_string(entry_path) {
-                            Ok(content) => {
-                                file_contents.push_str(&content);
-                                file_contents.push_str("\n\n");
-                            }
-                            Err(_) => {
-                                file_contents.push_str("[Nội dung không thể đọc dưới dạng văn bản (không phải UTF-8)]\n\n");
-                            }
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!("[Master Context] Lỗi khi quét file để xuất: {}", e);
-            }
-        }
-    }
-
-    // Ghép tất cả lại
-    let final_context = format!(
-        "--- START OF FILE project_context.txt ---\n\nDirectory structure:\n└── {}\n{}\n\n{}",
-        root_path.file_name().unwrap_or_default().to_string_lossy(),
-        directory_structure,
-        file_contents
-    );
-
-    Ok(final_context)
-}
-// --- KẾT THÚC VIẾT LẠI ---
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -254,6 +168,112 @@ fn read_directory(path: String) -> Result<Vec<DirEntry>, String> {
     }
 }
 
+// --- PHẦN CẢI TIẾN: Cấu trúc dữ liệu cho cây thư mục ---
+#[derive(Debug)]
+enum FsEntry {
+    File,
+    Directory(BTreeMap<String, FsEntry>),
+}
+
+// --- PHẦN CẢI TIẾN: Hàm đệ quy để "vẽ" cây thư mục ---
+fn format_tree(
+    tree: &BTreeMap<String, FsEntry>,
+    prefix: &str,
+    output: &mut String,
+) {
+    let mut entries = tree.iter().peekable();
+    while let Some((name, entry)) = entries.next() {
+        let is_last = entries.peek().is_none();
+        let connector = if is_last { "└── " } else { "├── " };
+        
+        match entry {
+            FsEntry::File => {
+                let _ = writeln!(output, "{}{}{}", prefix, connector, name);
+            }
+            FsEntry::Directory(children) => {
+                let _ = writeln!(output, "{}{}{}/", prefix, connector, name);
+                let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
+                format_tree(children, &new_prefix, output);
+            }
+        }
+    }
+}
+
+
+// --- VIẾT LẠI HOÀN TOÀN COMMAND `generate_project_context` ---
+#[tauri::command]
+fn generate_project_context(path: String) -> Result<String, String> {
+    let root_path = Path::new(&path);
+    if !root_path.is_dir() {
+        return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
+    }
+
+    let mut root = BTreeMap::new();
+    let mut file_contents = String::new();
+    
+    // Sắp xếp các file để đảm bảo thứ tự nhất quán
+    let walker = WalkBuilder::new(root_path).sort_by_file_path(|a, b| a.cmp(b)).build();
+
+    for result in walker {
+        if let Ok(entry) = result {
+            if let Ok(relative_path) = entry.path().strip_prefix(root_path) {
+                if relative_path.as_os_str().is_empty() {
+                    continue;
+                }
+
+                // 1. Xây dựng cây thư mục trong bộ nhớ
+                let mut current_level = &mut root;
+                for component in relative_path.components().map(|c| c.as_os_str().to_string_lossy().into_owned()) {
+                    let entry_type = if entry.path().is_dir() {
+                        FsEntry::Directory(BTreeMap::new())
+                    } else {
+                        FsEntry::File
+                    };
+                    current_level = match current_level.entry(component).or_insert(entry_type) {
+                        FsEntry::Directory(children) => children,
+                        FsEntry::File => break, // Không thể đi vào file
+                    };
+                }
+
+                // 2. Thu thập nội dung file
+                if entry.file_type().map_or(false, |ft| ft.is_file()) {
+                    let header = format!(
+                        "================================================\nFILE: {}\n================================================\n",
+                        relative_path.display().to_string().replace("\\", "/")
+                    );
+                    file_contents.push_str(&header);
+
+                    match fs::read_to_string(entry.path()) {
+                        Ok(content) => {
+                            file_contents.push_str(&content);
+                            file_contents.push_str("\n\n");
+                        }
+                        Err(_) => {
+                            file_contents.push_str("[Nội dung không thể đọc dưới dạng văn bản (không phải UTF-8)]\n\n");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // "Vẽ" cây thư mục đã xây dựng
+    let mut directory_structure = String::new();
+    format_tree(&root, "", &mut directory_structure);
+
+    // Ghép tất cả lại
+    let final_context = format!(
+        "Directory structure:\n└── {}\n{}\n\n{}",
+        root_path.file_name().unwrap_or_default().to_string_lossy(),
+        directory_structure,
+        file_contents
+    );
+
+    Ok(final_context)
+}
+// --- KẾT THÚC VIẾT LẠI ---
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -266,7 +286,6 @@ pub fn run() {
             get_project_stats,
             load_project_data,
             save_project_data,
-            // --- CẬP NHẬT: Thêm command mới vào handler ---
             generate_project_context
         ]) 
         .run(tauri::generate_context!())
