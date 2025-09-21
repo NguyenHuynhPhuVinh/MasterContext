@@ -101,32 +101,48 @@ export function GroupManager() {
 
   // --- PHẦN MỚI: Hàm xử lý xuất dự án ---
   const handleExportProject = async () => {
-    if (!rootPath) return;
+    if (!rootPath) {
+      console.log("handleExportProject: Bị dừng vì rootPath không tồn tại.");
+      return;
+    }
     setIsExporting(true);
+    console.log("Bắt đầu quá trình xuất file...");
+
     try {
-      // 1. Gọi command Rust để lấy chuỗi context
+      // 1. Gọi command Rust
+      console.log("Gọi command 'generate_project_context' với path:", rootPath);
       const context = await invoke<string>("generate_project_context", {
         path: rootPath,
       });
+      console.log(`Command trả về context có độ dài: ${context.length} ký tự.`);
 
       // 2. Mở hộp thoại "Save As..."
+      console.log("Mở hộp thoại save dialog...");
       const filePath = await save({
         title: "Lưu Ngữ cảnh Dự án",
         defaultPath: "project_context.txt",
         filters: [{ name: "Text File", extensions: ["txt"] }],
       });
 
-      // 3. Nếu người dùng chọn một đường dẫn, ghi file
+      // 3. Ghi file
       if (filePath) {
+        console.log("Người dùng đã chọn đường dẫn:", filePath);
+        console.log("Bắt đầu ghi file...");
         await writeTextFile(filePath, context);
-        // Tùy chọn: có thể thêm thông báo thành công ở đây
-        console.log("Xuất dự án thành công:", filePath);
+        console.log("GHI FILE THÀNH CÔNG đến:", filePath);
+        alert(`Đã lưu file thành công tại:\n${filePath}`); // Thêm alert để xác nhận
+      } else {
+        console.log("Người dùng đã hủy hộp thoại save.");
       }
     } catch (error) {
-      console.error("Lỗi khi xuất dự án:", error);
-      // Tùy chọn: hiển thị thông báo lỗi cho người dùng
+      // --- CẬP NHẬT: Log lỗi chi tiết hơn ---
+      console.error("ĐÃ XẢY RA LỖI TRONG QUÁ TRÌNH XUẤT FILE:", error);
+      alert(
+        `Đã xảy ra lỗi khi xuất file. Vui lòng kiểm tra console (F12) để biết chi tiết.\n\nLỗi: ${error}`
+      );
     } finally {
       setIsExporting(false);
+      console.log("Kết thúc quá trình xuất file.");
     }
   };
 
