@@ -7,8 +7,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAppStore, useAppActions, type Group } from "@/store/appStore";
-// --- XÓA DÒNG NÀY ---
-// import { useProjectStats } from "@/hooks/useProjectStats";
 
 // Import UI components
 import {
@@ -38,10 +36,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Download, Loader2 } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Schema validation cho form (chuyển từ GroupManager)
+// Schema validation cho form
 const groupSchema = z.object({
   name: z.string().min(1, "Tên nhóm không được để trống"),
   description: z.string().optional(),
@@ -51,14 +49,11 @@ type GroupFormValues = z.infer<typeof groupSchema>;
 export function DashboardScene() {
   const selectedPath = useAppStore((state) => state.selectedPath);
   const rootPath = useAppStore((state) => state.rootPath);
-  // --- LẤY DỮ LIỆU TRỰC TIẾP TỪ STORE ---
   const projectStats = useAppStore((state) => state.projectStats);
   const isScanning = useAppStore((state) => state.isScanning);
-  const { addGroup, updateGroup } = useAppActions();
-  // --- XÓA DÒNG NÀY ---
-  // const { stats, isLoading } = useProjectStats(selectedPath);
 
-  // --- LOGIC DIALOG ĐƯỢC CHUYỂN LÊN ĐÂY ---
+  const { addGroup, updateGroup } = useAppActions();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -113,7 +108,6 @@ export function DashboardScene() {
     }
   };
 
-  // --- CẬP NHẬT ĐIỀU KIỆN TẢI ---
   if (isScanning && !projectStats) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -131,8 +125,12 @@ export function DashboardScene() {
         <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
           <div className="flex h-full flex-col gap-4 p-4">
             <h2 className="text-xl font-bold px-2">Thông tin Dự án</h2>
-            {/* --- TRUYỀN projectStats THAY VÌ stats --- */}
-            <ProjectStatsComponent path={selectedPath} stats={projectStats} />
+            <ProjectStatsComponent
+              path={selectedPath}
+              stats={projectStats}
+              onExportProject={handleExportProject}
+              isExporting={isExporting}
+            />
           </div>
         </ResizablePanel>
 
@@ -142,7 +140,6 @@ export function DashboardScene() {
         <ResizablePanel defaultSize={75}>
           <ScrollArea className="h-full">
             <div className="p-8">
-              {/* --- HEADER CỦA MAIN CONTENT --- */}
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-3xl font-bold">Phân Nhóm Ngữ Cảnh</h1>
@@ -151,32 +148,18 @@ export function DashboardScene() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleExportProject}
-                    disabled={isExporting}
-                  >
-                    {isExporting ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="mr-2 h-4 w-4" />
-                    )}
-                    {isExporting ? "Đang xuất..." : "Xuất dự án"}
-                  </Button>
                   <Button onClick={() => handleOpenDialog()}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm mới
                   </Button>
                 </div>
               </div>
 
-              {/* --- COMPONENT GROUPMANAGER ĐÃ ĐƯỢC TÁI CẤU TRÚC --- */}
               <GroupManager onEditGroup={handleOpenDialog} />
             </div>
           </ScrollArea>
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      {/* === DIALOG THÊM/SỬA (QUẢN LÝ TẠI SCENE) === */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>

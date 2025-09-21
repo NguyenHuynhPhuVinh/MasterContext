@@ -1,24 +1,45 @@
 // src/components/ProjectStats.tsx
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// --- CẬP NHẬT: Thêm icon BrainCircuit ---
-import { File, Folder, HardDrive, Info, BrainCircuit } from "lucide-react";
-import { type ProjectStats as ProjectStatsData } from "@/store/appStore"; // Import type từ store
-import { formatBytes } from "@/lib/utils"; // Import hàm tiện ích
-// --- CẬP NHẬT: Import Tooltip ---
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter, // <-- Thêm CardFooter
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button"; // <-- Thêm Button
+import {
+  File,
+  Folder,
+  HardDrive,
+  Info,
+  BrainCircuit,
+  Download,
+  Loader2,
+} from "lucide-react"; // <-- Thêm icon
+import { type ProjectStats as ProjectStatsData } from "@/store/appStore"; // <-- Sửa đường dẫn import
+import { formatBytes } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// --- CẬP NHẬT: Thêm props cho chức năng export ---
 interface ProjectStatsProps {
   path: string | null;
   stats: ProjectStatsData | null;
+  onExportProject: () => Promise<void>;
+  isExporting: boolean;
 }
 
-export function ProjectStats({ path, stats }: ProjectStatsProps) {
+export function ProjectStats({
+  path,
+  stats,
+  onExportProject,
+  isExporting,
+}: ProjectStatsProps) {
   return (
-    <Card>
+    <Card className="flex flex-col h-fit">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base">Thống kê dự án</CardTitle>
         <Tooltip>
@@ -27,13 +48,14 @@ export function ProjectStats({ path, stats }: ProjectStatsProps) {
           </TooltipTrigger>
           <TooltipContent>
             <p>
-              Các tệp bị loại trừ bởi .gitignore và các file lock (ví dụ:
-              package-lock.json, Cargo.lock) sẽ không được tính.
+              Các tệp bị loại trừ bởi .gitignore và các file lock sẽ không được
+              tính.
             </p>
           </TooltipContent>
         </Tooltip>
       </CardHeader>
       <CardContent>
+        {/* Phần hiển thị stats giữ nguyên */}
         <div className="flex flex-col gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Folder className="h-4 w-4 shrink-0" />
@@ -67,6 +89,23 @@ export function ProjectStats({ path, stats }: ProjectStatsProps) {
           )}
         </div>
       </CardContent>
+      {/* --- PHẦN MỚI: Thêm footer với nút export --- */}
+      <CardFooter>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onExportProject}
+          disabled={isExporting}
+          className="w-full"
+        >
+          {isExporting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
+          {isExporting ? "Đang xuất..." : "Xuất toàn bộ dự án"}
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
