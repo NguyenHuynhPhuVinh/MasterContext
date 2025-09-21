@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::fmt::Write as FmtWrite; // Thêm use này để tránh xung đột với std::io::Write
 use tauri::Manager;
 use ignore::WalkBuilder; // <--- Import WalkBuilder từ crate ignore
 
@@ -153,6 +154,7 @@ fn get_project_stats(path: String) -> Result<ProjectStats, String> {
 }
 // --- KẾT THÚC VIẾT LẠI ---
 
+// --- VIẾT LẠI HOÀN TOÀN COMMAND `generate_project_context` ---
 #[tauri::command]
 fn generate_project_context(path: String) -> Result<String, String> {
     let root_path = Path::new(&path);
@@ -160,32 +162,49 @@ fn generate_project_context(path: String) -> Result<String, String> {
         return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
     }
 
-    let mut context_string = String::new();
-    let walker = WalkBuilder::new(root_path).build();
+    let mut directory_structure = String::new();
+    let mut file_contents = String::new();
+    
+    // Sử dụng WalkBuilder để duyệt qua tất cả các file và thư mục hợp lệ
+    // .sort_by_file_path() để đảm bảo thứ tự nhất quán
+    let walker = WalkBuilder::new(root_path).sort_by_file_path(|a, b| a.cmp(b)).build();
 
     for result in walker {
         match result {
             Ok(entry) => {
                 let entry_path = entry.path();
-                // Chỉ xử lý các file, bỏ qua thư mục
-                if entry_path.is_file() {
-                    // Lấy đường dẫn tương đối để hiển thị trong file context
-                    if let Ok(relative_path) = entry_path.strip_prefix(root_path) {
+                if let Ok(relative_path) = entry_path.strip_prefix(root_path) {
+                    // Bỏ qua thư mục gốc (đường dẫn rỗng)
+                    if relative_path.as_os_str().is_empty() {
+                        continue;
+                    }
+                    
+                    let depth = entry.depth();
+                    let indent = "    ".repeat(depth.saturating_sub(1));
+                    let file_name = entry.file_name().to_string_lossy();
+                    
+                    // Xây dựng cây thư mục
+                    if entry.file_type().map_or(false, |ft| ft.is_dir()) {
+                        let _ = writeln!(directory_structure, "{}└── {}/", indent, file_name);
+                    } else {
+                        let _ = writeln!(directory_structure, "{}├── {}", indent, file_name);
+                    }
+
+                    // Nếu là file, đọc và thêm vào phần nội dung
+                    if entry_path.is_file() {
                         let header = format!(
                             "================================================\nFILE: {}\n================================================\n",
                             relative_path.display().to_string().replace("\\", "/")
                         );
-                        context_string.push_str(&header);
+                        file_contents.push_str(&header);
 
-                        // Đọc nội dung file
                         match fs::read_to_string(entry_path) {
                             Ok(content) => {
-                                context_string.push_str(&content);
-                                context_string.push_str("\n\n");
+                                file_contents.push_str(&content);
+                                file_contents.push_str("\n\n");
                             }
                             Err(_) => {
-                                // Nếu file không phải là UTF-8 (ví dụ: file ảnh, binary)
-                                context_string.push_str("[Nội dung không thể đọc dưới dạng văn bản (không phải UTF-8)]\n\n");
+                                file_contents.push_str("[Nội dung không thể đọc dưới dạng văn bản (không phải UTF-8)]\n\n");
                             }
                         }
                     }
@@ -197,8 +216,17 @@ fn generate_project_context(path: String) -> Result<String, String> {
         }
     }
 
-    Ok(context_string)
+    // Ghép tất cả lại
+    let final_context = format!(
+        "--- START OF FILE project_context.txt ---\n\nDirectory structure:\n└── {}\n{}\n\n{}",
+        root_path.file_name().unwrap_or_default().to_string_lossy(),
+        directory_structure,
+        file_contents
+    );
+
+    Ok(final_context)
 }
+// --- KẾT THÚC VIẾT LẠI ---
 
 #[tauri::command]
 fn greet(name: &str) -> String {
