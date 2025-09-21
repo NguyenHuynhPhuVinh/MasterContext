@@ -7,13 +7,17 @@ import { cn } from "@/lib/utils";
 export interface FileNode {
   name: string;
   path: string;
-  children?: FileNode[];
+  children?: FileNode[] | null; // <-- Cập nhật type để khớp với JSON từ Rust
 }
 
 interface FileTreeViewProps {
   node: FileNode;
   selectedPaths: Set<string>;
-  onToggle: (path: string, isSelected: boolean, children?: FileNode[]) => void;
+  onToggle: (
+    path: string,
+    isSelected: boolean,
+    children?: FileNode[] | null
+  ) => void;
   level?: number;
 }
 
@@ -23,7 +27,11 @@ export function FileTreeView({
   onToggle,
   level = 0,
 }: FileTreeViewProps) {
-  const isDirectory = node.children !== undefined;
+  // --- BẮT ĐẦU SỬA LỖI ---
+  // Thay đổi cách kiểm tra thư mục để chính xác hơn
+  const isDirectory = Array.isArray(node.children);
+  // --- KẾT THÚC SỬA LỖI ---
+
   const [isOpen, setIsOpen] = useState(level < 2); // Mở sẵn 2 cấp đầu
 
   const isSelected = selectedPaths.has(node.path);

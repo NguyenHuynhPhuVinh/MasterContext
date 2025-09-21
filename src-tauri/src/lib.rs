@@ -248,7 +248,7 @@ fn read_directory(path: String) -> Result<Vec<DirEntry>, String> {
 }
 
 // --- PHẦN CẢI TIẾN: Cấu trúc dữ liệu cho cây thư mục ---
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum FsEntry {
     File,
     Directory(BTreeMap<String, FsEntry>),
@@ -348,12 +348,48 @@ fn get_project_file_tree(path: String) -> Result<FileNode, String> {
 fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Result<GroupContextResult, String> {
     let root_path = Path::new(&root_path_str);
     let mut all_files_to_include = HashSet::new();
-    let mut context_string = String::new();
+    let mut file_contents_string = String::new();
+
+    // --- PHẦN MỚI: Xây dựng cây thư mục từ các đường dẫn đã chọn ---
+    let mut selected_tree_root = BTreeMap::new();
+    for relative_path_str in &paths {
+        let path = Path::new(relative_path_str);
+        let mut current_level = &mut selected_tree_root;
+        
+        let full_path = root_path.join(path);
+        let entry_type = if full_path.is_dir() { 
+            FsEntry::Directory(BTreeMap::new()) 
+        } else { 
+            FsEntry::File 
+        };
+
+        for component in path.components() {
+            let component_str = component.as_os_str().to_string_lossy().into_owned();
+            
+            // Nếu component này là cuối cùng trong path, dùng entry_type đã xác định
+            if path.ends_with(component.as_os_str()) {
+                 current_level.entry(component_str).or_insert(entry_type.clone());
+                 break; // Đã chèn xong, thoát vòng lặp components
+            } else {
+                // Nếu không, nó phải là một thư mục trung gian
+                let dir_entry = FsEntry::Directory(BTreeMap::new());
+                current_level = match current_level.entry(component_str).or_insert(dir_entry) {
+                    FsEntry::Directory(children) => children,
+                    _ => break, // Lỗi logic, không nên xảy ra
+                };
+            }
+        }
+    }
+
+    // "Vẽ" cây thư mục đã chọn
+    let mut directory_structure = String::new();
+    format_tree(&selected_tree_root, "", &mut directory_structure);
+    // --- KẾT THÚC PHẦN MỚI ---
+
 
     for relative_path_str in paths {
         let full_path = root_path.join(&relative_path_str);
         if full_path.is_dir() {
-            // Nếu là thư mục, đi sâu vào và thêm tất cả các file
             let walker = WalkBuilder::new(full_path).build();
             for entry in walker.filter_map(Result::ok) {
                 if entry.file_type().map_or(false, |ft| ft.is_file()) {
@@ -361,12 +397,10 @@ fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Resu
                 }
             }
         } else if full_path.is_file() {
-            // Nếu là file, thêm trực tiếp
             all_files_to_include.insert(full_path);
         }
     }
 
-    // Sắp xếp các file theo đường dẫn để đảm bảo thứ tự nhất quán
     let mut sorted_files: Vec<PathBuf> = all_files_to_include.into_iter().collect();
     sorted_files.sort();
 
@@ -374,19 +408,25 @@ fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Resu
         if let Ok(content) = fs::read_to_string(&file_path) {
             if let Ok(relative_path) = file_path.strip_prefix(root_path) {
                 let header = format!("================================================\nFILE: {}\n================================================\n", relative_path.display().to_string().replace("\\", "/"));
-                context_string.push_str(&header);
-                context_string.push_str(&content);
-                context_string.push_str("\n\n");
+                file_contents_string.push_str(&header);
+                file_contents_string.push_str(&content);
+                file_contents_string.push_str("\n\n");
             }
         }
     }
+    
+    // --- CẬP NHẬT: Ghép cây thư mục và nội dung file ---
+    let final_context = format!(
+        "Selected directory structure:\n{}\n\n{}",
+        directory_structure,
+        file_contents_string
+    );
 
-    // Đếm token
     let bpe = cl100k_base().map_err(|e| e.to_string())?;
-    let token_count = bpe.encode_with_special_tokens(&context_string).len();
+    let token_count = bpe.encode_with_special_tokens(&final_context).len();
 
     Ok(GroupContextResult {
-        context: context_string,
+        context: final_context,
         token_count,
     })
 }

@@ -14,6 +14,13 @@ interface GroupContextResult {
   token_count: number;
 }
 
+export interface ProjectStats {
+  total_files: number;
+  total_dirs: number;
+  total_size: number;
+  total_tokens: number;
+}
+
 export interface Group {
   id: string; // Dùng ID duy nhất để dễ dàng cập nhật/xóa
   name: string;
@@ -29,6 +36,9 @@ interface AppState {
   // --- STATE MỚI ĐỂ ĐIỀU HƯỚNG ---
   activeScene: "dashboard" | "groupEditor";
   editingGroupId: string | null;
+  // --- STATE MỚI ---
+  projectStats: ProjectStats | null;
+  isScanning: boolean;
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
     navigateTo: (dirName: string) => Promise<void>;
@@ -64,32 +74,45 @@ export const useAppStore = create<AppState>((set, get) => {
     groups: [],
     activeScene: "dashboard", // <-- Giá trị mặc định
     editingGroupId: null,
+    // --- GIÁ TRỊ MẶC ĐỊNH CHO STATE MỚI ---
+    projectStats: null,
+    isScanning: false,
     actions: {
-      // --- CẬP NHẬT: Tải dữ liệu khi chọn thư mục ---
+      // --- CẬP NHẬT selectRootPath ĐỂ QUÉT VÀ LƯU STATS ---
       selectRootPath: async (path) => {
+        set({ isScanning: true, projectStats: null }); // Bắt đầu quét
         try {
+          // Tải dữ liệu nhóm đã lưu
           const projectData = await invoke<ProjectData>("load_project_data", {
             path,
           });
+
+          // Quét và lấy thống kê tổng thể của dự án
+          const stats = await invoke<ProjectStats>("get_project_stats", {
+            path,
+          });
+
           set({
             rootPath: path,
             selectedPath: path,
-            // Đảm bảo các group cũ không có paths/tokenCount sẽ có giá trị mặc định
             groups: (projectData.groups || []).map((g) => ({
               ...g,
               paths: g.paths || [],
               tokenCount: g.tokenCount || 0,
             })),
             activeScene: "dashboard",
+            projectStats: stats, // <-- Lưu stats vào store
           });
         } catch (error) {
-          console.error("Lỗi khi tải dữ liệu dự án:", error);
+          console.error("Lỗi khi tải hoặc quét dự án:", error);
           set({
             rootPath: path,
             selectedPath: path,
             groups: [],
             activeScene: "dashboard",
           });
+        } finally {
+          set({ isScanning: false }); // Kết thúc quét
         }
       },
       navigateTo: async (dirName) => {

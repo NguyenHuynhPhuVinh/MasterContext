@@ -7,7 +7,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAppStore, useAppActions, type Group } from "@/store/appStore";
-import { useProjectStats } from "@/hooks/useProjectStats";
+// --- XÓA DÒNG NÀY ---
+// import { useProjectStats } from "@/hooks/useProjectStats";
 
 // Import UI components
 import {
@@ -50,8 +51,12 @@ type GroupFormValues = z.infer<typeof groupSchema>;
 export function DashboardScene() {
   const selectedPath = useAppStore((state) => state.selectedPath);
   const rootPath = useAppStore((state) => state.rootPath);
+  // --- LẤY DỮ LIỆU TRỰC TIẾP TỪ STORE ---
+  const projectStats = useAppStore((state) => state.projectStats);
+  const isScanning = useAppStore((state) => state.isScanning);
   const { addGroup, updateGroup } = useAppActions();
-  const { stats, isLoading } = useProjectStats(selectedPath);
+  // --- XÓA DÒNG NÀY ---
+  // const { stats, isLoading } = useProjectStats(selectedPath);
 
   // --- LOGIC DIALOG ĐƯỢC CHUYỂN LÊN ĐÂY ---
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -108,10 +113,13 @@ export function DashboardScene() {
     }
   };
 
-  if (isLoading && !stats) {
+  // --- CẬP NHẬT ĐIỀU KIỆN TẢI ---
+  if (isScanning && !projectStats) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-lg text-muted-foreground">Đang quét dự án...</p>
+        <p className="text-lg text-muted-foreground">
+          Đang quét dự án lần đầu...
+        </p>
       </div>
     );
   }
@@ -123,7 +131,8 @@ export function DashboardScene() {
         <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
           <div className="flex h-full flex-col gap-4 p-4">
             <h2 className="text-xl font-bold px-2">Thông tin Dự án</h2>
-            <ProjectStatsComponent path={selectedPath} stats={stats} />
+            {/* --- TRUYỀN projectStats THAY VÌ stats --- */}
+            <ProjectStatsComponent path={selectedPath} stats={projectStats} />
           </div>
         </ResizablePanel>
 
