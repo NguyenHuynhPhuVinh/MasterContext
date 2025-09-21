@@ -25,20 +25,11 @@ function App() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      {/* Header của ứng dụng */}
-      <header className="border-b border-border p-4 shadow-sm">
-        <h1 className="text-2xl font-bold">Master Context</h1>
-        <p className="text-sm text-muted-foreground">
-          Công cụ quản lý và tạo ngữ cảnh cho dự án của bạn.
-        </p>
-      </header>
-
       {/* Nội dung chính */}
       <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
-        <h2 className="text-3xl font-semibold">Bắt đầu ngay</h2>
-        <p className="max-w-md text-muted-foreground">
-          Nhấn vào nút bên dưới để chọn một thư mục chứa dự án của bạn và chúng
-          tôi sẽ phân tích nó.
+        <h1 className="text-4xl font-bold">Master Context</h1>
+        <p className="text-sm text-muted-foreground">
+          Công cụ quản lý và tạo ngữ cảnh cho dự án của bạn.
         </p>
 
         {/* Nút chọn thư mục */}
