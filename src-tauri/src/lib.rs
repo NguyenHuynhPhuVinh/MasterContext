@@ -154,6 +154,53 @@ fn get_project_stats(path: String) -> Result<ProjectStats, String> {
 // --- KẾT THÚC VIẾT LẠI ---
 
 #[tauri::command]
+fn generate_project_context(path: String) -> Result<String, String> {
+    let root_path = Path::new(&path);
+    if !root_path.is_dir() {
+        return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
+    }
+
+    let mut context_string = String::new();
+    let walker = WalkBuilder::new(root_path).build();
+
+    for result in walker {
+        match result {
+            Ok(entry) => {
+                let entry_path = entry.path();
+                // Chỉ xử lý các file, bỏ qua thư mục
+                if entry_path.is_file() {
+                    // Lấy đường dẫn tương đối để hiển thị trong file context
+                    if let Ok(relative_path) = entry_path.strip_prefix(root_path) {
+                        let header = format!(
+                            "================================================\nFILE: {}\n================================================\n",
+                            relative_path.display().to_string().replace("\\", "/")
+                        );
+                        context_string.push_str(&header);
+
+                        // Đọc nội dung file
+                        match fs::read_to_string(entry_path) {
+                            Ok(content) => {
+                                context_string.push_str(&content);
+                                context_string.push_str("\n\n");
+                            }
+                            Err(_) => {
+                                // Nếu file không phải là UTF-8 (ví dụ: file ảnh, binary)
+                                context_string.push_str("[Nội dung không thể đọc dưới dạng văn bản (không phải UTF-8)]\n\n");
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("[Master Context] Lỗi khi quét file để xuất: {}", e);
+            }
+        }
+    }
+
+    Ok(context_string)
+}
+
+#[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
@@ -184,12 +231,15 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             greet, 
             read_directory, 
             get_project_stats,
             load_project_data,
-            save_project_data
+            save_project_data,
+            // --- CẬP NHẬT: Thêm command mới vào handler ---
+            generate_project_context
         ]) 
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

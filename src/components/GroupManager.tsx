@@ -4,6 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAppStore, useAppActions, type Group } from "@/store/appStore";
+import { invoke } from "@tauri-apps/api/core"; // <-- Import invoke
+import { save } from "@tauri-apps/plugin-dialog"; // <-- Import save dialog
+import { writeTextFile } from "@tauri-apps/plugin-fs"; // <-- Import hàm ghi file
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +34,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, MoreHorizontal, Trash2, Pencil } from "lucide-react";
+import {
+  PlusCircle,
+  MoreHorizontal,
+  Trash2,
+  Pencil,
+  Download,
+  Loader2,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,10 +68,12 @@ const groupSchema = z.object({
 type GroupFormValues = z.infer<typeof groupSchema>;
 
 export function GroupManager() {
+  const rootPath = useAppStore((state) => state.rootPath); // Lấy rootPath từ store
   const groups = useAppStore((state) => state.groups);
   const { addGroup, updateGroup, deleteGroup } = useAppActions();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const [isExporting, setIsExporting] = useState(false); // <-- State cho việc xuất file
 
   const form = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
@@ -87,6 +99,37 @@ export function GroupManager() {
     setIsDialogOpen(false);
   };
 
+  // --- PHẦN MỚI: Hàm xử lý xuất dự án ---
+  const handleExportProject = async () => {
+    if (!rootPath) return;
+    setIsExporting(true);
+    try {
+      // 1. Gọi command Rust để lấy chuỗi context
+      const context = await invoke<string>("generate_project_context", {
+        path: rootPath,
+      });
+
+      // 2. Mở hộp thoại "Save As..."
+      const filePath = await save({
+        title: "Lưu Ngữ cảnh Dự án",
+        defaultPath: "project_context.txt",
+        filters: [{ name: "Text File", extensions: ["txt"] }],
+      });
+
+      // 3. Nếu người dùng chọn một đường dẫn, ghi file
+      if (filePath) {
+        await writeTextFile(filePath, context);
+        // Tùy chọn: có thể thêm thông báo thành công ở đây
+        console.log("Xuất dự án thành công:", filePath);
+      }
+    } catch (error) {
+      console.error("Lỗi khi xuất dự án:", error);
+      // Tùy chọn: hiển thị thông báo lỗi cho người dùng
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     // --- CẬP NHẬT: Gỡ bỏ thẻ div với class "container" ---
     <>
@@ -97,9 +140,24 @@ export function GroupManager() {
             Tạo và quản lý các nhóm ngữ cảnh cho dự án của bạn.
           </p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm mới
-        </Button>
+        {/* --- CẬP NHẬT: Thêm nút Xuất dự án --- */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExportProject}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {isExporting ? "Đang xuất..." : "Xuất dự án"}
+          </Button>
+          <Button onClick={() => handleOpenDialog()}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm mới
+          </Button>
+        </div>
       </div>
 
       {/* Phần còn lại của component giữ nguyên y hệt */}
