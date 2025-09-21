@@ -12,9 +12,9 @@
   "app": {
     "windows": [
       {
-        "title": "master-context",
-        "width": 800,
-        "height": 600
+        "title": "Master Context",
+        "width": 1280,
+        "height": 720
       }
     ],
     "security": {

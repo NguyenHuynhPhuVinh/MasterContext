@@ -1,80 +1,66 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
+import { Folder } from "lucide-react";
 import "./App.css";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  // Hàm xử lý việc mở hộp thoại chọn thư mục
+  const handleSelectFolder = async () => {
+    try {
+      const result = await open({
+        directory: true, // Chỉ cho phép chọn thư mục
+        multiple: false, // Chỉ cho phép chọn một thư mục
+        title: "Chọn một thư mục dự án",
+      });
 
-  // Lớp CSS cơ bản cho các logo để tránh lặp lại
-  const logoClasses = "h-24 p-6 transition-all duration-700";
+      if (typeof result === "string") {
+        setSelectedPath(result);
+      }
+    } catch (error) {
+      console.error("Lỗi khi chọn thư mục:", error);
+    }
+  };
 
   return (
-    // Container chính: flexbox, căn giữa, nền sáng/tối
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">
-      {/* Tiêu đề */}
-      <h1 className="text-4xl font-bold">Welcome to Tauri + React</h1>
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      {/* Header của ứng dụng */}
+      <header className="border-b border-border p-4 shadow-sm">
+        <h1 className="text-2xl font-bold">Master Context</h1>
+        <p className="text-sm text-muted-foreground">
+          Công cụ quản lý và tạo ngữ cảnh cho dự án của bạn.
+        </p>
+      </header>
 
-      {/* Hàng chứa các logo */}
-      <div className="flex justify-center gap-8">
-        <a href="https://vite.dev" target="_blank">
-          <img
-            src="/vite.svg"
-            className={`${logoClasses} hover:drop-shadow-[0_0_2em_#747bff]`}
-            alt="Vite logo"
-          />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img
-            src="/tauri.svg"
-            className={`${logoClasses} hover:drop-shadow-[0_0_2em_#24c8db]`}
-            alt="Tauri logo"
-          />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img
-            src={reactLogo}
-            className={`${logoClasses} hover:drop-shadow-[0_0_2em_#61dafb]`}
-            alt="React logo"
-          />
-        </a>
-      </div>
+      {/* Nội dung chính */}
+      <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
+        <h2 className="text-3xl font-semibold">Bắt đầu ngay</h2>
+        <p className="max-w-md text-muted-foreground">
+          Nhấn vào nút bên dưới để chọn một thư mục chứa dự án của bạn và chúng
+          tôi sẽ phân tích nó.
+        </p>
 
-      <p className="text-lg">
-        Click on the Tauri, Vite, and React logos to learn more.
-      </p>
-
-      {/* Form nhập liệu */}
-      <form
-        className="flex items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          className="rounded-lg border border-zinc-300 bg-white px-4 py-2 font-medium shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
+        {/* Nút chọn thư mục */}
         <button
-          type="submit"
-          className="rounded-lg border border-transparent bg-white px-4 py-2 font-medium shadow-sm transition-colors hover:border-blue-500 dark:bg-zinc-800 dark:hover:border-sky-400"
+          onClick={handleSelectFolder}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          Greet
+          <Folder className="h-6 w-6" />
+          <span>Chọn Thư Mục</span>
         </button>
-      </form>
 
-      {/* Tin nhắn chào mừng */}
-      <p className="mt-4 h-6 text-lg">{greetMsg}</p>
-    </main>
+        {/* Hiển thị đường dẫn đã chọn */}
+        {selectedPath && (
+          <div className="mt-6 w-full max-w-xl">
+            <p className="text-sm text-muted-foreground">Thư mục đã chọn:</p>
+            <p className="mt-1 break-all rounded-md bg-muted p-3 font-mono text-sm text-muted-foreground">
+              {selectedPath}
+            </p>
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
 
