@@ -65,6 +65,53 @@ fn read_directory(path: String) -> Result<Vec<DirEntry>, String> {
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 
 
+// --- PHẦN MỚI: Struct để chứa dữ liệu thống kê của toàn bộ dự án ---
+#[derive(Serialize, Deserialize, Debug, Default)] // Thêm Default để dễ khởi tạo
+struct ProjectStats {
+    total_files: u64,
+    total_dirs: u64,
+    total_size: u64, // Lưu dưới dạng bytes
+}
+
+// --- PHẦN MỚI: Hàm trợ giúp đệ quy để quét thư mục ---
+// Nó nhận vào một đường dẫn và một tham chiếu có thể thay đổi đến struct stats
+fn recursive_scan(path: &Path, stats: &mut ProjectStats) -> std::io::Result<()> {
+    for entry_result in fs::read_dir(path)? {
+        let entry = entry_result?;
+        let entry_path = entry.path();
+        
+        if entry_path.is_dir() {
+            stats.total_dirs += 1;
+            // Gọi đệ quy cho thư mục con
+            recursive_scan(&entry_path, stats)?;
+        } else if entry_path.is_file() {
+            stats.total_files += 1;
+            // Lấy metadata để biết dung lượng file
+            if let Ok(metadata) = entry.metadata() {
+                stats.total_size += metadata.len();
+            }
+        }
+    }
+    Ok(())
+}
+
+// --- PHẦN MỚI: Tauri command mới để lấy thống kê dự án ---
+#[tauri::command]
+fn get_project_stats(path: String) -> Result<ProjectStats, String> {
+    let mut stats = ProjectStats::default();
+    let root_path = Path::new(&path);
+
+    if !root_path.is_dir() {
+        return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
+    }
+
+    match recursive_scan(root_path, &mut stats) {
+        Ok(_) => Ok(stats),
+        Err(e) => Err(format!("Lỗi khi quét thư mục: {}", e)),
+    }
+}
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -72,7 +119,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         // --- PHẦN CẬP NHẬT ---
         // Thêm `read_directory` vào handler
-        .invoke_handler(tauri::generate_handler![greet, read_directory]) 
+        .invoke_handler(tauri::generate_handler![greet, read_directory, get_project_stats]) 
         // --- KẾT THÚC PHẦN CẬP NHẬT ---
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

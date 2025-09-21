@@ -1,30 +1,27 @@
 // src/scenes/DashboardScene.tsx
 import { useAppStore } from "@/store/appStore";
-import { useDirectoryReader } from "@/hooks/useDirectoryReader";
-import { ProjectStats } from "@/components/ProjectStats";
-import { GroupManager } from "@/scenes/GroupManager";
+import { useProjectStats } from "@/hooks/useProjectStats"; // <-- Đổi import
+import { ProjectStats as ProjectStatsComponent } from "@/components/ProjectStats"; // Đổi tên để tránh xung đột
+import { GroupManager } from "@/components/GroupManager";
 
 export function DashboardScene() {
   const selectedPath = useAppStore((state) => state.selectedPath);
-  const { fileCount, directoryCount, isLoading } =
-    useDirectoryReader(selectedPath);
+  // --- CẬP NHẬT: Sử dụng hook mới và nhận về `stats` ---
+  const { stats, isLoading } = useProjectStats(selectedPath);
 
-  if (isLoading && !selectedPath) {
+  if (isLoading && !stats) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-lg text-muted-foreground">Đang tải...</p>
+        <p className="text-lg text-muted-foreground">Đang quét dự án...</p>
       </div>
     );
   }
 
   return (
-    <div className="relative h-full w-full overflow-y-auto">
+    <div className="relative h-full w-full overflow-y-auto p-8">
       <GroupManager />
-      <ProjectStats
-        path={selectedPath}
-        fileCount={fileCount}
-        directoryCount={directoryCount}
-      />
+      {/* Truyền `stats` xuống component con */}
+      <ProjectStatsComponent path={selectedPath} stats={stats} />
     </div>
   );
 }

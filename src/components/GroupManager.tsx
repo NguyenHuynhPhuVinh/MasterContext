@@ -88,7 +88,8 @@ export function GroupManager() {
   };
 
   return (
-    <div className="container mx-auto py-10">
+    // --- CẬP NHẬT: Gỡ bỏ thẻ div với class "container" ---
+    <>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Quản lý Phân nhóm</h1>
@@ -101,6 +102,7 @@ export function GroupManager() {
         </Button>
       </div>
 
+      {/* Phần còn lại của component giữ nguyên y hệt */}
       {groups.length === 0 ? (
         <div className="text-center py-16 border-2 border-dashed rounded-lg">
           <h3 className="text-xl font-semibold">Chưa có nhóm nào</h3>
@@ -223,6 +225,7 @@ export function GroupManager() {
           </Form>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
+    // --- KẾT THÚC CẬP NHẬT ---
   );
 }
