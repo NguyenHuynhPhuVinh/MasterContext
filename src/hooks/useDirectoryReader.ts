@@ -1,7 +1,12 @@
 // src/hooks/useDirectoryReader.ts
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { DirEntry } from "@/components/FileExplorer";
+
+// Định nghĩa lại interface ở đây để hook tự quản lý
+interface DirEntry {
+  name: string;
+  is_directory: boolean;
+}
 
 export function useDirectoryReader(path: string | null) {
   const [contents, setContents] = useState<DirEntry[]>([]);
@@ -9,11 +14,11 @@ export function useDirectoryReader(path: string | null) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // ... (phần useEffect giữ nguyên)
     if (!path) {
       setContents([]);
       return;
     }
-
     const loadContents = async () => {
       setIsLoading(true);
       setError(null);
@@ -29,9 +34,15 @@ export function useDirectoryReader(path: string | null) {
         setIsLoading(false);
       }
     };
-
     loadContents();
-  }, [path]); // Chạy lại effect này mỗi khi `path` thay đổi
+  }, [path]);
 
-  return { contents, isLoading, error };
+  // --- PHẦN MỚI: Tính toán thống kê ---
+  const stats = useMemo(() => {
+    const fileCount = contents.filter((item) => !item.is_directory).length;
+    const directoryCount = contents.length - fileCount;
+    return { fileCount, directoryCount };
+  }, [contents]);
+
+  return { contents, isLoading, error, ...stats };
 }
