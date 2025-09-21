@@ -6,6 +6,7 @@ import * as z from "zod";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { open } from "@tauri-apps/plugin-dialog"; // <-- Thêm import này
 import { useAppStore, useAppActions, type Group } from "@/store/appStore";
 
 // Import UI components
@@ -36,7 +37,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"; // <-- Thêm import Tooltip
+import { PlusCircle, FolderSync } from "lucide-react"; // <-- Thêm icon FolderSync
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Schema validation cho form
@@ -52,7 +58,7 @@ export function DashboardScene() {
   const projectStats = useAppStore((state) => state.projectStats);
   const isScanning = useAppStore((state) => state.isScanning);
 
-  const { addGroup, updateGroup } = useAppActions();
+  const { addGroup, updateGroup, selectRootPath } = useAppActions(); // <-- Thêm selectRootPath
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
@@ -80,6 +86,23 @@ export function DashboardScene() {
       addGroup({ name: data.name, description: data.description || "" });
     }
     setIsDialogOpen(false);
+  };
+
+  // --- HÀM MỚI: Tái sử dụng logic từ WelcomeScene ---
+  const handleOpenAnotherFolder = async () => {
+    try {
+      const result = await open({
+        directory: true,
+        multiple: false,
+        title: "Chọn một thư mục dự án khác",
+      });
+      if (typeof result === "string") {
+        // Gọi action này sẽ tự động reset và quét dự án mới
+        selectRootPath(result);
+      }
+    } catch (error) {
+      console.error("Lỗi khi chọn thư mục khác:", error);
+    }
   };
 
   const handleExportProject = async () => {
@@ -124,7 +147,25 @@ export function DashboardScene() {
         {/* === SIDEBAR === */}
         <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
           <div className="flex h-full flex-col gap-4 p-4">
-            <h2 className="text-xl font-bold px-2">Thông tin Dự án</h2>
+            {/* --- CẬP NHẬT: Thêm nút vào header của sidebar --- */}
+            <div className="flex items-center justify-between px-2">
+              <h2 className="text-xl font-bold">Thông tin Dự án</h2>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleOpenAnotherFolder}
+                  >
+                    <FolderSync className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Mở dự án khác</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+
             <ProjectStatsComponent
               path={selectedPath}
               stats={projectStats}
