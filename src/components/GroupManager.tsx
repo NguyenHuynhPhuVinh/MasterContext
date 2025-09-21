@@ -1,14 +1,26 @@
 // src/components/GroupManager.tsx
 import { useAppStore, useAppActions, type Group } from "@/store/appStore";
+import { invoke } from "@tauri-apps/api/core";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardContent, // <-- Thêm CardContent
   CardDescription,
+  CardFooter, // <-- Thêm CardFooter
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MoreHorizontal, Trash2, Pencil } from "lucide-react";
+import {
+  MoreHorizontal,
+  Trash2,
+  Pencil,
+  Download,
+  BrainCircuit,
+  ListChecks,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +46,36 @@ interface GroupManagerProps {
 
 export function GroupManager({ onEditGroup }: GroupManagerProps) {
   const groups = useAppStore((state) => state.groups);
-  const { deleteGroup } = useAppActions();
+  const rootPath = useAppStore((state) => state.rootPath);
+  const { deleteGroup, editGroupContent } = useAppActions();
+
+  const handleExportGroup = async (group: Group) => {
+    if (!rootPath || group.paths.length === 0) {
+      alert("Nhóm này chưa có tệp/thư mục nào được chọn.");
+      return;
+    }
+    try {
+      const result = await invoke<{ context: string }>(
+        "generate_context_for_paths",
+        {
+          rootPathStr: rootPath,
+          paths: group.paths,
+        }
+      );
+      const filePath = await save({
+        title: `Lưu Ngữ cảnh cho nhóm "${group.name}"`,
+        defaultPath: `${group.name.replace(/\s+/g, "_")}_context.txt`,
+        filters: [{ name: "Text File", extensions: ["txt"] }],
+      });
+      if (filePath) {
+        await writeTextFile(filePath, result.context);
+        alert(`Đã lưu file thành công!`);
+      }
+    } catch (error) {
+      console.error("Lỗi khi xuất ngữ cảnh nhóm:", error);
+      alert("Đã xảy ra lỗi khi xuất file.");
+    }
+  };
 
   return (
     <>
@@ -48,7 +89,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
           {groups.map((group) => (
-            <Card key={group.id}>
+            <Card key={group.id} className="flex flex-col">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
@@ -102,6 +143,26 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                   </DropdownMenu>
                 </div>
               </CardHeader>
+              <CardContent className="flex-grow">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <BrainCircuit className="h-4 w-4 mr-2" />
+                  <span>
+                    Ước tính: {group.tokenCount.toLocaleString()} tokens
+                  </span>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleExportGroup(group)}
+                >
+                  <Download className="mr-2 h-4 w-4" /> Xuất
+                </Button>
+                <Button size="sm" onClick={() => editGroupContent(group.id)}>
+                  <ListChecks className="mr-2 h-4 w-4" /> Quản lý nội dung
+                </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>

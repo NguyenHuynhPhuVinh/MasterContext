@@ -1,7 +1,7 @@
 // src-tauri/src/lib.rs
 
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap; // Sử dụng BTreeMap để các mục được sắp xếp theo alphabet
+use std::collections::{BTreeMap, HashSet}; // <-- Thêm HashSet
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -36,11 +36,29 @@ struct Group {
     id: String,
     name: String,
     description: String,
+    paths: Vec<String>, // <-- Thêm paths
+    token_count: usize, // <-- Thêm token_count
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 struct ProjectData {
     groups: Vec<Group>,
+}
+
+
+// --- STRUCT MỚI CHO CÂY THƯ MỤC ---
+#[derive(Serialize, Deserialize, Debug)]
+struct FileNode {
+    name: String,
+    path: String,
+    children: Option<Vec<FileNode>>,
+}
+
+// --- STRUCT MỚI CHO KẾT QUẢ NGỮ CẢNH NHÓM ---
+#[derive(Serialize, Deserialize, Debug)]
+struct GroupContextResult {
+    context: String,
+    token_count: usize,
 }
 
 // Hàm quét lõi, thực hiện tất cả công việc nặng nhọc CHỈ MỘT LẦN
@@ -269,6 +287,111 @@ fn generate_project_context(path: String) -> Result<String, String> {
 }
 
 
+// --- COMMAND MỚI: LẤY CÂY THƯ MỤC DỰ ÁN ---
+fn build_file_tree_recursive(path: &Path, root_path: &Path) -> Result<Option<FileNode>, std::io::Error> {
+    let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let relative_path = path.strip_prefix(root_path).unwrap_or(path);
+    let relative_path_str = relative_path.to_string_lossy().replace("\\", "/");
+
+    if path.is_dir() {
+        let mut children = Vec::new();
+        // Sử dụng WalkBuilder để tôn trọng .gitignore
+        let walker = WalkBuilder::new(path)
+            .max_depth(Some(1)) // Chỉ duyệt cấp con trực tiếp
+            .sort_by_file_path(|a, b| a.cmp(b))
+            .build();
+
+        for entry in walker.filter_map(Result::ok) {
+            let entry_path = entry.path();
+            if entry_path == path { continue; } // Bỏ qua chính thư mục gốc
+            if let Some(child_node) = build_file_tree_recursive(entry_path, root_path)? {
+                children.push(child_node);
+            }
+        }
+        
+        // Sắp xếp: thư mục trước, file sau, rồi theo alphabet
+        children.sort_by(|a, b| {
+            let a_is_dir = a.children.is_some();
+            let b_is_dir = b.children.is_some();
+            if a_is_dir != b_is_dir {
+                b_is_dir.cmp(&a_is_dir)
+            } else {
+                a.name.cmp(&b.name)
+            }
+        });
+
+        Ok(Some(FileNode {
+            name,
+            path: relative_path_str,
+            children: Some(children),
+        }))
+    } else {
+        Ok(Some(FileNode {
+            name,
+            path: relative_path_str,
+            children: None,
+        }))
+    }
+}
+
+#[tauri::command]
+fn get_project_file_tree(path: String) -> Result<FileNode, String> {
+    let root_path = Path::new(&path);
+    build_file_tree_recursive(root_path, root_path)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "Không thể tạo cây thư mục gốc".to_string())
+}
+
+
+// --- COMMAND MỚI: TẠO NGỮ CẢNH CHO CÁC ĐƯỜNG DẪN CỤ THỂ ---
+#[tauri::command]
+fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Result<GroupContextResult, String> {
+    let root_path = Path::new(&root_path_str);
+    let mut all_files_to_include = HashSet::new();
+    let mut context_string = String::new();
+
+    for relative_path_str in paths {
+        let full_path = root_path.join(&relative_path_str);
+        if full_path.is_dir() {
+            // Nếu là thư mục, đi sâu vào và thêm tất cả các file
+            let walker = WalkBuilder::new(full_path).build();
+            for entry in walker.filter_map(Result::ok) {
+                if entry.file_type().map_or(false, |ft| ft.is_file()) {
+                    all_files_to_include.insert(entry.path().to_path_buf());
+                }
+            }
+        } else if full_path.is_file() {
+            // Nếu là file, thêm trực tiếp
+            all_files_to_include.insert(full_path);
+        }
+    }
+
+    // Sắp xếp các file theo đường dẫn để đảm bảo thứ tự nhất quán
+    let mut sorted_files: Vec<PathBuf> = all_files_to_include.into_iter().collect();
+    sorted_files.sort();
+
+    for file_path in sorted_files {
+        if let Ok(content) = fs::read_to_string(&file_path) {
+            if let Ok(relative_path) = file_path.strip_prefix(root_path) {
+                let header = format!("================================================\nFILE: {}\n================================================\n", relative_path.display().to_string().replace("\\", "/"));
+                context_string.push_str(&header);
+                context_string.push_str(&content);
+                context_string.push_str("\n\n");
+            }
+        }
+    }
+
+    // Đếm token
+    let bpe = cl100k_base().map_err(|e| e.to_string())?;
+    let token_count = bpe.encode_with_special_tokens(&context_string).len();
+
+    Ok(GroupContextResult {
+        context: context_string,
+        token_count,
+    })
+}
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -281,7 +404,9 @@ pub fn run() {
             get_project_stats,
             load_project_data,
             save_project_data,
-            generate_project_context
+            generate_project_context,
+            get_project_file_tree, // <-- THÊM MỚI
+            generate_context_for_paths // <-- THÊM MỚI
         ]) 
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
