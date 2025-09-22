@@ -63,6 +63,9 @@ pub struct CachedProjectData {
     pub file_tree: Option<FileNode>,
     pub groups: Vec<Group>,
     pub file_metadata_cache: BTreeMap<String, FileMetadata>,
+    pub sync_enabled: Option<bool>,
+    pub sync_path: Option<String>,
+    pub data_hash: Option<String>,
 }
 
 #[derive(Debug, Clone)]

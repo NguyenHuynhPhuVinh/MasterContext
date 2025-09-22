@@ -1,6 +1,7 @@
 // src/App.tsx
 import { useEffect, useMemo } from "react"; // <-- Thêm useMemo
 import { listen } from "@tauri-apps/api/event";
+// import { invoke } from "@tauri-apps/api/core"; // Không còn dùng
 import { useAppStore, useAppActions } from "./store/appStore";
 import { type GroupStats, type CachedProjectData } from "./store/types";
 import { WelcomeScene } from "./scenes/WelcomeScene";
@@ -55,6 +56,7 @@ function App() {
       // --- SỬA LỖI: SỬA KIỂU DỮ LIỆU TỪ ProjectStats THÀNH CachedProjectData ---
       listen<CachedProjectData>("scan_complete", (event) => {
         _setScanComplete(event.payload);
+        // --- ĐÃ XÓA LỆNH GỌI GÂY LẶP. Logic này giờ được xử lý hoàn toàn trong Rust. ---
       })
     );
 
@@ -73,6 +75,24 @@ function App() {
           _setGroupUpdateComplete(event.payload);
         }
       )
+    );
+
+    // Thêm listener cho các sự kiện đồng bộ tự động
+    unlistenFuncs.push(
+      listen<string>("auto_sync_started", (event) => {
+        console.log("Auto Sync:", event.payload);
+        // Tương lai có thể hiển thị toast notification ở đây
+      })
+    );
+    unlistenFuncs.push(
+      listen<string>("auto_sync_complete", (event) => {
+        console.log("Auto Sync:", event.payload);
+      })
+    );
+    unlistenFuncs.push(
+      listen<string>("auto_sync_error", (event) => {
+        console.error("Auto Sync Error:", event.payload);
+      })
     );
 
     // Dọn dẹp listener khi component unmount

@@ -1,14 +1,43 @@
 // src-tauri/src/commands.rs
 use crate::{models, file_cache, project_scanner, context_generator};
+use std::fs;
 use tauri::{command, Window, Emitter}; // Bỏ AppHandle khỏi use list vì không cần nữa
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[command]
 pub fn open_project(window: Window, path: String) {
     std::thread::spawn(move || {
-        // Gọi hàm không cần app_handle
-        if let Err(e) = project_scanner::perform_smart_scan_and_rebuild(&window, &path) {
-            let _ = window.emit("scan_error", e);
+        // --- LOGIC MỚI, KHÔNG CÒN VÒNG LẶP ---
+
+        // 1. Tải dữ liệu cũ để so sánh hash sau này
+        let old_data_result = file_cache::load_project_data(&path);
+        let old_hash = old_data_result.as_ref().ok().and_then(|d| d.data_hash.clone());
+
+        // 2. Thực hiện quét (hàm này giờ chỉ trả về dữ liệu, không ghi file)
+        match project_scanner::perform_smart_scan_and_rebuild(&path) {
+            Ok(new_data) => {
+                // 3. Lưu dữ liệu mới vào cache
+                if let Err(e) = file_cache::save_project_data(&path, &new_data) {
+                    let _ = window.emit("scan_error", e);
+                    return;
+                }
+
+                // 4. Gửi dữ liệu mới về cho frontend
+                let _ = window.emit("scan_complete", &new_data);
+
+                // 5. Kiểm tra và thực hiện đồng bộ TỰ ĐỘNG ngay tại đây
+                let sync_enabled = new_data.sync_enabled.unwrap_or(false);
+                let has_changed = old_hash != new_data.data_hash;
+
+                if sync_enabled && has_changed && new_data.sync_path.is_some() {
+                    let _ = window.emit("auto_sync_started", "Phát hiện thay đổi, bắt đầu đồng bộ...");
+                    perform_auto_export(&path, &new_data);
+                    let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
+                }
+            }
+            Err(e) => {
+                let _ = window.emit("scan_error", e);
+            }
         }
     });
 }
@@ -125,4 +154,48 @@ pub fn start_project_export(window: Window, path: String) {
             }
         }
     });
+}
+
+// --- COMMAND MỚI: Cập nhật cài đặt đồng bộ ---
+#[command]
+pub fn update_sync_settings(path: String, enabled: bool, sync_path: Option<String>) -> Result<(), String> {
+    let mut project_data = file_cache::load_project_data(&path)?;
+    project_data.sync_enabled = Some(enabled);
+    project_data.sync_path = sync_path;
+    file_cache::save_project_data(&path, &project_data)
+}
+
+// --- HÀM HELPER: Lưu context, được sử dụng bởi auto_export ---
+fn save_context_to_path_internal(path: String, content: String) -> Result<(), String> {
+    let file_path = Path::new(&path);
+    if let Some(parent) = file_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Không thể tạo thư mục cha: {}", e))?;
+    }
+    fs::write(file_path, content)
+        .map_err(|e| format!("Không thể ghi vào file: {}", e))
+}
+
+// --- HÀM HELPER MỚI: Logic xuất tự động ---
+fn perform_auto_export(project_path: &str, data: &models::CachedProjectData) {
+    let sync_path_base = PathBuf::from(data.sync_path.as_ref().unwrap());
+    
+    // 1. Xuất toàn bộ dự án
+    let all_files: Vec<String> = data.file_metadata_cache.keys().cloned().collect();
+    if let Ok(proj_context) = context_generator::generate_context_from_files(project_path, &all_files, true, &data.file_tree) {
+        let file_name = sync_path_base.join("_PROJECT_CONTEXT.txt");
+        let _ = save_context_to_path_internal(file_name.to_string_lossy().to_string(), proj_context);
+    }
+
+    // 2. Xuất từng nhóm
+    for group in &data.groups {
+        let expanded_files = context_generator::expand_group_paths_to_files(&group.paths, &data.file_metadata_cache, Path::new(project_path));
+        if !expanded_files.is_empty() {
+            if let Ok(group_context) = context_generator::generate_context_from_files(project_path, &expanded_files, true, &data.file_tree) {
+                let safe_name = group.name.replace(|c: char| !c.is_alphanumeric(), "_");
+                let file_name = sync_path_base.join(format!("{}_context.txt", safe_name));
+                let _ = save_context_to_path_internal(file_name.to_string_lossy().to_string(), group_context);
+            }
+        }
+    }
 }

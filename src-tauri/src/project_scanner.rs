@@ -5,12 +5,13 @@ use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
-use tauri::{Emitter, Window};
+// use tauri::{Emitter, Window}; // Không còn cần vì hàm không emit nữa
 use ignore::{WalkBuilder, overrides::OverrideBuilder};
 use tiktoken_rs::cl100k_base;
 use regex::Regex;
 use lazy_static::lazy_static;
 use path_clean::PathClean;
+use sha2::{Sha256, Digest};
 
 pub fn recalculate_stats_for_paths(
     paths: &[String],
@@ -135,7 +136,7 @@ fn resolve_link(
     None
 }
 
-pub fn perform_smart_scan_and_rebuild(window: &Window, path: &str) -> Result<(), String> {
+pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, String> {
     let root_path = Path::new(path);
     let bpe = cl100k_base().map_err(|e| e.to_string())?;
 
@@ -214,7 +215,7 @@ pub fn perform_smart_scan_and_rebuild(window: &Window, path: &str) -> Result<(),
         if let (Ok(relative_path), Ok(metadata)) = (entry_path.strip_prefix(root_path), entry.metadata()) {
             if relative_path.as_os_str().is_empty() { continue; }
             
-            let _ = window.emit("scan_progress", relative_path.to_string_lossy());
+            // Bỏ qua việc gửi progress trong lần refactor này để đơn giản hóa
             path_map.insert(entry_path.to_path_buf(), metadata.is_dir());
 
             if metadata.is_dir() {
@@ -327,15 +328,23 @@ pub fn perform_smart_scan_and_rebuild(window: &Window, path: &str) -> Result<(),
         group.stats = recalculate_stats_for_paths(&group.paths, &new_metadata_cache, root_path);
     }
 
+    // --- BƯỚC 4: Tính toán hash để theo dõi thay đổi ---
+    let metadata_json = serde_json::to_string(&new_metadata_cache).unwrap_or_default();
+    let mut hasher = Sha256::new();
+    hasher.update(metadata_json.as_bytes());
+    let hash_result = hasher.finalize();
+    let data_hash = format!("{:x}", hash_result);
+
     let final_data = CachedProjectData {
         stats: new_project_stats,
         file_tree: Some(file_tree),
         groups: updated_groups,
         file_metadata_cache: new_metadata_cache,
+        sync_enabled: old_data.sync_enabled, // Giữ lại cài đặt cũ
+        sync_path: old_data.sync_path,       // Giữ lại cài đặt cũ
+        data_hash: Some(data_hash),
     };
 
-    file_cache::save_project_data(path, &final_data).map_err(|e| e.to_string())?;
-    let _ = window.emit("scan_complete", &final_data);
-
-    Ok(())
+    // --- THAY ĐỔI: Trả về dữ liệu thay vì lưu và emit ---
+    Ok(final_data)
 }

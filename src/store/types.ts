@@ -5,6 +5,9 @@ export interface CachedProjectData {
   file_tree: FileNode | null;
   groups: Group[];
   file_metadata_cache: Record<string, FileMetadata>;
+  sync_enabled?: boolean | null;
+  sync_path?: string | null;
+  data_hash?: string | null;
 }
 
 export interface FileNode {

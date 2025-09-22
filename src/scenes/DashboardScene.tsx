@@ -1,4 +1,5 @@
 // src/scenes/DashboardScene.tsx
+import { useState } from "react";
 import { useDashboard } from "@/hooks/useDashboard";
 
 // Import các component UI cần thiết
@@ -45,11 +46,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { PlusCircle, FolderSync, RotateCw } from "lucide-react";
+import { PlusCircle, FolderSync, RotateCw, Settings } from "lucide-react"; // Thêm Settings
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ThemeToggle } from "@/components/ThemeToggle"; // <-- THÊM IMPORT NÀY
+import { SettingsDialog } from "@/components/SettingsDialog"; // <-- THAY ĐỔI: Import Dialog mới
 
 export function DashboardScene() {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   // --- COMPONENT CHỈ CÒN LẠI VIỆC GỌI HOOK VÀ RENDER UI ---
   const {
     selectedPath,
@@ -152,7 +154,14 @@ export function DashboardScene() {
                 <Button onClick={() => handleOpenDialog()}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm mới
                 </Button>
-                <ThemeToggle /> {/* <-- THÊM COMPONENT THEME TOGGLE */}
+                {/* --- THAY ĐỔI: Thay ThemeToggle bằng nút Cài đặt --- */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSettingsOpen(true)}
+                >
+                  <Settings className="h-5 w-5" />
+                </Button>
               </div>
             </header>
 
@@ -220,6 +229,12 @@ export function DashboardScene() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* --- THÊM MỚI: Render Dialog Cài đặt --- */}
+      <SettingsDialog
+        isOpen={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+      />
     </>
   );
 }

@@ -69,6 +69,9 @@ interface AppState {
   tempSelectedPaths: Set<string> | null; // State tạm để chỉnh sửa cây thư mục
   fileMetadataCache: Record<string, FileMetadata> | null; // <-- THÊM STATE NÀY
   isCrossLinkingEnabled: boolean; // <-- THÊM STATE NÀY
+  // --- STATE MỚI CHO CÀI ĐẶT ĐỒNG BỘ ---
+  syncEnabled: boolean;
+  syncPath: string | null;
 
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
@@ -100,6 +103,11 @@ interface AppState {
     setCrossLinkingEnabled: (enabled: boolean) => void; // <-- THÊM ACTION NÀY
     selectAllFiles: () => void; // <-- THÊM ACTION NÀY
     deselectAllFiles: () => void; // <-- THÊM ACTION NÀY
+    // --- ACTION MỚI CHO CÀI ĐẶT ---
+    setSyncSettings: (settings: {
+      enabled: boolean;
+      path: string | null;
+    }) => Promise<void>;
   };
 }
 
@@ -137,6 +145,9 @@ export const useAppStore = create<AppState>((set, get) => {
     tempSelectedPaths: null, // Giá trị mặc định
     fileMetadataCache: null, // <-- Thêm giá trị mặc định
     isCrossLinkingEnabled: false, // <-- Thêm giá trị mặc định
+    // --- GIÁ TRỊ MẶC ĐỊNH CHO CÀI ĐẶT ĐỒNG BỘ ---
+    syncEnabled: false,
+    syncPath: null,
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
@@ -262,6 +273,9 @@ export const useAppStore = create<AppState>((set, get) => {
             stats: g.stats || defaultGroupStats(),
           })),
           isScanning: false,
+          // Cập nhật cài đặt đồng bộ từ file đã tải
+          syncEnabled: payload.sync_enabled ?? false,
+          syncPath: payload.sync_path ?? null,
           // file_metadata_cache được backend quản lý, frontend không cần lưu
         });
       },
@@ -396,6 +410,27 @@ export const useAppStore = create<AppState>((set, get) => {
         // Đơn giản là set thành một Set rỗng, nhưng vẫn giữ lại đường dẫn gốc ""
         // để cây thư mục không bị lỗi (logic prune/expand dựa vào sự tồn tại của "")
         set({ tempSelectedPaths: new Set([""]) });
+      },
+
+      // --- ACTION MỚI CHO CÀI ĐẶT ĐỒNG BỘ ---
+      setSyncSettings: async ({ enabled, path }) => {
+        const rootPath = get().rootPath;
+        if (!rootPath) return;
+
+        // Cập nhật state ở frontend ngay lập tức
+        set({ syncEnabled: enabled, syncPath: path });
+
+        // Gọi backend để lưu cài đặt
+        try {
+          await invoke("update_sync_settings", {
+            path: rootPath,
+            enabled,
+            syncPath: path,
+          });
+        } catch (error) {
+          console.error("Lỗi khi lưu cài đặt đồng bộ:", error);
+          alert("Không thể lưu cài đặt đồng bộ.");
+        }
       },
     },
   };
