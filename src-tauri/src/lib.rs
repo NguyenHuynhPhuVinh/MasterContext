@@ -185,8 +185,8 @@ fn perform_full_scan_and_build_tree(window: &Window, app_handle: &tauri::AppHand
     let mut cached_data = load_project_data(app_handle.clone(), path.to_string()).unwrap_or_default();
     cached_data.stats = stats.clone();
     cached_data.file_tree = Some(file_tree.clone());
-    save_project_data(app_handle.clone(), path.to_string(), cached_data).map_err(|e| e.to_string())?;
-    let _ = window.emit("scan_complete", serde_json::json!({ "stats": stats, "fileTree": file_tree }));
+    save_project_data(app_handle.clone(), path.to_string(), cached_data.clone()).map_err(|e| e.to_string())?;
+    let _ = window.emit("scan_complete", &cached_data);
     Ok(())
 }
 

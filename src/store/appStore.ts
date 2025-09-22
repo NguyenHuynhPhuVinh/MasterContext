@@ -5,7 +5,7 @@ import { join, dirname } from "@tauri-apps/api/path";
 
 // --- PHẦN MỚI: Định nghĩa kiểu dữ liệu ProjectData khớp với Rust ---
 // Thay thế bằng CachedProjectData
-interface CachedProjectData {
+export interface CachedProjectData {
   stats: ProjectStats | null;
   file_tree: FileNode | null;
   groups: Group[];
@@ -64,10 +64,10 @@ interface GroupContextResult {
 */
 
 // Payload từ sự kiện scan_complete
-interface ScanCompletePayload {
-  stats: ProjectStats;
-  fileTree: FileNode;
-}
+// interface ScanCompletePayload {
+//   stats: ProjectStats;
+//   fileTree: FileNode;
+// }
 
 interface AppState {
   rootPath: string | null;
@@ -96,7 +96,7 @@ interface AppState {
     updateGroupPaths: (groupId: string, paths: string[]) => Promise<void>;
     // --- THÊM CÁC ACTION "NỘI BỘ" ĐỂ XỬ LÝ SỰ KIỆN ---
     _setScanProgress: (file: string) => void;
-    _setScanComplete: (payload: ScanCompletePayload) => void;
+    _setScanComplete: (payload: CachedProjectData) => void;
     _setScanError: (error: string) => void;
     // --- ACTIONS MỚI ---
     _setGroupUpdateComplete: (payload: {
@@ -248,10 +248,15 @@ export const useAppStore = create<AppState>((set, get) => {
       _setScanProgress: (file) => {
         set({ scanProgress: { currentFile: file } });
       },
-      _setScanComplete: (payload: ScanCompletePayload) => {
+      _setScanComplete: (payload: CachedProjectData) => {
         set({
           projectStats: payload.stats,
-          fileTree: payload.fileTree,
+          fileTree: payload.file_tree,
+          groups: (payload.groups || []).map((g) => ({
+            ...g,
+            paths: g.paths || [],
+            stats: g.stats || defaultGroupStats(),
+          })),
           isScanning: false,
         });
       },

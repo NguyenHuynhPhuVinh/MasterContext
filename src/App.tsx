@@ -4,9 +4,8 @@ import { listen } from "@tauri-apps/api/event";
 import {
   useAppStore,
   useAppActions,
-  ProjectStats,
-  FileNode,
   GroupStats,
+  CachedProjectData,
 } from "./store/appStore";
 import { WelcomeScene } from "./scenes/WelcomeScene";
 import { DashboardScene } from "./scenes/DashboardScene";
@@ -27,10 +26,10 @@ function App() {
   } = useAppActions();
 
   // --- ĐỊNH NGHĨA PAYLOAD ĐÚNG ---
-  interface ScanCompletePayload {
-    stats: ProjectStats;
-    fileTree: FileNode;
-  }
+  // interface ScanCompletePayload {
+  //   stats: ProjectStats;
+  //   fileTree: FileNode;
+  // }
 
   // --- THAY ĐỔI: Tạo một phiên bản throttled của hàm cập nhật ---
   const throttledSetScanProgress = useMemo(
@@ -50,8 +49,8 @@ function App() {
     );
 
     unlistenFuncs.push(
-      // --- SỬA LỖI: SỬA KIỂU DỮ LIỆU TỪ ProjectStats THÀNH ScanCompletePayload ---
-      listen<ScanCompletePayload>("scan_complete", (event) => {
+      // --- SỬA LỖI: SỬA KIỂU DỮ LIỆU TỪ ProjectStats THÀNH CachedProjectData ---
+      listen<CachedProjectData>("scan_complete", (event) => {
         _setScanComplete(event.payload);
       })
     );
