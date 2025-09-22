@@ -27,9 +27,6 @@ pub fn expand_group_paths_to_files(
     metadata_cache: &BTreeMap<String, crate::models::FileMetadata>,
     _root_path: &Path, // Không cần truy cập đĩa nữa
 ) -> Vec<String> {
-    // <<< RUST DEBUG LOG 3 >>>
-    println!("[RUST] EXPAND: Bắt đầu mở rộng paths: {:?}", group_paths);
-
     let mut all_files_in_group: HashSet<String> = HashSet::new();
 
     // Lấy danh sách tất cả các file đã được quét để duyệt hiệu quả hơn

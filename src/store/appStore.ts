@@ -261,13 +261,6 @@ export const useAppStore = create<AppState>((set, get) => {
       },
       // --- ACTIONS MỚI ---
       _setGroupUpdateComplete: ({ groupId, stats, paths }) => {
-        // <<< DEBUG LOG 5 >>>
-        console.log(
-          `[STORE] UPDATE COMPLETE: Nhận được từ Rust cho nhóm '${groupId}'.`
-        );
-        console.log("[STORE] UPDATE COMPLETE: Paths mới:", paths);
-        console.log("[STORE] UPDATE COMPLETE: Stats mới:", stats);
-
         set((state) => ({
           groups: state.groups.map((g) =>
             g.id === groupId
@@ -294,11 +287,6 @@ export const useAppStore = create<AppState>((set, get) => {
       },
 
       toggleEditingPath: (toggledNode: FileNode, isSelected: boolean) => {
-        // <<< DEBUG LOG 1 >>>
-        console.log(
-          `[STORE] TOGGLE: Node='${toggledNode.path}', Selected=${isSelected}`
-        );
-
         set((state) => {
           if (!state.tempSelectedPaths) return {};
 
@@ -327,11 +315,6 @@ export const useAppStore = create<AppState>((set, get) => {
             // (Hiện tại có thể bỏ qua để giữ logic đơn giản, việc xóa đã hoạt động đúng)
           }
 
-          // <<< DEBUG LOG 2 >>>
-          console.log(
-            `[STORE] tempSelectedPaths CÓ ${newSelectedPaths.size} MỤC`
-          );
-
           return { tempSelectedPaths: newSelectedPaths };
         });
       },
@@ -347,22 +330,9 @@ export const useAppStore = create<AppState>((set, get) => {
       saveEditingGroup: async () => {
         const { editingGroupId, tempSelectedPaths, fileTree } = get();
 
-        // <<< DEBUG LOG 3 >>>
-        console.log(`[STORE] SAVE: Bắt đầu lưu nhóm '${editingGroupId}'.`);
-        console.log(
-          `[STORE] SAVE: tempSelectedPaths hiện có ${tempSelectedPaths?.size} mục.`
-        );
-
         if (editingGroupId && tempSelectedPaths && fileTree) {
           // 1. Prune the expanded UI paths back to a minimal set for saving
           const pathsToSave = prunePathsForSave(fileTree, tempSelectedPaths);
-
-          // <<< DEBUG LOG 4 (QUAN TRỌNG NHẤT) >>>
-          // Đây là dữ liệu thực sự được gửi đến Rust để lưu.
-          console.log(
-            '[STORE] SAVE: Dữ liệu sau khi "prune" để lưu:',
-            pathsToSave
-          );
 
           // 2. Call the async update action
           await get().actions.updateGroupPaths(editingGroupId, pathsToSave);

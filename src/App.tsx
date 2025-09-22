@@ -34,12 +34,6 @@ function App() {
     root.classList.add(theme);
   }, []); // Mảng rỗng `[]` đảm bảo effect này chỉ chạy một lần khi App được mount
 
-  // --- ĐỊNH NGHĨA PAYLOAD ĐÚNG ---
-  // interface ScanCompletePayload {
-  //   stats: ProjectStats;
-  //   fileTree: FileNode;
-  // }
-
   // --- THAY ĐỔI: Tạo một phiên bản throttled của hàm cập nhật ---
   const throttledSetScanProgress = useMemo(
     () => throttle((file: string) => _setScanProgress(file), 10), // Cập nhật tối đa 10 lần/giây
