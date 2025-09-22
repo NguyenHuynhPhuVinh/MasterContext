@@ -60,6 +60,7 @@ pub fn start_group_update(window: Window, group_id: String, root_path_str: Strin
 #[command]
 // Chữ ký đã đúng, giữ nguyên
 pub fn start_group_export(window: Window, group_id: String, root_path_str: String) {
+    println!("[RUST] EXPORT: Nhận được yêu cầu xuất cho nhóm ID: {}", group_id);
     std::thread::spawn(move || {
         let result: Result<String, String> = (|| {
             let project_data = file_cache::load_project_data(&root_path_str)?;
@@ -68,8 +69,10 @@ pub fn start_group_export(window: Window, group_id: String, root_path_str: Strin
                 .find(|g| g.id == group_id)
                 .ok_or_else(|| format!("Không tìm thấy nhóm với ID: {}", group_id))?;
             
+            println!("[RUST] EXPORT: Đã tìm thấy nhóm '{}'. Paths được lưu: {:?}", group.name, group.paths);
             let expanded_files = context_generator::expand_group_paths_to_files(&group.paths, &project_data.file_metadata_cache, root_path);
             
+            println!("[RUST] EXPORT: Sau khi mở rộng, có {} files: {:?}", expanded_files.len(), expanded_files);
             if expanded_files.is_empty() {
                 return Err("Nhóm này không chứa file nào để xuất.".to_string());
             }
@@ -77,9 +80,11 @@ pub fn start_group_export(window: Window, group_id: String, root_path_str: Strin
         })();
         match result {
             Ok(context) => {
+                println!("[RUST] EXPORT: Thành công! Đang gửi sự kiện group_export_complete.");
                 let _ = window.emit("group_export_complete", serde_json::json!({ "groupId": group_id, "context": context }));
             }
             Err(e) => {
+                println!("[RUST] EXPORT: Lỗi! Đang gửi sự kiện group_export_error: {}", e);
                 let _ = window.emit("group_export_error", e);
             }
         }

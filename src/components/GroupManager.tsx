@@ -1,5 +1,5 @@
 // src/components/GroupManager.tsx
-import { useState, useEffect } from "react"; // Thêm useEffect
+import { useState, useEffect, useRef } from "react"; // Thêm useEffect và useRef
 import { listen } from "@tauri-apps/api/event"; // Thêm listen
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
@@ -60,13 +60,21 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
   // State loading cục bộ
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
 
+  // Ref để lưu trữ giá trị mới nhất của exportingGroupId, có thể truy cập từ listener
+  const exportingGroupIdRef = useRef<string | null>(null);
+
+  // Đồng bộ ref với state mỗi khi state thay đổi
+  useEffect(() => {
+    exportingGroupIdRef.current = exportingGroupId;
+  }, [exportingGroupId]);
+
   // --- LOGIC MỚI: Lắng nghe sự kiện để xử lý hộp thoại save ---
   useEffect(() => {
     const unlisten = listen<{ groupId: string; context: string }>(
       "group_export_complete",
       async (event) => {
-        // Chỉ xử lý nếu đúng là group đang chờ export
-        if (event.payload.groupId === exportingGroupId) {
+        // LUÔN SỬ DỤNG GIÁ TRỊ TỪ REF BÊN TRONG LISTENER
+        if (event.payload.groupId === exportingGroupIdRef.current) {
           const group = groups.find((g) => g.id === event.payload.groupId);
           const defaultName = group
             ? `${group.name.replace(/\s+/g, "_")}_context.txt`
@@ -88,7 +96,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
             console.error("Lỗi khi lưu file ngữ cảnh:", error);
             alert("Đã xảy ra lỗi khi lưu file.");
           } finally {
-            // TẮT LOADING sau khi hộp thoại đã được xử lý
+            // Cập nhật cả state và ref
             setExportingGroupId(null);
           }
         }
@@ -96,35 +104,38 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
     );
 
     const unlistenError = listen<string>("group_export_error", (event) => {
+      console.error("Lỗi khi xuất nhóm từ backend:", event.payload);
       alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
-      setExportingGroupId(null); // Tắt loading nếu có lỗi
+      setExportingGroupId(null);
     });
 
     return () => {
       unlisten.then((f) => f());
       unlistenError.then((f) => f());
     };
-  }, [exportingGroupId, groups]); // Chạy lại effect khi exportingGroupId thay đổi
+    // Mảng dependency của useEffect này giờ có thể để trống,
+    // vì listener không còn phụ thuộc vào giá trị `exportingGroupId` "cũ" nữa.
+    // Nó sẽ chỉ được thiết lập một lần khi component mount.
+  }, [groups]); // Thêm `groups` để listener có thể truy cập danh sách group mới nhất
 
-  const handleExportGroup = async (group: Group) => {
+  const handleExportGroup = (group: Group) => {
     if (!rootPath) {
       alert("Lỗi: Không tìm thấy đường dẫn gốc của dự án.");
       return;
     }
-    // Không cần kiểm tra group.paths.length nữa vì backend sẽ xử lý
 
-    setExportingGroupId(group.id); // Bật loading
+    // Cập nhật state để UI hiển thị loading
+    setExportingGroupId(group.id);
+
     try {
-      // Gọi command mới: chỉ cần groupId và rootPathStr
-      // Không cần gửi 'paths' nữa, giúp giảm lượng dữ liệu truyền đi
-      await invoke("start_group_export", {
+      invoke("start_group_export", {
         groupId: group.id,
         rootPathStr: rootPath,
       });
-      // Logic còn lại sẽ được xử lý bởi listener trong useEffect
     } catch (error) {
+      console.error("Lỗi khi gọi command start_group_export:", error);
       alert("Không thể bắt đầu quá trình xuất file.");
-      setExportingGroupId(null); // Tắt loading nếu gọi command thất bại
+      setExportingGroupId(null);
     }
   };
 

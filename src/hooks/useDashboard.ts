@@ -113,10 +113,13 @@ export function useDashboard() {
     }
   };
 
-  const handleExportProject = async () => {
+  const handleExportProject = () => {
+    // Không cần async nữa
     if (!rootPath) return;
     setIsExporting(true);
-    await invoke("start_project_export", { path: rootPath });
+    // Chỉ "bắn" lệnh đi và không chờ đợi
+    invoke("start_project_export", { path: rootPath });
+    // Logic sẽ được tiếp tục trong listener sự kiện `project_export_complete`
   };
 
   const handleConfirmRescan = async () => {

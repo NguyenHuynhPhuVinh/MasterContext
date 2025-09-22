@@ -78,7 +78,7 @@ interface AppState {
     // --- ACTIONS MỚI ---
     editGroupContent: (groupId: string) => void;
     showDashboard: () => void;
-    updateGroupPaths: (groupId: string, paths: string[]) => Promise<void>;
+    updateGroupPaths: (groupId: string, paths: string[]) => void;
     // --- THÊM CÁC ACTION "NỘI BỘ" ĐỂ XỬ LÝ SỰ KIỆN ---
     _setScanProgress: (file: string) => void;
     _setScanComplete: (payload: CachedProjectData) => void;
@@ -223,18 +223,19 @@ export const useAppStore = create<AppState>((set, get) => {
       showDashboard: () => {
         set({ activeScene: "dashboard", editingGroupId: null });
       },
-      updateGroupPaths: async (groupId, paths) => {
+      updateGroupPaths: (groupId, paths) => {
+        // Không cần async nữa
         const rootPath = get().rootPath;
         if (!rootPath) return;
         set({ isUpdatingGroupId: groupId });
-        // === BẮT ĐẦU SỬA LỖI ===
-        // Lệnh invoke giờ không cần app_handle nữa
-        await invoke("start_group_update", {
+
+        // Chỉ "bắn" lệnh đi và không chờ đợi
+        invoke("start_group_update", {
           groupId,
           rootPathStr: rootPath,
           paths,
         });
-        // === KẾT THÚC SỬA LỖI ===
+        // Logic sẽ được tiếp tục trong listener sự kiện `group_update_complete`
       },
 
       // --- CÁC ACTION MỚI ĐỂ XỬ LÝ SỰ KIỆN TỪ RUST ---
