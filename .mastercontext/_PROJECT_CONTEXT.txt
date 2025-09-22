@@ -367,7 +367,7 @@ use std::path::{Path, PathBuf};
 use tauri::{command, Emitter, Window};
 
 // --- THÊM CÁC USE STATEMENTS NÀY ---
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 // --- HÀM HELPER MỚI: TÁCH RA ĐỂ TÁI SỬ DỤNG ---
 fn sanitize_group_name(name: &str) -> String {
