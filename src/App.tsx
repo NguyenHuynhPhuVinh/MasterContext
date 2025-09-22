@@ -21,6 +21,19 @@ function App() {
     _setGroupUpdateComplete,
   } = useAppActions();
 
+  // --- THÊM MỚI: Logic áp dụng theme khi ứng dụng khởi động ---
+  useEffect(() => {
+    // Đọc theme từ localStorage, nếu không có thì mặc định là 'light'
+    const theme = localStorage.getItem("theme") || "light";
+    const root = window.document.documentElement;
+
+    // Xóa các class cũ để đảm bảo sạch sẽ
+    root.classList.remove("light", "dark");
+
+    // Thêm class theme hiện tại vào thẻ <html>
+    root.classList.add(theme);
+  }, []); // Mảng rỗng `[]` đảm bảo effect này chỉ chạy một lần khi App được mount
+
   // --- ĐỊNH NGHĨA PAYLOAD ĐÚNG ---
   // interface ScanCompletePayload {
   //   stats: ProjectStats;
