@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 55,
     "total_dirs": 14,
-    "total_size": 371516,
-    "total_tokens": 31231
+    "total_size": 369128,
+    "total_tokens": 30829
   },
   "file_tree": {
     "name": "MasterContext",
@@ -375,10 +375,10 @@
         "src"
       ],
       "stats": {
-        "total_files": 25,
-        "total_dirs": 8,
-        "total_size": 90579,
-        "token_count": 22438
+        "total_files": 47,
+        "total_dirs": 10,
+        "total_size": 363467,
+        "token_count": 29174
       }
     }
   ],
@@ -504,9 +504,9 @@
       "token_count": 0
     },
     "src-tauri/src/lib.rs": {
-      "size": 27212,
-      "mtime": 1758517566,
-      "token_count": 6543
+      "size": 24824,
+      "mtime": 1758518022,
+      "token_count": 6141
     },
     "src-tauri/src/main.rs": {
       "size": 195,

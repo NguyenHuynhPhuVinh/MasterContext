@@ -115,6 +115,63 @@ fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut Stri
     }
 }
 
+/// Tính toán lại GroupStats cho một danh sách đường dẫn dựa trên metadata cache.
+/// Hàm này không truy cập hệ thống file.
+fn recalculate_stats_for_paths(
+    paths: &[String],
+    metadata_cache: &BTreeMap<String, FileMetadata>,
+    root_path: &Path,
+) -> GroupStats {
+    let mut stats = GroupStats::default();
+    let mut all_files_in_group: HashSet<String> = HashSet::new();
+    let mut all_dirs_in_group: HashSet<String> = HashSet::new();
+
+    // Mở rộng các đường dẫn tối thiểu thành một danh sách file đầy đủ
+    for path_str in paths {
+        let full_path = root_path.join(path_str);
+        if full_path.is_dir() {
+            all_dirs_in_group.insert(path_str.clone());
+            // Duyệt qua cache để tìm các file con
+            for cached_path in metadata_cache.keys() {
+                // Chỉ cần check starts_with là đủ vì cache chỉ chứa file
+                if cached_path.starts_with(path_str) {
+                    all_files_in_group.insert(cached_path.clone());
+                }
+            }
+        } else {
+            // Nếu là file, chỉ cần thêm nó vào
+            all_files_in_group.insert(path_str.clone());
+        }
+    }
+    
+    // Dùng cache để suy ra các thư mục con từ đường dẫn file
+    let mut subdirs_from_files = HashSet::new();
+    for file_path in &all_files_in_group {
+        let mut current = Path::new(file_path);
+        while let Some(parent) = current.parent() {
+            if parent.as_os_str().is_empty() { break; }
+            let parent_str = parent.to_string_lossy().replace("\\", "/");
+            subdirs_from_files.insert(parent_str);
+            current = parent;
+        }
+    }
+    all_dirs_in_group.extend(subdirs_from_files);
+
+
+    // Tính toán stats từ danh sách file đã mở rộng và cache
+    for file_path_str in &all_files_in_group {
+        if let Some(meta) = metadata_cache.get(file_path_str) {
+            stats.total_size += meta.size;
+            stats.token_count += meta.token_count;
+        }
+    }
+
+    stats.total_files = all_files_in_group.len() as u64;
+    stats.total_dirs = all_dirs_in_group.len() as u64;
+
+    stats
+}
+
 // --- HÀM HELPER MỚI: Mở rộng đường dẫn tối thiểu của nhóm thành danh sách file đầy đủ ---
 
 /// Mở rộng các đường dẫn tối thiểu của một nhóm thành danh sách file đầy đủ dựa vào cache.
@@ -349,45 +406,12 @@ fn perform_smart_scan_and_rebuild(window: &Window, app_handle: &tauri::AppHandle
     let mut updated_groups = old_data.groups;
     for group in &mut updated_groups {
         // --- ĐÂY LÀ BƯỚC QUAN TRỌNG NHẤT: LOẠI BỎ CÁC ĐƯỜNG DẪN KHÔNG CÒN TỒN TẠI ---
-        // Phương thức `retain` sẽ duyệt qua vector và chỉ giữ lại những phần tử thỏa mãn điều kiện.
         group.paths.retain(|path| existing_paths.contains(path));
         
-        // Bây giờ, `group.paths` đã "sạch", chúng ta có thể tính toán lại stats một cách an toàn.
-        let mut new_group_stats = GroupStats::default();
-        let mut all_files_in_group = HashSet::new();
-        let mut all_dirs_in_group = HashSet::new();
-
-        // Mở rộng các đường dẫn trong nhóm (ví dụ: thư mục -> các file con)
-        for relative_path_str in &group.paths {
-            let full_path = root_path.join(relative_path_str);
-            if full_path.is_dir() {
-                // Dùng WalkDir để tìm tất cả file/dir con
-                 for entry in WalkBuilder::new(full_path).build().filter_map(Result::ok) {
-                    if let Ok(rp) = entry.path().strip_prefix(root_path) {
-                        let rp_str = rp.to_string_lossy().replace("\\", "/");
-                        if entry.path().is_dir() {
-                             all_dirs_in_group.insert(rp_str);
-                        } else {
-                             all_files_in_group.insert(rp_str);
-                        }
-                    }
-                 }
-            } else if full_path.is_file() {
-                 all_files_in_group.insert(relative_path_str.clone());
-            }
-        }
-
-        // Tính toán stats từ cache
-        for file_path_str in &all_files_in_group {
-            if let Some(meta) = new_metadata_cache.get(file_path_str) {
-                new_group_stats.total_size += meta.size;
-                new_group_stats.token_count += meta.token_count;
-            }
-        }
-        new_group_stats.total_files = all_files_in_group.len() as u64;
-        new_group_stats.total_dirs = all_dirs_in_group.len() as u64;
-        
-        group.stats = new_group_stats;
+        // --- THAY THẾ TOÀN BỘ KHỐI LOGIC TÍNH TOÁN STATS CŨ ---
+        // Xóa toàn bộ khối code từ "let mut new_group_stats = ..." đến "group.stats = new_group_stats;"
+        // và thay bằng một dòng duy nhất này:
+        group.stats = recalculate_stats_for_paths(&group.paths, &new_metadata_cache, root_path);
     }
 
     // 6. Tập hợp dữ liệu cuối cùng và gửi về frontend
@@ -417,64 +441,12 @@ fn open_project(window: Window, app_handle: tauri::AppHandle, path: String) {
 
 #[tauri::command]
 fn calculate_group_stats_from_cache(app_handle: tauri::AppHandle, root_path_str: String, paths: Vec<String>) -> Result<GroupStats, String> {
-    // 1. Tải dữ liệu dự án hiện tại, bao gồm cả cache metadata
+    // 1. Tải dữ liệu dự án hiện tại để lấy cache
     let project_data = load_project_data(app_handle, root_path_str.clone())?;
-    let metadata_cache = project_data.file_metadata_cache;
     let root_path = Path::new(&root_path_str);
 
-    let mut new_group_stats = GroupStats::default();
-    let mut all_files_in_group: HashSet<String> = HashSet::new();
-    let mut all_dirs_in_group: HashSet<String> = HashSet::new();
-
-    // 2. Mở rộng các đường dẫn được chọn thành một danh sách file đầy đủ
-    for path_str in &paths {
-        let full_path = root_path.join(path_str);
-        if full_path.is_dir() {
-            // Nếu là thư mục
-            all_dirs_in_group.insert(path_str.clone());
-            // Duyệt qua cache để tìm các file/dir con
-            for (cached_path, _) in metadata_cache.iter() {
-                if cached_path.starts_with(path_str) && cached_path != path_str {
-                    all_files_in_group.insert(cached_path.clone());
-                }
-            }
-            // Cũng cần thêm các thư mục con vào all_dirs_in_group
-            // Vì cache không chứa dirs, chúng ta cần suy ra từ các file paths
-            let mut subdirs = HashSet::new();
-            for cached_path in metadata_cache.keys() {
-                if cached_path.starts_with(path_str) && cached_path != path_str {
-                    let mut current = Path::new(cached_path);
-                    while let Some(parent) = current.parent() {
-                        let parent_str = parent.to_string_lossy().to_string().replace("\\", "/");
-                        if parent_str.starts_with(path_str) && parent_str != *path_str {
-                            subdirs.insert(parent_str.clone());
-                        }
-                        current = parent;
-                        if parent_str == *path_str {
-                            break;
-                        }
-                    }
-                }
-            }
-            all_dirs_in_group.extend(subdirs);
-        } else {
-            // Nếu là file
-            all_files_in_group.insert(path_str.clone());
-        }
-    }
-
-    // 3. Tính toán stats từ danh sách file đã mở rộng
-    for file_path_str in &all_files_in_group {
-        if let Some(meta) = metadata_cache.get(file_path_str) {
-            new_group_stats.total_size += meta.size;
-            new_group_stats.token_count += meta.token_count;
-        }
-    }
-
-    new_group_stats.total_files = all_files_in_group.len() as u64;
-    new_group_stats.total_dirs = all_dirs_in_group.len() as u64;
-
-    Ok(new_group_stats)
+    // 2. Gọi hàm helper tập trung để thực hiện công việc
+    Ok(recalculate_stats_for_paths(&paths, &project_data.file_metadata_cache, root_path))
 }
 
 #[tauri::command]
@@ -598,7 +570,9 @@ pub fn run() {
             update_groups_in_project_data,
             start_group_update,
             start_group_export,
-            start_project_export
+            start_project_export,
+            // THÊM LẠI COMMAND NÀY VÌ NÓ ĐƯỢC DÙNG BỞI `start_group_update`
+            calculate_group_stats_from_cache
         ]) 
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
