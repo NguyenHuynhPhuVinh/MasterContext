@@ -1,22 +1,22 @@
 // src/components/GroupManager.tsx
-import { useState, useEffect } from "react"; // Thêm useEffect
-import { listen } from "@tauri-apps/api/event"; // Thêm listen
-import { useAppStore, useAppActions } from "@/store/appStore";
+import { useState, useEffect } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { useAppStore, useAppActions } from "@/store/appStore"; // <-- Sửa: Lấy trực tiếp useAppStore
 import { type Group } from "@/store/types";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { writeText } from "@tauri-apps/plugin-clipboard-manager"; // <-- THÊM IMPORT
-import { toast } from "sonner"; // <-- THÊM IMPORT
-import { formatBytes, cn } from "@/lib/utils"; // <-- Import hàm tiện ích
-import { Label } from "@/components/ui/label"; // <-- THÊM IMPORT
-import { Switch } from "@/components/ui/switch"; // <-- THÊM IMPORT
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { toast } from "sonner";
+import { formatBytes, cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent, // <-- Thêm CardContent
+  CardContent,
   CardDescription,
-  CardFooter, // <-- Thêm CardFooter
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -27,12 +27,12 @@ import {
   Download,
   BrainCircuit,
   ListChecks,
-  File, // <-- Thêm icon
-  Folder, // <-- Thêm icon
-  HardDrive, // <-- Thêm icon
-  Loader2, // Thêm Loader2
-  Link, // <-- THÊM ICON LINK
-  ClipboardCopy, // <-- THÊM ICON
+  File,
+  Folder,
+  HardDrive,
+  Loader2,
+  Link,
+  ClipboardCopy,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -52,7 +52,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-// --- THAY ĐỔI: Component giờ nhận props để mở dialog từ bên ngoài ---
 interface GroupManagerProps {
   onEditGroup: (group: Group) => void;
 }
@@ -60,13 +59,12 @@ interface GroupManagerProps {
 export function GroupManager({ onEditGroup }: GroupManagerProps) {
   const groups = useAppStore((state) => state.groups);
   const rootPath = useAppStore((state) => state.rootPath);
-  const { deleteGroup, editGroupContent, setGroupCrossSync } = useAppActions(); // <-- Lấy action mới
-
-  // === CÁC STATE ĐƯỢC CẤU TRÚC LẠI ===
+  const activeProfile = useAppStore((state) => state.activeProfile); // <-- THÊM MỚI: Lấy hồ sơ đang hoạt động
+  const { deleteGroup, editGroupContent, setGroupCrossSync } = useAppActions();
 
   // State quản lý nhóm nào đang trong quá trình xuất
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
-  const [copyingGroupId, setCopyingGroupId] = useState<string | null>(null); // <-- STATE MỚI
+  const [copyingGroupId, setCopyingGroupId] = useState<string | null>(null);
 
   // State quản lý dialog tùy chọn
   const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
@@ -87,11 +85,8 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
     const unlistenComplete = listen<{ groupId: string; context: string }>(
       "group_export_complete",
       (event) => {
-        // Chỉ nhận dữ liệu và cập nhật state tạm thời
-        // Không gọi `save()` ở đây nữa
         const targetGroup = groups.find((g) => g.id === event.payload.groupId);
         if (targetGroup) {
-          console.log("Nhận được context, lưu vào state tạm thời.");
           setPendingExportData({
             context: event.payload.context,
             group: targetGroup,
@@ -102,8 +97,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
 
     const unlistenError = listen<string>("group_export_error", (event) => {
       console.error("Lỗi khi xuất nhóm từ backend:", event.payload);
-      toast.error(`Đã xảy ra lỗi khi xuất file: ${event.payload}`); // <-- THAY alert BẰNG TOAST
-      // Dọn dẹp tất cả state khi có lỗi
+      toast.error(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
       setIsConfirmingExport(false);
       setExportingGroupId(null);
       setExportOptionsOpen(false);
@@ -113,11 +107,10 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
       unlistenComplete.then((f) => f());
       unlistenError.then((f) => f());
     };
-  }, [groups]); // Phụ thuộc vào `groups` để có thể tìm `targetGroup` mới nhất
+  }, [groups]);
 
   // --- useEffect 2: Xử lý việc mở dialog lưu file ---
   useEffect(() => {
-    // Effect này chỉ chạy khi `pendingExportData` có giá trị
     if (pendingExportData) {
       const showSaveDialog = async () => {
         try {
@@ -133,14 +126,12 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
 
           if (filePath) {
             await writeTextFile(filePath, pendingExportData.context);
-            toast.success(`Đã lưu file thành công!`); // <-- THAY alert BẰNG TOAST
+            toast.success(`Đã lưu file thành công!`);
           }
         } catch (error) {
           console.error("Lỗi khi lưu file ngữ cảnh:", error);
-          toast.error("Đã xảy ra lỗi khi lưu file."); // <-- THAY alert BẰNG TOAST
+          toast.error("Đã xảy ra lỗi khi lưu file.");
         } finally {
-          // Dọn dẹp TẤT CẢ các state sau khi dialog lưu file đóng lại
-          console.log("Dọn dẹp state sau khi lưu.");
           setPendingExportData(null);
           setIsConfirmingExport(false);
           setExportingGroupId(null);
@@ -150,60 +141,60 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
 
       showSaveDialog();
     }
-  }, [pendingExportData]); // Chỉ kích hoạt khi có dữ liệu mới để lưu
+  }, [pendingExportData]);
 
-  // Hàm này giờ chỉ mở dialog
   const handleOpenExportOptions = (group: Group) => {
     setGroupToExport(group);
     setExportOptionsOpen(true);
-    setUseFullTree(false); // Reset về mặc định mỗi khi mở
+    setUseFullTree(false);
   };
 
   const handleConfirmExport = () => {
-    if (!groupToExport || !rootPath) return;
+    // <-- CẬP NHẬT: Thêm kiểm tra activeProfile
+    if (!groupToExport || !rootPath || !activeProfile) return;
 
     setIsConfirmingExport(true);
     setExportingGroupId(groupToExport.id);
 
-    // Không đóng dialog nữa, nó sẽ được đóng trong `finally` của `useEffect` thứ hai
-
     try {
+      // <-- CẬP NHẬT: Thêm `profileName` vào payload
       invoke("start_group_export", {
         groupId: groupToExport.id,
         rootPathStr: rootPath,
+        profileName: activeProfile,
         useFullTree: useFullTree,
       });
     } catch (error) {
       console.error("Lỗi khi gọi command start_group_export:", error);
-      toast.error("Không thể bắt đầu quá trình xuất file."); // <-- THAY alert BẰNG TOAST
+      toast.error("Không thể bắt đầu quá trình xuất file.");
       setIsConfirmingExport(false);
       setExportingGroupId(null);
     }
   };
 
-  // --- HÀM MỚI ĐỂ XỬ LÝ VIỆC ĐÓNG DIALOG ---
   const handleCloseDialog = () => {
-    // Chỉ cho phép đóng khi không đang loading
     if (!isConfirmingExport) {
       setExportOptionsOpen(false);
     }
   };
 
-  // --- HÀM MỚI ---
   const handleCopyContext = async (group: Group) => {
-    if (!rootPath) return;
+    // <-- CẬP NHẬT: Thêm kiểm tra activeProfile
+    if (!rootPath || !activeProfile) return;
     setCopyingGroupId(group.id);
     try {
+      // <-- CẬP NHẬT: Thêm `profileName` vào payload
       const context = await invoke<string>("generate_group_context", {
         groupId: group.id,
         rootPathStr: rootPath,
-        useFullTree: true, // Mặc định dùng cây đầy đủ cho tiện lợi
+        profileName: activeProfile,
+        useFullTree: true,
       });
       await writeText(context);
-      toast.success(`Đã sao chép ngữ cảnh nhóm "${group.name}"`); // <-- THÊM TOAST
+      toast.success(`Đã sao chép ngữ cảnh nhóm "${group.name}"`);
     } catch (error) {
       console.error(`Lỗi khi sao chép ngữ cảnh nhóm ${group.name}:`, error);
-      toast.error(`Không thể sao chép: ${error}`); // <-- THAY alert BẰNG TOAST
+      toast.error(`Không thể sao chép: ${error}`);
     } finally {
       setCopyingGroupId(null);
     }
@@ -237,7 +228,6 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {/* --- THAY ĐỔI: Gọi hàm prop onEditGroup --- */}
                       <DropdownMenuItem onClick={() => onEditGroup(group)}>
                         <Pencil className="mr-2 h-4 w-4" /> Chỉnh sửa
                       </DropdownMenuItem>
@@ -276,7 +266,6 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                 </div>
               </CardHeader>
               <CardContent className="flex-grow">
-                {/* --- PHẦN UI MỚI CHO STATS --- */}
                 <div className="flex flex-col gap-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <File className="h-4 w-4" />
@@ -296,7 +285,6 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                       Tổng dung lượng: {formatBytes(group.stats.total_size)}
                     </span>
                   </div>
-                  {/* --- CẬP NHẬT HIỂN THỊ TOKEN --- */}
                   <div className="flex items-center gap-2">
                     <BrainCircuit className="h-4 w-4" />
                     <span
@@ -315,7 +303,6 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                   </div>
                 </div>
 
-                {/* --- PHẦN UI MỚI CHO SWITCH --- */}
                 <div className="border-t mt-4 pt-4">
                   <div className="flex items-center justify-between">
                     <Label
@@ -339,7 +326,6 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                     />
                   </div>
                 </div>
-                {/* --- KẾT THÚC PHẦN UI MỚI --- */}
               </CardContent>
               <CardFooter className="flex flex-col gap-2">
                 <Button
@@ -368,11 +354,9 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                     variant="outline"
                     size="sm"
                     onClick={() => handleOpenExportOptions(group)}
-                    // Vô hiệu hóa TẤT CẢ các nút Xuất khác khi MỘT nhóm đang được xử lý
                     disabled={!!exportingGroupId || !!copyingGroupId}
                     className="flex-1"
                   >
-                    {/* Gỡ bỏ hoàn toàn logic hiển thị icon loading và thay đổi text */}
                     <Download className="mr-2 h-4 w-4" />
                     Xuất
                   </Button>
@@ -401,7 +385,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
               id="full-tree-switch"
               checked={useFullTree}
               onCheckedChange={setUseFullTree}
-              disabled={isConfirmingExport} // <-- Vô hiệu hóa khi đang loading
+              disabled={isConfirmingExport}
             />
             <Label htmlFor="full-tree-switch" className="cursor-pointer">
               Sử dụng cây thư mục đầy đủ của dự án
@@ -421,7 +405,6 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
               onClick={handleConfirmExport}
               disabled={isConfirmingExport}
             >
-              {/* --- THAY ĐỔI: Thêm icon loading vào nút xác nhận --- */}
               {isConfirmingExport ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}

@@ -464,28 +464,28 @@ export const useAppStore = create<AppState>((set, get) => {
         }
       },
 
-      // --- ACTION MỚI ĐỂ BẬT/TẮT SWITCH ---
+      // <-- BẮT ĐẦU SỬA LỖI -->
       setGroupCrossSync: async (groupId, enabled) => {
-        const rootPath = get().rootPath;
+        const { rootPath, activeProfile } = get(); // <-- Lấy thêm activeProfile
         if (!rootPath) return;
 
-        // Cập nhật UI ngay lập tức
         set((state) => ({
           groups: state.groups.map((g) =>
             g.id === groupId ? { ...g, crossSyncEnabled: enabled } : g
           ),
         }));
 
-        // Gọi backend để lưu lại
         try {
+          // <-- Thêm `profileName` vào payload
           await invoke("set_group_cross_sync", {
             path: rootPath,
+            profileName: activeProfile,
             groupId,
             enabled,
           });
         } catch (error) {
           console.error("Lỗi khi cập nhật cài đặt đồng bộ chéo:", error);
-          // Optional: revert state nếu có lỗi
+          toast.error(`Không thể cập nhật đồng bộ chéo: ${error}`);
           set((state) => ({
             groups: state.groups.map((g) =>
               g.id === groupId ? { ...g, crossSyncEnabled: !enabled } : g
@@ -493,6 +493,7 @@ export const useAppStore = create<AppState>((set, get) => {
           }));
         }
       },
+      // <-- KẾT THÚC SỬA LỖI -->
       // --- ACTION MỚI ĐỂ LƯU CÁC MẪU LOẠI TRỪ ---
       setCustomIgnorePatterns: async (patterns: string[]) => {
         const { rootPath, activeProfile } = get();
