@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 66,
     "total_dirs": 14,
-    "total_size": 416387,
-    "total_tokens": 42569
+    "total_size": 423683,
+    "total_tokens": 45080
   },
   "file_tree": {
     "name": "MasterContext",
@@ -428,14 +428,14 @@
       "name": "TESt",
       "description": "TEST",
       "paths": [
-        "public",
-        "src"
+        "src",
+        "public"
       ],
       "stats": {
         "total_files": 31,
         "total_dirs": 8,
-        "total_size": 119447,
-        "token_count": 29880
+        "total_size": 119699,
+        "token_count": 29903
       },
       "cross_sync_enabled": true
     }
@@ -448,9 +448,9 @@
       "links": []
     },
     "README.md": {
-      "size": 385,
-      "mtime": 1758460553,
-      "token_count": 99,
+      "size": 7427,
+      "mtime": 1758533640,
+      "token_count": 2589,
       "links": []
     },
     "components.json": {
@@ -484,9 +484,9 @@
       "links": []
     },
     "src-tauri/capabilities/default.json": {
-      "size": 302,
-      "mtime": 1758533255,
-      "token_count": 83,
+      "size": 304,
+      "mtime": 1758533642,
+      "token_count": 81,
       "links": []
     },
     "src-tauri/icons/128x128.png": {
@@ -663,31 +663,31 @@
       ]
     },
     "src/components/GroupManager.tsx": {
-      "size": 17457,
-      "mtime": 1758533370,
-      "token_count": 3999,
+      "size": 17700,
+      "mtime": 1758533602,
+      "token_count": 4020,
       "links": [
-        "src/store/appStore.ts",
-        "src/components/ui/switch.tsx",
-        "src/components/ui/alert-dialog.tsx",
         "src/components/ui/button.tsx",
-        "src/components/ui/card.tsx",
-        "src/components/ui/dropdown-menu.tsx",
         "src/components/ui/label.tsx",
+        "src/components/ui/alert-dialog.tsx",
+        "src/components/ui/card.tsx",
         "src/lib/utils.ts",
-        "src/store/types.ts"
+        "src/store/appStore.ts",
+        "src/components/ui/dropdown-menu.tsx",
+        "src/store/types.ts",
+        "src/components/ui/switch.tsx"
       ]
     },
     "src/components/ProjectStats.tsx": {
-      "size": 4459,
-      "mtime": 1758533370,
-      "token_count": 1130,
+      "size": 4468,
+      "mtime": 1758533602,
+      "token_count": 1132,
       "links": [
         "src/lib/utils.ts",
+        "src/components/ui/tooltip.tsx",
         "src/components/ui/button.tsx",
         "src/store/types.ts",
-        "src/components/ui/card.tsx",
-        "src/components/ui/tooltip.tsx"
+        "src/components/ui/card.tsx"
       ]
     },
     "src/components/SettingsDialog.tsx": {
@@ -940,5 +940,5 @@
   },
   "sync_enabled": true,
   "sync_path": "C:\\Users\\tomis\\Documents\\MasterContext\\.mastercontext",
-  "data_hash": "d917dcf47d94f2e8dd4b582ad818b863f558ede7ce013b21243e7641597b05b3"
+  "data_hash": "8351c61461d044ee3452aaef76a90f7a2061a170287cf11fd2a1f523ec100cd2"
 }
