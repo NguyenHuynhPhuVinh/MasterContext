@@ -38,7 +38,7 @@ function App() {
 
   // --- THAY ĐỔI: Tạo một phiên bản throttled của hàm cập nhật ---
   const throttledSetScanProgress = useMemo(
-    () => throttle((file: string) => _setScanProgress(file), 10), // Cập nhật tối đa 10 lần/giây
+    () => throttle((file: string) => _setScanProgress(file), 10), // Cập nhật tối đa 100 lần/giây (1000ms / 10ms)
     [_setScanProgress]
   );
 

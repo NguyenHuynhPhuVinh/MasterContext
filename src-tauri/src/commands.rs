@@ -41,7 +41,7 @@ pub fn open_project(window: Window, path: String, profile_name: String) {
         let should_start_watching = old_data.is_watching_files.unwrap_or(false);
 
         // --- CẬP NHẬT: Truyền old_data vào hàm quét ---
-        match project_scanner::perform_smart_scan_and_rebuild(&path, old_data) {
+        match project_scanner::perform_smart_scan_and_rebuild(&window, &path, old_data) { // <-- SỬA DÒNG NÀY
             Ok(new_data) => {
                 // --- CẬP NHẬT: Truyền app handle vào hàm save ---
                 if let Err(e) = file_cache::save_project_data(&app, &path, &profile_name, &new_data) {

@@ -9,6 +9,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 // use tauri::{Emitter, Window}; // Không còn cần vì hàm không emit nữa
+use tauri::{Emitter, Window};
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use lazy_static::lazy_static;
 use path_clean::PathClean;
@@ -141,7 +142,11 @@ fn resolve_link(
     None
 }
 
-pub fn perform_smart_scan_and_rebuild(path: &str, old_data: CachedProjectData) -> Result<CachedProjectData, String> {
+pub fn perform_smart_scan_and_rebuild(
+    window: &Window, // <-- THÊM THAM SỐ NÀY
+    path: &str,
+    old_data: CachedProjectData,
+) -> Result<CachedProjectData, String> {
     let root_path = Path::new(path);
     let bpe = cl100k_base().map_err(|e| e.to_string())?;
 
@@ -248,6 +253,12 @@ pub fn perform_smart_scan_and_rebuild(path: &str, old_data: CachedProjectData) -
             }
 
             // Bỏ qua việc gửi progress trong lần refactor này để đơn giản hóa
+
+            // --- THÊM LẠI LOGIC GỬI PROGRESS ---
+            // Gửi đường dẫn tương đối về cho frontend
+            let _ = window.emit("scan_progress", relative_path.to_string_lossy());
+            // --- KẾT THÚC THAY ĐỔI ---
+
             path_map.insert(entry_path.to_path_buf(), metadata.is_dir());
 
             if metadata.is_dir() {
