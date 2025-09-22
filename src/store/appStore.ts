@@ -3,6 +3,100 @@ import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { join, dirname } from "@tauri-apps/api/path";
 
+// --- DI CHUYỂN TOÀN BỘ CÁC HÀM HELPER VÀO ĐÂY ---
+// Điều này giúp tập trung logic xử lý state ở một nơi duy nhất.
+
+const getDescendantAndSelfPaths = (node: FileNode): string[] => {
+  const paths = [node.path];
+  if (Array.isArray(node.children)) {
+    node.children.forEach((child) => {
+      paths.push(...getDescendantAndSelfPaths(child));
+    });
+  }
+  return paths;
+};
+
+const areAllDescendantsSelected = (
+  node: FileNode,
+  selectedPaths: Set<string>
+): boolean => {
+  if (!selectedPaths.has(node.path)) return false;
+  if (Array.isArray(node.children)) {
+    return node.children.every((child) =>
+      areAllDescendantsSelected(child, selectedPaths)
+    );
+  }
+  return true;
+};
+
+const prunePathsForSave = (
+  rootNode: FileNode,
+  selectedPaths: Set<string>
+): string[] => {
+  const pruned: string[] = [];
+  function traverse(node: FileNode) {
+    if (!selectedPaths.has(node.path)) return;
+    if (areAllDescendantsSelected(node, selectedPaths)) {
+      pruned.push(node.path);
+      return;
+    }
+    if (!Array.isArray(node.children) && selectedPaths.has(node.path)) {
+      pruned.push(node.path);
+    }
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        traverse(child);
+      }
+    }
+  }
+  if (Array.isArray(rootNode.children)) {
+    for (const child of rootNode.children) {
+      traverse(child);
+    }
+  }
+  // Xử lý trường hợp chỉ có thư mục gốc được chọn
+  if (
+    pruned.length === 0 &&
+    selectedPaths.has(rootNode.path) &&
+    areAllDescendantsSelected(rootNode, selectedPaths)
+  ) {
+    pruned.push(rootNode.path);
+  }
+  return pruned;
+};
+
+const expandPaths = (
+  rootNode: FileNode,
+  savedPaths: Set<string>
+): Set<string> => {
+  const expanded = new Set<string>();
+  function traverse(node: FileNode, isAncestorSelected: boolean): boolean {
+    let isSelected = isAncestorSelected || savedPaths.has(node.path);
+    if (isSelected && Array.isArray(node.children)) {
+      getDescendantAndSelfPaths(node).forEach((p) => expanded.add(p));
+      return true;
+    }
+    if (isSelected) {
+      expanded.add(node.path);
+    }
+    if (Array.isArray(node.children)) {
+      let hasSelectedDescendant = false;
+      for (const child of node.children) {
+        if (traverse(child, isSelected)) {
+          hasSelectedDescendant = true;
+        }
+      }
+      if (hasSelectedDescendant) {
+        expanded.add(node.path);
+        return true;
+      }
+    }
+    return expanded.has(node.path);
+  }
+  traverse(rootNode, false);
+  return expanded;
+};
+
 // --- PHẦN MỚI: Định nghĩa kiểu dữ liệu ProjectData khớp với Rust ---
 // Thay thế bằng CachedProjectData
 export interface CachedProjectData {
@@ -83,7 +177,7 @@ interface AppState {
   fileTree: FileNode | null; // <-- THÊM STATE MỚI
   isUpdatingGroupId: string | null; // <-- State loading khi lưu nhóm
   // --- STATE MỚI ---
-  editingPaths: Set<string> | null; // State tạm để chỉnh sửa cây thư mục
+  tempSelectedPaths: Set<string> | null; // State tạm để chỉnh sửa cây thư mục
 
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
@@ -108,10 +202,10 @@ interface AppState {
       paths: string[];
     }) => void;
     // --- ACTIONS MỚI CHO VIỆC CHỈNH SỬA NHÓM ---
-    startEditingGroupPaths: (groupId: string) => void;
-    updateEditingPaths: (newPaths: Set<string>) => void;
-    clearEditingPaths: () => void;
-    saveEditingPaths: () => Promise<void>;
+    startEditingGroup: (groupId: string) => void;
+    toggleEditingPath: (node: FileNode, isSelected: boolean) => void;
+    cancelEditingGroup: () => void;
+    saveEditingGroup: () => Promise<void>;
   };
 }
 
@@ -145,7 +239,7 @@ export const useAppStore = create<AppState>((set, get) => {
     scanProgress: { currentFile: null }, // <-- GIÁ TRỊ MẶC ĐỊNH
     fileTree: null,
     isUpdatingGroupId: null,
-    editingPaths: null, // Giá trị mặc định
+    tempSelectedPaths: null, // Giá trị mặc định
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
@@ -237,6 +331,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
       // --- CÁC ACTION MỚI ---
       editGroupContent: (groupId) => {
+        get().actions.startEditingGroup(groupId);
         set({ activeScene: "groupEditor", editingGroupId: groupId });
       },
       showDashboard: () => {
@@ -279,38 +374,61 @@ export const useAppStore = create<AppState>((set, get) => {
         set((state) => ({
           groups: state.groups.map((g) =>
             g.id === groupId
-              ? // Sửa lại logic cập nhật: paths được truyền từ backend (dù rỗng), stats được cập nhật
+              ? // --- THAY ĐỔI: Sử dụng `paths` trực tiếp từ payload ---
                 { ...g, paths: paths, stats: stats }
               : g
           ),
           isUpdatingGroupId: null, // Tắt loading
         }));
+        // --- THAY ĐỔI: Gọi cancelEditingGroup để dọn dẹp và navigate ---
+        get().actions.cancelEditingGroup();
+        saveCurrentProjectData(); // Lưu lại toàn bộ project data sau khi cập nhật
       },
-      // --- CÁC ACTION MỚI CHO VIỆC CHỈNH SỬA NHÓM ---
-      startEditingGroupPaths: (groupId) => {
-        const { groups } = get();
+      // --- LOGIC CHỈNH SỬA NHÓM ĐƯỢC TẬP TRUNG TẠI ĐÂY ---
+
+      startEditingGroup: (groupId: string) => {
+        const { groups, fileTree } = get();
         const group = groups.find((g) => g.id === groupId);
-        if (group) {
-          // Khởi tạo state chỉnh sửa từ paths đã lưu của nhóm
-          set({ editingPaths: new Set(group.paths) });
+        if (group && fileTree) {
+          // Khởi tạo state tạm thời bằng cách EXPAND các path đã lưu
+          const expanded = expandPaths(fileTree, new Set(group.paths));
+          set({ tempSelectedPaths: expanded });
         }
       },
-      updateEditingPaths: (newPaths) => {
-        set({ editingPaths: newPaths });
+
+      toggleEditingPath: (toggledNode: FileNode, isSelected: boolean) => {
+        const { tempSelectedPaths } = get();
+        if (!tempSelectedPaths) return;
+
+        const newSelectedPaths = new Set(tempSelectedPaths);
+        const pathsToToggle = getDescendantAndSelfPaths(toggledNode);
+
+        if (isSelected) {
+          pathsToToggle.forEach((p) => newSelectedPaths.add(p));
+        } else {
+          pathsToToggle.forEach((p) => newSelectedPaths.delete(p));
+        }
+        set({ tempSelectedPaths: newSelectedPaths });
       },
-      clearEditingPaths: () => {
-        set({ editingGroupId: null, editingPaths: null });
+
+      cancelEditingGroup: () => {
+        set({
+          activeScene: "dashboard",
+          editingGroupId: null,
+          tempSelectedPaths: null,
+        });
       },
-      saveEditingPaths: async () => {
-        const { editingGroupId, editingPaths, fileTree } = get();
-        if (editingGroupId && editingPaths && fileTree) {
-          // Tái sử dụng logic prune từ GroupEditorScene
-          // (Chúng ta sẽ chuyển nó vào đây sau)
-          // Hiện tại, cứ lưu trực tiếp để kiểm tra
-          await get().actions.updateGroupPaths(
-            editingGroupId,
-            Array.from(editingPaths)
-          );
+
+      saveEditingGroup: async () => {
+        const { editingGroupId, tempSelectedPaths, fileTree } = get();
+        if (editingGroupId && tempSelectedPaths && fileTree) {
+          // 1. Prune the expanded UI paths back to a minimal set for saving
+          const pathsToSave = prunePathsForSave(fileTree, tempSelectedPaths);
+
+          // 2. Call the async update action
+          await get().actions.updateGroupPaths(editingGroupId, pathsToSave);
+
+          // 3. Clean up and navigate back - sẽ được xử lý bởi _setGroupUpdateComplete
         }
       },
     },

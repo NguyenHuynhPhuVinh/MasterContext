@@ -65,6 +65,7 @@ function App() {
 
     // Thêm listener cho group_update_complete
     unlistenFuncs.push(
+      // --- THAY ĐỔI: Thêm `paths` vào payload ---
       listen<{ groupId: string; stats: GroupStats; paths: string[] }>(
         "group_update_complete",
         (event) => {

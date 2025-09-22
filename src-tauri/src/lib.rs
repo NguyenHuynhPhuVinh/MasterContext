@@ -281,12 +281,17 @@ fn start_group_update(window: Window, app_handle: tauri::AppHandle, group_id: St
             Ok(context_result) => {
                 if let Ok(mut project_data) = load_project_data(app_handle.clone(), root_path_str.clone()) {
                     if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
-                        group.paths = paths;
+                        group.paths = paths.clone(); // Clone trước khi move
                         group.stats = context_result.stats;
                     }
                     let _ = save_project_data(app_handle, root_path_str, project_data);
                 }
-                let _ = window.emit("group_update_complete", serde_json::json!({ "groupId": group_id, "paths": Vec::<String>::new(), "stats": context_result.stats }));
+                // --- THAY ĐỔI QUAN TRỌNG: Gửi lại chính `paths` đã được lưu ---
+                let _ = window.emit("group_update_complete", serde_json::json!({ 
+                    "groupId": group_id, 
+                    "paths": paths, // Sử dụng paths gốc
+                    "stats": context_result.stats 
+                }));
             }
             Err(e) => { let _ = window.emit("group_update_error", e); }
         }
