@@ -59,7 +59,7 @@ export function DashboardScene() {
     isDialogOpen,
     isExporting,
     isCopying,
-    wasCopied,
+    // --- XÓA `wasCopied` ---
     editingGroup,
     form,
     setIsDialogOpen,
@@ -138,7 +138,7 @@ export function DashboardScene() {
               isExporting={isExporting}
               onCopyProject={handleCopyProject}
               isCopying={isCopying}
-              wasCopied={wasCopied}
+              // --- XÓA `wasCopied` ---
             />
           </div>
         </ResizablePanel>

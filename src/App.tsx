@@ -1,7 +1,7 @@
 // src/App.tsx
-import { useEffect, useMemo } from "react"; // <-- Thêm useMemo
+import { useEffect, useMemo } from "react";
 import { listen } from "@tauri-apps/api/event";
-// import { invoke } from "@tauri-apps/api/core"; // Không còn dùng
+import { Toaster, toast } from "sonner"; // <-- THÊM IMPORT
 import { useAppStore, useAppActions } from "./store/appStore";
 import { type GroupStats, type CachedProjectData } from "./store/types";
 import { WelcomeScene } from "./scenes/WelcomeScene";
@@ -56,6 +56,7 @@ function App() {
       // --- SỬA LỖI: SỬA KIỂU DỮ LIỆU TỪ ProjectStats THÀNH CachedProjectData ---
       listen<CachedProjectData>("scan_complete", (event) => {
         _setScanComplete(event.payload);
+        toast.success("Phân tích dự án hoàn tất!"); // <-- THÊM TOAST
         // --- ĐÃ XÓA LỆNH GỌI GÂY LẶP. Logic này giờ được xử lý hoàn toàn trong Rust. ---
       })
     );
@@ -63,6 +64,7 @@ function App() {
     unlistenFuncs.push(
       listen<string>("scan_error", (event) => {
         _setScanError(event.payload);
+        toast.error(`Lỗi khi phân tích dự án: ${event.payload}`); // <-- THÊM TOAST
       })
     );
 
@@ -73,6 +75,7 @@ function App() {
         "group_update_complete",
         (event) => {
           _setGroupUpdateComplete(event.payload);
+          toast.success("Lưu nhóm thành công!"); // <-- THÊM TOAST
         }
       )
     );
@@ -80,18 +83,17 @@ function App() {
     // Thêm listener cho các sự kiện đồng bộ tự động
     unlistenFuncs.push(
       listen<string>("auto_sync_started", (event) => {
-        console.log("Auto Sync:", event.payload);
-        // Tương lai có thể hiển thị toast notification ở đây
+        toast.info(event.payload); // <-- THAY console.log BẰNG TOAST
       })
     );
     unlistenFuncs.push(
       listen<string>("auto_sync_complete", (event) => {
-        console.log("Auto Sync:", event.payload);
+        toast.success(event.payload); // <-- THAY console.log BẰNG TOAST
       })
     );
     unlistenFuncs.push(
       listen<string>("auto_sync_error", (event) => {
-        console.error("Auto Sync Error:", event.payload);
+        toast.error(`Lỗi đồng bộ: ${event.payload}`); // <-- THAY console.error BẰNG TOAST
       })
     );
 
@@ -134,6 +136,8 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col bg-background text-foreground">
+      {/* --- THÊM COMPONENT TOASTER VÀO ĐÂY --- */}
+      <Toaster richColors />
       {renderContent()}
     </div>
   );

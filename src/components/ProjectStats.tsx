@@ -16,7 +16,6 @@ import {
   Download,
   Loader2,
   ClipboardCopy, // <-- THÊM ICON MỚI
-  Check, // <-- THÊM ICON MỚI
 } from "lucide-react"; // <-- Thêm icon
 import { type ProjectStats as ProjectStatsData } from "@/store/types"; // <-- Sửa đường dẫn import
 import { formatBytes } from "@/lib/utils";
@@ -26,15 +25,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// --- CẬP NHẬT: Thêm props cho chức năng sao chép ---
+// --- CẬP NHẬT: Xóa prop `wasCopied` không còn cần thiết ---
 interface ProjectStatsProps {
   path: string | null;
   stats: ProjectStatsData | null;
   onExportProject: () => void;
   isExporting: boolean;
-  onCopyProject: () => void; // <-- Prop mới
-  isCopying: boolean; // <-- Prop mới
-  wasCopied: boolean; // <-- Prop mới
+  onCopyProject: () => void;
+  isCopying: boolean;
 }
 
 export function ProjectStats({
@@ -44,7 +42,6 @@ export function ProjectStats({
   isExporting,
   onCopyProject,
   isCopying,
-  wasCopied,
 }: ProjectStatsProps) {
   return (
     <Card className="flex flex-col h-fit">
@@ -99,6 +96,7 @@ export function ProjectStats({
       </CardContent>
       {/* --- PHẦN MỚI: Thêm footer với các nút --- */}
       <CardFooter className="flex flex-col gap-2">
+        {/* --- CẬP NHẬT: Đơn giản hóa logic nút Sao chép --- */}
         <Button
           variant="outline"
           size="sm"
@@ -108,12 +106,10 @@ export function ProjectStats({
         >
           {isCopying ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : wasCopied ? (
-            <Check className="mr-2 h-4 w-4 text-green-500" />
           ) : (
             <ClipboardCopy className="mr-2 h-4 w-4" />
           )}
-          {isCopying ? "Đang xử lý..." : wasCopied ? "Đã chép!" : "Sao chép"}
+          {isCopying ? "Đang xử lý..." : "Sao chép"}
         </Button>
         <Button
           variant="outline"

@@ -8,6 +8,7 @@ import { listen } from "@tauri-apps/api/event";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"; // <-- THÊM IMPORT
+import { toast } from "sonner"; // <-- THÊM IMPORT
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
 import { useShallow } from "zustand/react/shallow"; // <-- BƯỚC 1: IMPORT useShallow
@@ -37,7 +38,6 @@ export function useDashboard() {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isCopying, setIsCopying] = useState(false); // <-- STATE MỚI
-  const [wasCopied, setWasCopied] = useState(false); // <-- STATE MỚI
 
   // --- QUẢN LÝ FORM ---
   const form = useForm<GroupFormValues>({
@@ -58,11 +58,11 @@ export function useDashboard() {
           });
           if (filePath) {
             await writeTextFile(filePath, event.payload);
-            alert(`Đã lưu file thành công!`);
+            toast.success(`Đã lưu file thành công!`); // <-- THAY alert BẰNG TOAST
           }
         } catch (error) {
           console.error("Lỗi khi lưu file ngữ cảnh dự án:", error);
-          alert("Đã xảy ra lỗi khi lưu file.");
+          toast.error("Đã xảy ra lỗi khi lưu file."); // <-- THAY alert BẰNG TOAST
         } finally {
           setIsExporting(false);
         }
@@ -71,7 +71,7 @@ export function useDashboard() {
 
     const unlistenError = listen<string>("project_export_error", (event) => {
       console.error("Lỗi khi xuất dự án:", event.payload);
-      alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
+      toast.error(`Đã xảy ra lỗi khi xuất file: ${event.payload}`); // <-- THAY alert BẰNG TOAST
       setIsExporting(false);
     });
 
@@ -98,6 +98,10 @@ export function useDashboard() {
     } else {
       addGroup({ name: data.name, description: data.description || "" });
     }
+    // <-- THÊM TOAST PHẢN HỒI NGAY LẬP TỨC -->
+    toast.success(
+      editingGroup ? "Cập nhật nhóm thành công!" : "Tạo nhóm mới thành công!"
+    );
     setIsDialogOpen(false);
   };
 
@@ -129,17 +133,15 @@ export function useDashboard() {
   const handleCopyProject = async () => {
     if (!rootPath) return;
     setIsCopying(true);
-    setWasCopied(false);
     try {
       const context = await invoke<string>("generate_project_context", {
         path: rootPath,
       });
       await writeText(context);
-      setWasCopied(true);
-      setTimeout(() => setWasCopied(false), 2000); // Hiển thị trạng thái "Đã chép" trong 2 giây
+      toast.success("Đã sao chép ngữ cảnh dự án vào clipboard!"); // <-- THÊM TOAST
     } catch (error) {
       console.error("Lỗi khi sao chép ngữ cảnh dự án:", error);
-      alert(`Không thể sao chép: ${error}`);
+      toast.error(`Không thể sao chép: ${error}`); // <-- THAY alert BẰNG TOAST
     } finally {
       setIsCopying(false);
     }
@@ -158,7 +160,7 @@ export function useDashboard() {
     isDialogOpen,
     isExporting,
     isCopying, // <-- Trả về state mới
-    wasCopied, // <-- Trả về state mới
+    // --- XÓA `wasCopied` ---
     editingGroup,
     // Form
     form,

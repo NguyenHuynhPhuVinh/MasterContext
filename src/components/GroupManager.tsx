@@ -7,6 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"; // <-- THÊM IMPORT
+import { toast } from "sonner"; // <-- THÊM IMPORT
 import { formatBytes } from "@/lib/utils"; // <-- Import hàm tiện ích
 import { Label } from "@/components/ui/label"; // <-- THÊM IMPORT
 import { Switch } from "@/components/ui/switch"; // <-- THÊM IMPORT
@@ -32,7 +33,6 @@ import {
   Loader2, // Thêm Loader2
   Link, // <-- THÊM ICON LINK
   ClipboardCopy, // <-- THÊM ICON
-  Check, // <-- THÊM ICON
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -67,7 +67,6 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
   // State quản lý nhóm nào đang trong quá trình xuất
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
   const [copyingGroupId, setCopyingGroupId] = useState<string | null>(null); // <-- STATE MỚI
-  const [copiedGroupId, setCopiedGroupId] = useState<string | null>(null); // <-- STATE MỚI
 
   // State quản lý dialog tùy chọn
   const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
@@ -103,7 +102,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
 
     const unlistenError = listen<string>("group_export_error", (event) => {
       console.error("Lỗi khi xuất nhóm từ backend:", event.payload);
-      alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
+      toast.error(`Đã xảy ra lỗi khi xuất file: ${event.payload}`); // <-- THAY alert BẰNG TOAST
       // Dọn dẹp tất cả state khi có lỗi
       setIsConfirmingExport(false);
       setExportingGroupId(null);
@@ -134,11 +133,11 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
 
           if (filePath) {
             await writeTextFile(filePath, pendingExportData.context);
-            alert(`Đã lưu file thành công!`);
+            toast.success(`Đã lưu file thành công!`); // <-- THAY alert BẰNG TOAST
           }
         } catch (error) {
           console.error("Lỗi khi lưu file ngữ cảnh:", error);
-          alert("Đã xảy ra lỗi khi lưu file.");
+          toast.error("Đã xảy ra lỗi khi lưu file."); // <-- THAY alert BẰNG TOAST
         } finally {
           // Dọn dẹp TẤT CẢ các state sau khi dialog lưu file đóng lại
           console.log("Dọn dẹp state sau khi lưu.");
@@ -176,7 +175,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
       });
     } catch (error) {
       console.error("Lỗi khi gọi command start_group_export:", error);
-      alert("Không thể bắt đầu quá trình xuất file.");
+      toast.error("Không thể bắt đầu quá trình xuất file."); // <-- THAY alert BẰNG TOAST
       setIsConfirmingExport(false);
       setExportingGroupId(null);
     }
@@ -194,7 +193,6 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
   const handleCopyContext = async (group: Group) => {
     if (!rootPath) return;
     setCopyingGroupId(group.id);
-    setCopiedGroupId(null);
     try {
       const context = await invoke<string>("generate_group_context", {
         groupId: group.id,
@@ -202,11 +200,10 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
         useFullTree: true, // Mặc định dùng cây đầy đủ cho tiện lợi
       });
       await writeText(context);
-      setCopiedGroupId(group.id);
-      setTimeout(() => setCopiedGroupId(null), 2000);
+      toast.success(`Đã sao chép ngữ cảnh nhóm "${group.name}"`); // <-- THÊM TOAST
     } catch (error) {
       console.error(`Lỗi khi sao chép ngữ cảnh nhóm ${group.name}:`, error);
-      alert(`Không thể sao chép: ${error}`);
+      toast.error(`Không thể sao chép: ${error}`); // <-- THAY alert BẰNG TOAST
     } finally {
       setCopyingGroupId(null);
     }
@@ -352,12 +349,10 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                   >
                     {copyingGroupId === group.id ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : copiedGroupId === group.id ? (
-                      <Check className="mr-2 h-4 w-4 text-green-500" />
                     ) : (
                       <ClipboardCopy className="mr-2 h-4 w-4" />
                     )}
-                    {copiedGroupId === group.id ? "Đã chép!" : "Sao chép"}
+                    Sao chép
                   </Button>
                   <Button
                     variant="outline"

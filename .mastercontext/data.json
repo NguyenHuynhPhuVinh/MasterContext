@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 66,
     "total_dirs": 14,
-    "total_size": 423683,
-    "total_tokens": 45080
+    "total_size": 424726,
+    "total_tokens": 45424
   },
   "file_tree": {
     "name": "MasterContext",
@@ -428,14 +428,14 @@
       "name": "TESt",
       "description": "TEST",
       "paths": [
-        "src",
-        "public"
+        "public",
+        "src"
       ],
       "stats": {
         "total_files": 31,
         "total_dirs": 8,
-        "total_size": 119699,
-        "token_count": 29903
+        "total_size": 120718,
+        "token_count": 30235
       },
       "cross_sync_enabled": true
     }
@@ -466,9 +466,9 @@
       "links": []
     },
     "package.json": {
-      "size": 1538,
-      "mtime": 1758533254,
-      "token_count": 575,
+      "size": 1562,
+      "mtime": 1758536451,
+      "token_count": 587,
       "links": []
     },
     "src-tauri/Cargo.toml": {
@@ -640,54 +640,54 @@
       "links": []
     },
     "src/App.tsx": {
-      "size": 4716,
-      "mtime": 1758531269,
-      "token_count": 1246,
+      "size": 5032,
+      "mtime": 1758536451,
+      "token_count": 1356,
       "links": [
         "src/scenes/DashboardScene.tsx",
-        "src/lib/utils.ts",
-        "src/App.css",
-        "src/store/appStore.ts",
+        "src/store/types.ts",
         "src/scenes/GroupEditorScene.tsx",
+        "src/App.css",
+        "src/lib/utils.ts",
+        "src/store/appStore.ts",
         "src/scenes/WelcomeScene.tsx",
-        "src/scenes/ScanningScene.tsx",
-        "src/store/types.ts"
+        "src/scenes/ScanningScene.tsx"
       ]
     },
     "src/components/FileTreeView.tsx": {
       "size": 3838,
-      "mtime": 1758521476,
+      "mtime": 1758536070,
       "token_count": 912,
       "links": [
         "src/lib/utils.ts"
       ]
     },
     "src/components/GroupManager.tsx": {
-      "size": 17700,
-      "mtime": 1758533602,
-      "token_count": 4020,
+      "size": 17614,
+      "mtime": 1758536451,
+      "token_count": 4018,
       "links": [
-        "src/components/ui/button.tsx",
         "src/components/ui/label.tsx",
+        "src/store/types.ts",
+        "src/components/ui/dropdown-menu.tsx",
         "src/components/ui/alert-dialog.tsx",
-        "src/components/ui/card.tsx",
         "src/lib/utils.ts",
         "src/store/appStore.ts",
-        "src/components/ui/dropdown-menu.tsx",
-        "src/store/types.ts",
-        "src/components/ui/switch.tsx"
+        "src/components/ui/switch.tsx",
+        "src/components/ui/card.tsx",
+        "src/components/ui/button.tsx"
       ]
     },
     "src/components/ProjectStats.tsx": {
-      "size": 4468,
-      "mtime": 1758533602,
-      "token_count": 1132,
+      "size": 4310,
+      "mtime": 1758536451,
+      "token_count": 1082,
       "links": [
-        "src/lib/utils.ts",
         "src/components/ui/tooltip.tsx",
+        "src/components/ui/card.tsx",
         "src/components/ui/button.tsx",
-        "src/store/types.ts",
-        "src/components/ui/card.tsx"
+        "src/lib/utils.ts",
+        "src/store/types.ts"
       ]
     },
     "src/components/SettingsDialog.tsx": {
@@ -818,12 +818,12 @@
       ]
     },
     "src/hooks/useDashboard.ts": {
-      "size": 5752,
-      "mtime": 1758533370,
-      "token_count": 1526,
+      "size": 5983,
+      "mtime": 1758536451,
+      "token_count": 1608,
       "links": [
-        "src/store/types.ts",
-        "src/store/appStore.ts"
+        "src/store/appStore.ts",
+        "src/store/types.ts"
       ]
     },
     "src/lib/treeUtils.ts": {
@@ -849,36 +849,36 @@
       ]
     },
     "src/scenes/DashboardScene.tsx": {
-      "size": 8849,
-      "mtime": 1758533370,
-      "token_count": 1816,
+      "size": 8872,
+      "mtime": 1758536451,
+      "token_count": 1828,
       "links": [
-        "src/components/ui/dialog.tsx",
+        "src/components/ui/textarea.tsx",
+        "src/components/ui/resizable.tsx",
         "src/components/ProjectStats.tsx",
-        "src/components/GroupManager.tsx",
         "src/components/ui/form.tsx",
         "src/components/ui/tooltip.tsx",
+        "src/components/ui/dialog.tsx",
         "src/components/ui/scroll-area.tsx",
-        "src/components/ui/resizable.tsx",
         "src/components/SettingsDialog.tsx",
-        "src/components/ui/button.tsx",
+        "src/components/GroupManager.tsx",
         "src/components/ui/alert-dialog.tsx",
         "src/components/ui/input.tsx",
-        "src/components/ui/textarea.tsx",
+        "src/components/ui/button.tsx",
         "src/hooks/useDashboard.ts"
       ]
     },
     "src/scenes/GroupEditorScene.tsx": {
       "size": 4511,
-      "mtime": 1758529838,
+      "mtime": 1758536070,
       "token_count": 1099,
       "links": [
-        "src/components/ui/switch.tsx",
         "src/components/ui/label.tsx",
-        "src/components/FileTreeView.tsx",
         "src/components/ui/button.tsx",
-        "src/components/ui/scroll-area.tsx",
-        "src/store/appStore.ts"
+        "src/components/FileTreeView.tsx",
+        "src/components/ui/switch.tsx",
+        "src/store/appStore.ts",
+        "src/components/ui/scroll-area.tsx"
       ]
     },
     "src/scenes/ScanningScene.tsx": {
@@ -899,9 +899,9 @@
       ]
     },
     "src/store/appStore.ts": {
-      "size": 17726,
-      "mtime": 1758532615,
-      "token_count": 4744,
+      "size": 18419,
+      "mtime": 1758536470,
+      "token_count": 4924,
       "links": [
         "src/store/types.ts",
         "src/lib/treeUtils.ts"
@@ -940,5 +940,5 @@
   },
   "sync_enabled": true,
   "sync_path": "C:\\Users\\tomis\\Documents\\MasterContext\\.mastercontext",
-  "data_hash": "8351c61461d044ee3452aaef76a90f7a2061a170287cf11fd2a1f523ec100cd2"
+  "data_hash": "9bc4a2f8b22d70468b6fc94057de1b237af1a5463af5e371954971bc8e000bab"
 }

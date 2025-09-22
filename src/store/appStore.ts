@@ -1,6 +1,7 @@
 // src/store/appStore.ts
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner"; // <-- THÊM IMPORT
 import {
   type CachedProjectData,
   type FileNode,
@@ -174,7 +175,7 @@ export const useAppStore = create<AppState>((set, get) => {
           console.error("Lỗi khi gọi command open_project:", error);
           // Nếu việc `invoke` thất bại ngay lập tức (hiếm), chúng ta vẫn xử lý lỗi
           set({ isScanning: false });
-          alert("Không thể bắt đầu phân tích dự án.");
+          toast.error("Không thể bắt đầu phân tích dự án."); // <-- THAY alert BẰNG TOAST
         }
       },
       // --- THÊM MỚI: Logic cho action rescanProject ---
@@ -198,7 +199,7 @@ export const useAppStore = create<AppState>((set, get) => {
             isScanning: false,
             scanProgress: { currentFile: null },
           });
-          alert("Không thể bắt đầu quá trình quét lại dự án.");
+          toast.error("Không thể bắt đầu quá trình quét lại dự án."); // <-- THAY alert BẰNG TOAST
         }
       },
       reset: () =>
@@ -210,16 +211,25 @@ export const useAppStore = create<AppState>((set, get) => {
           editingGroupId: null,
         }), // Reset cả groups
 
+      // --- THAY ĐỔI: Chuyển hướng ngay sau khi tạo nhóm ---
       addGroup: (newGroup) => {
         const groupWithDefaults: Group = {
           ...newGroup,
           id: Date.now().toString(),
           paths: [],
-          stats: defaultGroupStats(), // <-- Dùng stats mặc định
-          crossSyncEnabled: false, // <-- GÁN GIÁ TRỊ MẶC ĐỊNH
+          stats: defaultGroupStats(),
+          crossSyncEnabled: false,
         };
-        set((state) => ({ groups: [...state.groups, groupWithDefaults] }));
-        updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
+        // Cập nhật state để thêm nhóm mới và chuyển sang màn hình chỉnh sửa
+        set((state) => ({
+          groups: [...state.groups, groupWithDefaults],
+          activeScene: "groupEditor",
+          editingGroupId: groupWithDefaults.id,
+        }));
+        // Khởi tạo trạng thái chỉnh sửa cho nhóm mới (ví dụ: tempSelectedPaths)
+        get().actions.startEditingGroup(groupWithDefaults.id);
+        // Lưu lại sự thay đổi trên backend
+        updateGroupsOnBackend();
       },
       updateGroup: (updatedGroup) => {
         set((state) => ({
@@ -284,7 +294,7 @@ export const useAppStore = create<AppState>((set, get) => {
       },
       _setScanError: (error) => {
         console.error("Scan error from Rust:", error);
-        alert(`Đã xảy ra lỗi khi quét dự án: ${error}`);
+        // Alert/toast đã được xử lý ở App.tsx, ở đây chỉ cần cập nhật state
         set({ isScanning: false });
       },
       // --- ACTIONS MỚI ---
@@ -430,9 +440,10 @@ export const useAppStore = create<AppState>((set, get) => {
             enabled,
             syncPath: path,
           });
+          toast.success("Lưu cài đặt đồng bộ thành công!"); // <-- THÊM TOAST
         } catch (error) {
           console.error("Lỗi khi lưu cài đặt đồng bộ:", error);
-          alert("Không thể lưu cài đặt đồng bộ.");
+          toast.error("Không thể lưu cài đặt đồng bộ."); // <-- THAY alert BẰNG TOAST
         }
       },
 

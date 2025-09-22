@@ -273,6 +273,7 @@ FILE: package.json
     "react-hook-form": "^7.63.0",
     "react-icons": "^5.5.0",
     "react-resizable-panels": "^3.0.6",
+    "sonner": "2.0.7",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.13",
     "zod": "^4.1.11",
@@ -1661,9 +1662,9 @@ FILE: src/App.css
 FILE: src/App.tsx
 ================================================
 // src/App.tsx
-import { useEffect, useMemo } from "react"; // <-- Thêm useMemo
+import { useEffect, useMemo } from "react";
 import { listen } from "@tauri-apps/api/event";
-// import { invoke } from "@tauri-apps/api/core"; // Không còn dùng
+import { Toaster, toast } from "sonner"; // <-- THÊM IMPORT
 import { useAppStore, useAppActions } from "./store/appStore";
 import { type GroupStats, type CachedProjectData } from "./store/types";
 import { WelcomeScene } from "./scenes/WelcomeScene";
@@ -1718,6 +1719,7 @@ function App() {
       // --- SỬA LỖI: SỬA KIỂU DỮ LIỆU TỪ ProjectStats THÀNH CachedProjectData ---
       listen<CachedProjectData>("scan_complete", (event) => {
         _setScanComplete(event.payload);
+        toast.success("Phân tích dự án hoàn tất!"); // <-- THÊM TOAST
         // --- ĐÃ XÓA LỆNH GỌI GÂY LẶP. Logic này giờ được xử lý hoàn toàn trong Rust. ---
       })
     );
@@ -1725,6 +1727,7 @@ function App() {
     unlistenFuncs.push(
       listen<string>("scan_error", (event) => {
         _setScanError(event.payload);
+        toast.error(`Lỗi khi phân tích dự án: ${event.payload}`); // <-- THÊM TOAST
       })
     );
 
@@ -1735,6 +1738,7 @@ function App() {
         "group_update_complete",
         (event) => {
           _setGroupUpdateComplete(event.payload);
+          toast.success("Lưu nhóm thành công!"); // <-- THÊM TOAST
         }
       )
     );
@@ -1742,18 +1746,17 @@ function App() {
     // Thêm listener cho các sự kiện đồng bộ tự động
     unlistenFuncs.push(
       listen<string>("auto_sync_started", (event) => {
-        console.log("Auto Sync:", event.payload);
-        // Tương lai có thể hiển thị toast notification ở đây
+        toast.info(event.payload); // <-- THAY console.log BẰNG TOAST
       })
     );
     unlistenFuncs.push(
       listen<string>("auto_sync_complete", (event) => {
-        console.log("Auto Sync:", event.payload);
+        toast.success(event.payload); // <-- THAY console.log BẰNG TOAST
       })
     );
     unlistenFuncs.push(
       listen<string>("auto_sync_error", (event) => {
-        console.error("Auto Sync Error:", event.payload);
+        toast.error(`Lỗi đồng bộ: ${event.payload}`); // <-- THAY console.error BẰNG TOAST
       })
     );
 
@@ -1796,6 +1799,8 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col bg-background text-foreground">
+      {/* --- THÊM COMPONENT TOASTER VÀO ĐÂY --- */}
+      <Toaster richColors />
       {renderContent()}
     </div>
   );
@@ -1954,6 +1959,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"; // <-- THÊM IMPORT
+import { toast } from "sonner"; // <-- THÊM IMPORT
 import { formatBytes } from "@/lib/utils"; // <-- Import hàm tiện ích
 import { Label } from "@/components/ui/label"; // <-- THÊM IMPORT
 import { Switch } from "@/components/ui/switch"; // <-- THÊM IMPORT
@@ -1979,7 +1985,6 @@ import {
   Loader2, // Thêm Loader2
   Link, // <-- THÊM ICON LINK
   ClipboardCopy, // <-- THÊM ICON
-  Check, // <-- THÊM ICON
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -2014,7 +2019,6 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
   // State quản lý nhóm nào đang trong quá trình xuất
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
   const [copyingGroupId, setCopyingGroupId] = useState<string | null>(null); // <-- STATE MỚI
-  const [copiedGroupId, setCopiedGroupId] = useState<string | null>(null); // <-- STATE MỚI
 
   // State quản lý dialog tùy chọn
   const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
@@ -2050,7 +2054,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
 
     const unlistenError = listen<string>("group_export_error", (event) => {
       console.error("Lỗi khi xuất nhóm từ backend:", event.payload);
-      alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
+      toast.error(`Đã xảy ra lỗi khi xuất file: ${event.payload}`); // <-- THAY alert BẰNG TOAST
       // Dọn dẹp tất cả state khi có lỗi
       setIsConfirmingExport(false);
       setExportingGroupId(null);
@@ -2081,11 +2085,11 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
 
           if (filePath) {
             await writeTextFile(filePath, pendingExportData.context);
-            alert(`Đã lưu file thành công!`);
+            toast.success(`Đã lưu file thành công!`); // <-- THAY alert BẰNG TOAST
           }
         } catch (error) {
           console.error("Lỗi khi lưu file ngữ cảnh:", error);
-          alert("Đã xảy ra lỗi khi lưu file.");
+          toast.error("Đã xảy ra lỗi khi lưu file."); // <-- THAY alert BẰNG TOAST
         } finally {
           // Dọn dẹp TẤT CẢ các state sau khi dialog lưu file đóng lại
           console.log("Dọn dẹp state sau khi lưu.");
@@ -2123,7 +2127,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
       });
     } catch (error) {
       console.error("Lỗi khi gọi command start_group_export:", error);
-      alert("Không thể bắt đầu quá trình xuất file.");
+      toast.error("Không thể bắt đầu quá trình xuất file."); // <-- THAY alert BẰNG TOAST
       setIsConfirmingExport(false);
       setExportingGroupId(null);
     }
@@ -2141,7 +2145,6 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
   const handleCopyContext = async (group: Group) => {
     if (!rootPath) return;
     setCopyingGroupId(group.id);
-    setCopiedGroupId(null);
     try {
       const context = await invoke<string>("generate_group_context", {
         groupId: group.id,
@@ -2149,11 +2152,10 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
         useFullTree: true, // Mặc định dùng cây đầy đủ cho tiện lợi
       });
       await writeText(context);
-      setCopiedGroupId(group.id);
-      setTimeout(() => setCopiedGroupId(null), 2000);
+      toast.success(`Đã sao chép ngữ cảnh nhóm "${group.name}"`); // <-- THÊM TOAST
     } catch (error) {
       console.error(`Lỗi khi sao chép ngữ cảnh nhóm ${group.name}:`, error);
-      alert(`Không thể sao chép: ${error}`);
+      toast.error(`Không thể sao chép: ${error}`); // <-- THAY alert BẰNG TOAST
     } finally {
       setCopyingGroupId(null);
     }
@@ -2299,12 +2301,10 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                   >
                     {copyingGroupId === group.id ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : copiedGroupId === group.id ? (
-                      <Check className="mr-2 h-4 w-4 text-green-500" />
                     ) : (
                       <ClipboardCopy className="mr-2 h-4 w-4" />
                     )}
-                    {copiedGroupId === group.id ? "Đã chép!" : "Sao chép"}
+                    Sao chép
                   </Button>
                   <Button
                     variant="outline"
@@ -2398,7 +2398,6 @@ import {
   Download,
   Loader2,
   ClipboardCopy, // <-- THÊM ICON MỚI
-  Check, // <-- THÊM ICON MỚI
 } from "lucide-react"; // <-- Thêm icon
 import { type ProjectStats as ProjectStatsData } from "@/store/types"; // <-- Sửa đường dẫn import
 import { formatBytes } from "@/lib/utils";
@@ -2408,15 +2407,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// --- CẬP NHẬT: Thêm props cho chức năng sao chép ---
+// --- CẬP NHẬT: Xóa prop `wasCopied` không còn cần thiết ---
 interface ProjectStatsProps {
   path: string | null;
   stats: ProjectStatsData | null;
   onExportProject: () => void;
   isExporting: boolean;
-  onCopyProject: () => void; // <-- Prop mới
-  isCopying: boolean; // <-- Prop mới
-  wasCopied: boolean; // <-- Prop mới
+  onCopyProject: () => void;
+  isCopying: boolean;
 }
 
 export function ProjectStats({
@@ -2426,7 +2424,6 @@ export function ProjectStats({
   isExporting,
   onCopyProject,
   isCopying,
-  wasCopied,
 }: ProjectStatsProps) {
   return (
     <Card className="flex flex-col h-fit">
@@ -2481,6 +2478,7 @@ export function ProjectStats({
       </CardContent>
       {/* --- PHẦN MỚI: Thêm footer với các nút --- */}
       <CardFooter className="flex flex-col gap-2">
+        {/* --- CẬP NHẬT: Đơn giản hóa logic nút Sao chép --- */}
         <Button
           variant="outline"
           size="sm"
@@ -2490,12 +2488,10 @@ export function ProjectStats({
         >
           {isCopying ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : wasCopied ? (
-            <Check className="mr-2 h-4 w-4 text-green-500" />
           ) : (
             <ClipboardCopy className="mr-2 h-4 w-4" />
           )}
-          {isCopying ? "Đang xử lý..." : wasCopied ? "Đã chép!" : "Sao chép"}
+          {isCopying ? "Đang xử lý..." : "Sao chép"}
         </Button>
         <Button
           variant="outline"
@@ -3884,6 +3880,7 @@ import { listen } from "@tauri-apps/api/event";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"; // <-- THÊM IMPORT
+import { toast } from "sonner"; // <-- THÊM IMPORT
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
 import { useShallow } from "zustand/react/shallow"; // <-- BƯỚC 1: IMPORT useShallow
@@ -3913,7 +3910,6 @@ export function useDashboard() {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isCopying, setIsCopying] = useState(false); // <-- STATE MỚI
-  const [wasCopied, setWasCopied] = useState(false); // <-- STATE MỚI
 
   // --- QUẢN LÝ FORM ---
   const form = useForm<GroupFormValues>({
@@ -3934,11 +3930,11 @@ export function useDashboard() {
           });
           if (filePath) {
             await writeTextFile(filePath, event.payload);
-            alert(`Đã lưu file thành công!`);
+            toast.success(`Đã lưu file thành công!`); // <-- THAY alert BẰNG TOAST
           }
         } catch (error) {
           console.error("Lỗi khi lưu file ngữ cảnh dự án:", error);
-          alert("Đã xảy ra lỗi khi lưu file.");
+          toast.error("Đã xảy ra lỗi khi lưu file."); // <-- THAY alert BẰNG TOAST
         } finally {
           setIsExporting(false);
         }
@@ -3947,7 +3943,7 @@ export function useDashboard() {
 
     const unlistenError = listen<string>("project_export_error", (event) => {
       console.error("Lỗi khi xuất dự án:", event.payload);
-      alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
+      toast.error(`Đã xảy ra lỗi khi xuất file: ${event.payload}`); // <-- THAY alert BẰNG TOAST
       setIsExporting(false);
     });
 
@@ -3974,6 +3970,10 @@ export function useDashboard() {
     } else {
       addGroup({ name: data.name, description: data.description || "" });
     }
+    // <-- THÊM TOAST PHẢN HỒI NGAY LẬP TỨC -->
+    toast.success(
+      editingGroup ? "Cập nhật nhóm thành công!" : "Tạo nhóm mới thành công!"
+    );
     setIsDialogOpen(false);
   };
 
@@ -4005,17 +4005,15 @@ export function useDashboard() {
   const handleCopyProject = async () => {
     if (!rootPath) return;
     setIsCopying(true);
-    setWasCopied(false);
     try {
       const context = await invoke<string>("generate_project_context", {
         path: rootPath,
       });
       await writeText(context);
-      setWasCopied(true);
-      setTimeout(() => setWasCopied(false), 2000); // Hiển thị trạng thái "Đã chép" trong 2 giây
+      toast.success("Đã sao chép ngữ cảnh dự án vào clipboard!"); // <-- THÊM TOAST
     } catch (error) {
       console.error("Lỗi khi sao chép ngữ cảnh dự án:", error);
-      alert(`Không thể sao chép: ${error}`);
+      toast.error(`Không thể sao chép: ${error}`); // <-- THAY alert BẰNG TOAST
     } finally {
       setIsCopying(false);
     }
@@ -4034,7 +4032,7 @@ export function useDashboard() {
     isDialogOpen,
     isExporting,
     isCopying, // <-- Trả về state mới
-    wasCopied, // <-- Trả về state mới
+    // --- XÓA `wasCopied` ---
     editingGroup,
     // Form
     form,
@@ -4319,7 +4317,7 @@ export function DashboardScene() {
     isDialogOpen,
     isExporting,
     isCopying,
-    wasCopied,
+    // --- XÓA `wasCopied` ---
     editingGroup,
     form,
     setIsDialogOpen,
@@ -4398,7 +4396,7 @@ export function DashboardScene() {
               isExporting={isExporting}
               onCopyProject={handleCopyProject}
               isCopying={isCopying}
-              wasCopied={wasCopied}
+              // --- XÓA `wasCopied` ---
             />
           </div>
         </ResizablePanel>
@@ -4719,6 +4717,7 @@ FILE: src/store/appStore.ts
 // src/store/appStore.ts
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner"; // <-- THÊM IMPORT
 import {
   type CachedProjectData,
   type FileNode,
@@ -4892,7 +4891,7 @@ export const useAppStore = create<AppState>((set, get) => {
           console.error("Lỗi khi gọi command open_project:", error);
           // Nếu việc `invoke` thất bại ngay lập tức (hiếm), chúng ta vẫn xử lý lỗi
           set({ isScanning: false });
-          alert("Không thể bắt đầu phân tích dự án.");
+          toast.error("Không thể bắt đầu phân tích dự án."); // <-- THAY alert BẰNG TOAST
         }
       },
       // --- THÊM MỚI: Logic cho action rescanProject ---
@@ -4916,7 +4915,7 @@ export const useAppStore = create<AppState>((set, get) => {
             isScanning: false,
             scanProgress: { currentFile: null },
           });
-          alert("Không thể bắt đầu quá trình quét lại dự án.");
+          toast.error("Không thể bắt đầu quá trình quét lại dự án."); // <-- THAY alert BẰNG TOAST
         }
       },
       reset: () =>
@@ -4928,16 +4927,25 @@ export const useAppStore = create<AppState>((set, get) => {
           editingGroupId: null,
         }), // Reset cả groups
 
+      // --- THAY ĐỔI: Chuyển hướng ngay sau khi tạo nhóm ---
       addGroup: (newGroup) => {
         const groupWithDefaults: Group = {
           ...newGroup,
           id: Date.now().toString(),
           paths: [],
-          stats: defaultGroupStats(), // <-- Dùng stats mặc định
-          crossSyncEnabled: false, // <-- GÁN GIÁ TRỊ MẶC ĐỊNH
+          stats: defaultGroupStats(),
+          crossSyncEnabled: false,
         };
-        set((state) => ({ groups: [...state.groups, groupWithDefaults] }));
-        updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
+        // Cập nhật state để thêm nhóm mới và chuyển sang màn hình chỉnh sửa
+        set((state) => ({
+          groups: [...state.groups, groupWithDefaults],
+          activeScene: "groupEditor",
+          editingGroupId: groupWithDefaults.id,
+        }));
+        // Khởi tạo trạng thái chỉnh sửa cho nhóm mới (ví dụ: tempSelectedPaths)
+        get().actions.startEditingGroup(groupWithDefaults.id);
+        // Lưu lại sự thay đổi trên backend
+        updateGroupsOnBackend();
       },
       updateGroup: (updatedGroup) => {
         set((state) => ({
@@ -5002,7 +5010,7 @@ export const useAppStore = create<AppState>((set, get) => {
       },
       _setScanError: (error) => {
         console.error("Scan error from Rust:", error);
-        alert(`Đã xảy ra lỗi khi quét dự án: ${error}`);
+        // Alert/toast đã được xử lý ở App.tsx, ở đây chỉ cần cập nhật state
         set({ isScanning: false });
       },
       // --- ACTIONS MỚI ---
@@ -5148,9 +5156,10 @@ export const useAppStore = create<AppState>((set, get) => {
             enabled,
             syncPath: path,
           });
+          toast.success("Lưu cài đặt đồng bộ thành công!"); // <-- THÊM TOAST
         } catch (error) {
           console.error("Lỗi khi lưu cài đặt đồng bộ:", error);
-          alert("Không thể lưu cài đặt đồng bộ.");
+          toast.error("Không thể lưu cài đặt đồng bộ."); // <-- THAY alert BẰNG TOAST
         }
       },
 
