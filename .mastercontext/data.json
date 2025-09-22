@@ -1,9 +1,9 @@
 {
   "stats": {
-    "total_files": 62,
+    "total_files": 63,
     "total_dirs": 14,
-    "total_size": 365835,
-    "total_tokens": 29710
+    "total_size": 366228,
+    "total_tokens": 29826
   },
   "file_tree": {
     "name": "MasterContext",
@@ -113,7 +113,13 @@
           {
             "name": "hooks",
             "path": "src/hooks",
-            "children": []
+            "children": [
+              {
+                "name": "useDashboard.ts",
+                "path": "src/hooks/useDashboard.ts",
+                "children": null
+              }
+            ]
           },
           {
             "name": "lib",
@@ -410,10 +416,10 @@
         "src"
       ],
       "stats": {
-        "total_files": 54,
-        "total_dirs": 10,
-        "total_size": 360174,
-        "token_count": 28055
+        "total_files": 55,
+        "total_dirs": 11,
+        "total_size": 360567,
+        "token_count": 28171
       }
     }
   ],
@@ -663,6 +669,11 @@
       "mtime": 1758465398,
       "token_count": 445
     },
+    "src/hooks/useDashboard.ts": {
+      "size": 4554,
+      "mtime": 1758519288,
+      "token_count": 1183
+    },
     "src/lib/treeUtils.ts": {
       "size": 2608,
       "mtime": 1758518698,
@@ -679,9 +690,9 @@
       "token_count": 51
     },
     "src/scenes/DashboardScene.tsx": {
-      "size": 11803,
-      "mtime": 1758518853,
-      "token_count": 2573
+      "size": 7642,
+      "mtime": 1758519164,
+      "token_count": 1506
     },
     "src/scenes/GroupEditorScene.tsx": {
       "size": 2861,

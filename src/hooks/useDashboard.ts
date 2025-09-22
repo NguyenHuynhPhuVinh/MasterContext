@@ -9,6 +9,7 @@ import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
+import { useShallow } from "zustand/react/shallow"; // <-- BƯỚC 1: IMPORT useShallow
 
 // Schema validation cho form
 const groupSchema = z.object({
@@ -19,11 +20,14 @@ type GroupFormValues = z.infer<typeof groupSchema>;
 
 export function useDashboard() {
   // --- LẤY STATE VÀ ACTIONS TỪ STORE ---
-  const { rootPath, projectStats, selectedPath } = useAppStore((state) => ({
-    rootPath: state.rootPath,
-    projectStats: state.projectStats,
-    selectedPath: state.selectedPath,
-  }));
+  // BƯỚC 2: SỬ DỤNG useShallow
+  const { rootPath, projectStats, selectedPath } = useAppStore(
+    useShallow((state) => ({
+      rootPath: state.rootPath,
+      projectStats: state.projectStats,
+      selectedPath: state.selectedPath,
+    }))
+  );
   const { addGroup, updateGroup, selectRootPath, rescanProject } =
     useAppActions();
 
