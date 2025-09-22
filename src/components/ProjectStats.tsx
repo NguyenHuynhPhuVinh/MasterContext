@@ -16,7 +16,7 @@ import {
   Download,
   Loader2,
 } from "lucide-react"; // <-- Thêm icon
-import { type ProjectStats as ProjectStatsData } from "@/store/appStore"; // <-- Sửa đường dẫn import
+import { type ProjectStats as ProjectStatsData } from "@/store/types"; // <-- Sửa đường dẫn import
 import { formatBytes } from "@/lib/utils";
 import {
   Tooltip,

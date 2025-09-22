@@ -1,9 +1,9 @@
 {
   "stats": {
-    "total_files": 55,
+    "total_files": 62,
     "total_dirs": 14,
-    "total_size": 369128,
-    "total_tokens": 30829
+    "total_size": 365835,
+    "total_tokens": 29710
   },
   "file_tree": {
     "name": "MasterContext",
@@ -120,6 +120,11 @@
             "path": "src/lib",
             "children": [
               {
+                "name": "treeUtils.ts",
+                "path": "src/lib/treeUtils.ts",
+                "children": null
+              },
+              {
                 "name": "utils.ts",
                 "path": "src/lib/utils.ts",
                 "children": null
@@ -159,6 +164,11 @@
               {
                 "name": "appStore.ts",
                 "path": "src/store/appStore.ts",
+                "children": null
+              },
+              {
+                "name": "types.ts",
+                "path": "src/store/types.ts",
                 "children": null
               }
             ]
@@ -296,6 +306,21 @@
             "path": "src-tauri/src",
             "children": [
               {
+                "name": "commands.rs",
+                "path": "src-tauri/src/commands.rs",
+                "children": null
+              },
+              {
+                "name": "context_generator.rs",
+                "path": "src-tauri/src/context_generator.rs",
+                "children": null
+              },
+              {
+                "name": "file_cache.rs",
+                "path": "src-tauri/src/file_cache.rs",
+                "children": null
+              },
+              {
                 "name": "lib.rs",
                 "path": "src-tauri/src/lib.rs",
                 "children": null
@@ -303,6 +328,16 @@
               {
                 "name": "main.rs",
                 "path": "src-tauri/src/main.rs",
+                "children": null
+              },
+              {
+                "name": "models.rs",
+                "path": "src-tauri/src/models.rs",
+                "children": null
+              },
+              {
+                "name": "project_scanner.rs",
+                "path": "src-tauri/src/project_scanner.rs",
                 "children": null
               }
             ]
@@ -375,10 +410,10 @@
         "src"
       ],
       "stats": {
-        "total_files": 47,
+        "total_files": 54,
         "total_dirs": 10,
-        "total_size": 363467,
-        "token_count": 29174
+        "total_size": 360174,
+        "token_count": 28055
       }
     }
   ],
@@ -503,15 +538,40 @@
       "mtime": 1758460553,
       "token_count": 0
     },
+    "src-tauri/src/commands.rs": {
+      "size": 4439,
+      "mtime": 1758518730,
+      "token_count": 972
+    },
+    "src-tauri/src/context_generator.rs": {
+      "size": 3647,
+      "mtime": 1758518698,
+      "token_count": 792
+    },
+    "src-tauri/src/file_cache.rs": {
+      "size": 1944,
+      "mtime": 1758518698,
+      "token_count": 525
+    },
     "src-tauri/src/lib.rs": {
-      "size": 24824,
-      "mtime": 1758518022,
-      "token_count": 6141
+      "size": 824,
+      "mtime": 1758518698,
+      "token_count": 183
     },
     "src-tauri/src/main.rs": {
       "size": 195,
       "mtime": 1758460553,
       "token_count": 44
+    },
+    "src-tauri/src/models.rs": {
+      "size": 1529,
+      "mtime": 1758518698,
+      "token_count": 373
+    },
+    "src-tauri/src/project_scanner.rs": {
+      "size": 8864,
+      "mtime": 1758518730,
+      "token_count": 2135
     },
     "src-tauri/tauri.conf.json": {
       "size": 751,
@@ -524,9 +584,9 @@
       "token_count": 1615
     },
     "src/App.tsx": {
-      "size": 3437,
-      "mtime": 1758517507,
-      "token_count": 902
+      "size": 3466,
+      "mtime": 1758518853,
+      "token_count": 906
     },
     "src/components/FileTreeView.tsx": {
       "size": 3838,
@@ -534,14 +594,14 @@
       "token_count": 912
     },
     "src/components/GroupManager.tsx": {
-      "size": 10515,
-      "mtime": 1758513830,
-      "token_count": 2328
+      "size": 10548,
+      "mtime": 1758518853,
+      "token_count": 2335
     },
     "src/components/ProjectStats.tsx": {
-      "size": 3633,
-      "mtime": 1758473908,
-      "token_count": 890
+      "size": 3630,
+      "mtime": 1758518853,
+      "token_count": 889
     },
     "src/components/ui/alert-dialog.tsx": {
       "size": 3864,
@@ -603,6 +663,11 @@
       "mtime": 1758465398,
       "token_count": 445
     },
+    "src/lib/treeUtils.ts": {
+      "size": 2608,
+      "mtime": 1758518698,
+      "token_count": 606
+    },
     "src/lib/utils.ts": {
       "size": 1645,
       "mtime": 1758505313,
@@ -614,9 +679,9 @@
       "token_count": 51
     },
     "src/scenes/DashboardScene.tsx": {
-      "size": 11770,
-      "mtime": 1758517507,
-      "token_count": 2566
+      "size": 11803,
+      "mtime": 1758518853,
+      "token_count": 2573
     },
     "src/scenes/GroupEditorScene.tsx": {
       "size": 2861,
@@ -634,9 +699,14 @@
       "token_count": 341
     },
     "src/store/appStore.ts": {
-      "size": 14775,
-      "mtime": 1758517507,
-      "token_count": 3868
+      "size": 11498,
+      "mtime": 1758518698,
+      "token_count": 3088
+    },
+    "src/store/types.ts": {
+      "size": 861,
+      "mtime": 1758518698,
+      "token_count": 199
     },
     "src/vite-env.d.ts": {
       "size": 39,

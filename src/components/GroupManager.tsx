@@ -1,7 +1,8 @@
 // src/components/GroupManager.tsx
 import { useState, useEffect } from "react"; // Thêm useEffect
 import { listen } from "@tauri-apps/api/event"; // Thêm listen
-import { useAppStore, useAppActions, type Group } from "@/store/appStore";
+import { useAppStore, useAppActions } from "@/store/appStore";
+import { type Group } from "@/store/types";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";

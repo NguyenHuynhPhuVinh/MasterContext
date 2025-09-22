@@ -8,7 +8,8 @@ import { listen } from "@tauri-apps/api/event"; // Thêm listen
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { open } from "@tauri-apps/plugin-dialog"; // <-- Thêm import này
-import { useAppStore, useAppActions, type Group } from "@/store/appStore";
+import { useAppStore, useAppActions } from "@/store/appStore";
+import { type Group } from "@/store/types";
 
 // Import UI components
 import {

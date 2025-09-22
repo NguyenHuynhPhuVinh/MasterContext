@@ -1,12 +1,8 @@
 // src/App.tsx
 import { useEffect, useMemo } from "react"; // <-- Thêm useMemo
 import { listen } from "@tauri-apps/api/event";
-import {
-  useAppStore,
-  useAppActions,
-  GroupStats,
-  CachedProjectData,
-} from "./store/appStore";
+import { useAppStore, useAppActions } from "./store/appStore";
+import { type GroupStats, type CachedProjectData } from "./store/types";
 import { WelcomeScene } from "./scenes/WelcomeScene";
 import { DashboardScene } from "./scenes/DashboardScene";
 import { GroupEditorScene } from "./scenes/GroupEditorScene";
