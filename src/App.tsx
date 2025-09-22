@@ -72,41 +72,6 @@ function App() {
       )
     );
 
-    // --- XÓA LISTENER CHO EXPORT NHÓM Ở ĐÂY ---
-    /*
-    unlistenFuncs.push(
-      listen<{ groupId: string; context: string }>(
-        "group_export_complete",
-        async (event) => {
-          // Lấy thông tin nhóm từ store để có tên file mặc định
-          const group = useAppStore
-            .getState()
-            .groups.find((g) => g.id === event.payload.groupId);
-          const defaultName = group
-            ? `${group.name.replace(/\s+/g, "_")}_context.txt`
-            : "context.txt";
-
-          try {
-            const filePath = await save({
-              title: `Lưu Ngữ cảnh cho nhóm "${group?.name}"`,
-              defaultPath: defaultName,
-              filters: [{ name: "Text File", extensions: ["txt"] }],
-            });
-            if (filePath) {
-              await writeTextFile(filePath, event.payload.context);
-              alert(`Đã lưu file thành công!`);
-            }
-          } catch (error) {
-            console.error("Lỗi khi lưu file ngữ cảnh:", error);
-            alert("Đã xảy ra lỗi khi lưu file.");
-          }
-          // Có thể thêm logic tắt loading ở đây nếu cần
-          // Ví dụ: useAppActions.getState()._setExportingGroupId(null);
-        }
-      )
-    );
-    */
-
     // Dọn dẹp listener khi component unmount
     return () => {
       unlistenFuncs.forEach((unlisten) => {

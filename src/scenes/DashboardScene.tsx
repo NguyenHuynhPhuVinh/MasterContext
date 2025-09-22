@@ -167,19 +167,6 @@ export function DashboardScene() {
     await rescanProject();
   };
 
-  // --- XÓA HOÀN TOÀN KHỐI LOGIC NÀY ---
-  /*
-  if (isScanning && !projectStats) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-lg text-muted-foreground">
-          Đang quét dự án lần đầu...
-        </p>
-      </div>
-    );
-  }
-  */
-
   return (
     <>
       <ResizablePanelGroup direction="horizontal" className="h-full w-full">

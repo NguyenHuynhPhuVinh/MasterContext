@@ -1,7 +1,6 @@
 // src/store/appStore.ts
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import { join, dirname } from "@tauri-apps/api/path";
 
 // --- DI CHUYỂN TOÀN BỘ CÁC HÀM HELPER VÀO ĐÂY ---
 // Điều này giúp tập trung logic xử lý state ở một nơi duy nhất.
@@ -192,8 +191,6 @@ interface AppState {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
     // --- THÊM MỚI: Action để quét lại dự án ---
     rescanProject: () => Promise<void>;
-    navigateTo: (dirName: string) => Promise<void>;
-    goBack: () => Promise<void>;
     reset: () => void;
     addGroup: (group: Omit<Group, "id" | "paths" | "stats">) => void;
     updateGroup: (group: Omit<Group, "paths" | "stats">) => void;
@@ -297,22 +294,6 @@ export const useAppStore = create<AppState>((set, get) => {
             scanProgress: { currentFile: null },
           });
           alert("Không thể bắt đầu quá trình quét lại dự án.");
-        }
-      },
-      navigateTo: async (dirName) => {
-        const currentPath = get().selectedPath;
-        if (!currentPath) return;
-        const newPath = await join(currentPath, dirName);
-        set({ selectedPath: newPath });
-      },
-      goBack: async () => {
-        const { selectedPath, rootPath, actions } = get();
-        if (!selectedPath || !rootPath) return;
-        if (selectedPath === rootPath) {
-          actions.reset();
-        } else {
-          const parentPath = await dirname(selectedPath);
-          set({ selectedPath: parentPath });
         }
       },
       reset: () =>
