@@ -1,10 +1,7 @@
 // src/components/GroupManager.tsx
-import { useState, useEffect } from "react"; // Thêm useState, useEffect
+import { useState } from "react";
 import { useAppStore, useAppActions, type Group } from "@/store/appStore";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event"; // Thêm listen
-import { save } from "@tauri-apps/plugin-dialog";
-import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { formatBytes } from "@/lib/utils"; // <-- Import hàm tiện ích
 
 import { Button } from "@/components/ui/button";
@@ -56,56 +53,30 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
   const rootPath = useAppStore((state) => state.rootPath);
   const { deleteGroup, editGroupContent } = useAppActions();
 
-  // ...
+  // State loading cục bộ
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
-
-  // Lắng nghe sự kiện export hoàn thành
-  useEffect(() => {
-    const unlisten = listen<{ groupId: string; context: string }>(
-      "group_export_complete",
-      async (event) => {
-        // Chỉ xử lý nếu đúng là group đang chờ export
-        if (event.payload.groupId === exportingGroupId) {
-          const group = groups.find((g) => g.id === event.payload.groupId);
-          const defaultName = group
-            ? `${group.name.replace(/\s+/g, "_")}_context.txt`
-            : "context.txt";
-
-          try {
-            const filePath = await save({
-              title: `Lưu Ngữ cảnh cho nhóm "${group?.name}"`,
-              defaultPath: defaultName,
-              filters: [{ name: "Text File", extensions: ["txt"] }],
-            });
-            if (filePath) {
-              await writeTextFile(filePath, event.payload.context);
-              alert(`Đã lưu file thành công!`);
-            }
-          } catch (error) {
-            console.error("Lỗi khi lưu file ngữ cảnh:", error);
-            alert("Đã xảy ra lỗi khi lưu file.");
-          } finally {
-            setExportingGroupId(null); // Tắt loading
-          }
-        }
-      }
-    );
-
-    return () => {
-      unlisten.then((f) => f());
-    };
-  }, [exportingGroupId, groups]); // Chạy lại nếu exportingGroupId thay đổi
 
   const handleExportGroup = async (group: Group) => {
     if (!rootPath || group.paths.length === 0) {
-      /* ... */ return;
+      alert("Nhóm này chưa có tệp/thư mục nào được chọn.");
+      return;
     }
     setExportingGroupId(group.id); // Bật loading
-    await invoke("start_group_export", {
-      groupId: group.id,
-      rootPathStr: rootPath,
-      paths: group.paths,
-    });
+    try {
+      // Gọi command bất đồng bộ
+      await invoke("start_group_export", {
+        groupId: group.id,
+        rootPathStr: rootPath,
+        paths: group.paths,
+      });
+      // Listener trong App.tsx sẽ xử lý kết quả
+    } catch (error) {
+      console.error("Lỗi khi bắt đầu xuất nhóm:", error);
+      alert("Không thể bắt đầu quá trình xuất file.");
+    } finally {
+      // Tắt loading sau một khoảng trễ ngắn để người dùng thấy phản hồi
+      setTimeout(() => setExportingGroupId(null), 3000);
+    }
   };
 
   return (

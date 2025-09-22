@@ -82,6 +82,9 @@ interface AppState {
   scanProgress: ScanProgress; // <-- THÊM STATE MỚI
   fileTree: FileNode | null; // <-- THÊM STATE MỚI
   isUpdatingGroupId: string | null; // <-- State loading khi lưu nhóm
+  // --- STATE MỚI ---
+  editingPaths: Set<string> | null; // State tạm để chỉnh sửa cây thư mục
+
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
     navigateTo: (dirName: string) => Promise<void>;
@@ -104,6 +107,11 @@ interface AppState {
       stats: GroupStats;
       paths: string[];
     }) => void;
+    // --- ACTIONS MỚI CHO VIỆC CHỈNH SỬA NHÓM ---
+    startEditingGroupPaths: (groupId: string) => void;
+    updateEditingPaths: (newPaths: Set<string>) => void;
+    clearEditingPaths: () => void;
+    saveEditingPaths: () => Promise<void>;
   };
 }
 
@@ -137,6 +145,7 @@ export const useAppStore = create<AppState>((set, get) => {
     scanProgress: { currentFile: null }, // <-- GIÁ TRỊ MẶC ĐỊNH
     fileTree: null,
     isUpdatingGroupId: null,
+    editingPaths: null, // Giá trị mặc định
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
@@ -276,6 +285,33 @@ export const useAppStore = create<AppState>((set, get) => {
           ),
           isUpdatingGroupId: null, // Tắt loading
         }));
+      },
+      // --- CÁC ACTION MỚI CHO VIỆC CHỈNH SỬA NHÓM ---
+      startEditingGroupPaths: (groupId) => {
+        const { groups } = get();
+        const group = groups.find((g) => g.id === groupId);
+        if (group) {
+          // Khởi tạo state chỉnh sửa từ paths đã lưu của nhóm
+          set({ editingPaths: new Set(group.paths) });
+        }
+      },
+      updateEditingPaths: (newPaths) => {
+        set({ editingPaths: newPaths });
+      },
+      clearEditingPaths: () => {
+        set({ editingGroupId: null, editingPaths: null });
+      },
+      saveEditingPaths: async () => {
+        const { editingGroupId, editingPaths, fileTree } = get();
+        if (editingGroupId && editingPaths && fileTree) {
+          // Tái sử dụng logic prune từ GroupEditorScene
+          // (Chúng ta sẽ chuyển nó vào đây sau)
+          // Hiện tại, cứ lưu trực tiếp để kiểm tra
+          await get().actions.updateGroupPaths(
+            editingGroupId,
+            Array.from(editingPaths)
+          );
+        }
       },
     },
   };
