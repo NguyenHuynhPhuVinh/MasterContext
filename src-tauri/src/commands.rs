@@ -289,8 +289,10 @@ pub fn generate_project_context(path: String, profile_name: String) -> Result<St
     )
 }
 
+// --- BẮT ĐẦU SỬA ĐỔI ---
 #[command]
 pub fn update_sync_settings(
+    window: Window, // <-- THÊM THAM SỐ window
     path: String,
     profile_name: String,
     enabled: bool,
@@ -299,8 +301,23 @@ pub fn update_sync_settings(
     let mut project_data = file_cache::load_project_data(&path, &profile_name)?;
     project_data.sync_enabled = Some(enabled);
     project_data.sync_path = sync_path;
+
+    // --- LOGIC MỚI: KÍCH HOẠT ĐỒNG BỘ NGAY LẬP TỨC KHI BẬT ---
+    // Chỉ chạy khi `enabled` là true và có một đường dẫn hợp lệ.
+    if enabled && project_data.sync_path.is_some() {
+        // Gửi sự kiện để thông báo cho người dùng
+        let _ = window.emit("auto_sync_started", "Cài đặt đã lưu, bắt đầu đồng bộ lần đầu...");
+        // Gọi hàm xuất
+        perform_auto_export(&path, &profile_name, &project_data);
+        // Gửi sự kiện hoàn tất
+        let _ = window.emit("auto_sync_complete", "Đồng bộ lần đầu hoàn tất.");
+    }
+    // --- KẾT THÚC LOGIC MỚI ---
+
+    // Lưu lại cài đặt vào file
     file_cache::save_project_data(&path, &profile_name, &project_data)
 }
+// --- KẾT THÚC SỬA ĐỔI ---
 
 #[command]
 pub fn set_group_cross_sync(

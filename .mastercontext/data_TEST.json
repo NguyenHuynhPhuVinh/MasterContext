@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 66,
     "total_dirs": 14,
-    "total_size": 446488,
-    "total_tokens": 49654
+    "total_size": 447347,
+    "total_tokens": 49950
   },
   "file_tree": {
     "name": "MasterContext",
@@ -586,9 +586,9 @@
       "links": []
     },
     "src-tauri/src/commands.rs": {
-      "size": 16740,
-      "mtime": 1758544949,
-      "token_count": 3689,
+      "size": 17599,
+      "mtime": 1758546152,
+      "token_count": 3985,
       "links": []
     },
     "src-tauri/src/context_generator.rs": {
@@ -942,7 +942,7 @@
     }
   },
   "sync_enabled": true,
-  "sync_path": "C:\\Users\\tomis\\Documents",
-  "data_hash": "bac4348835160c4523bca43dcc2bb21c1222b55aed0247951ad2cc05d4467ceb",
-  "custom_ignore_patterns": null
+  "sync_path": "C:\\Users\\tomis\\Downloads",
+  "data_hash": "638cf2253e02d3f892017c95f090a073cf92c90cb82d473fb459917a099f2e1d",
+  "custom_ignore_patterns": []
 }
