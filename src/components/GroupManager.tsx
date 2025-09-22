@@ -7,7 +7,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { formatBytes } from "@/lib/utils"; // <-- Import hàm tiện ích
-
+import { Label } from "@/components/ui/label"; // <-- THÊM IMPORT
+import { Switch } from "@/components/ui/switch"; // <-- THÊM IMPORT
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -59,6 +60,11 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
 
   // State loading cục bộ
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
+
+  // --- STATE MỚI CHO DIALOG XUẤT FILE ---
+  const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
+  const [groupToExport, setGroupToExport] = useState<Group | null>(null);
+  const [useFullTree, setUseFullTree] = useState(false);
 
   // Ref để lưu trữ giá trị mới nhất của exportingGroupId, có thể truy cập từ listener
   const exportingGroupIdRef = useRef<string | null>(null);
@@ -118,19 +124,25 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
     // Nó sẽ chỉ được thiết lập một lần khi component mount.
   }, [groups]); // Thêm `groups` để listener có thể truy cập danh sách group mới nhất
 
-  const handleExportGroup = (group: Group) => {
-    if (!rootPath) {
-      alert("Lỗi: Không tìm thấy đường dẫn gốc của dự án.");
-      return;
-    }
+  // Hàm này giờ chỉ mở dialog
+  const handleOpenExportOptions = (group: Group) => {
+    setGroupToExport(group);
+    setExportOptionsOpen(true);
+    setUseFullTree(false); // Reset về mặc định mỗi khi mở
+  };
 
-    // Cập nhật state để UI hiển thị loading
-    setExportingGroupId(group.id);
+  // Hàm này thực sự gọi backend
+  const handleConfirmExport = () => {
+    if (!groupToExport || !rootPath) return;
+
+    setExportingGroupId(groupToExport.id);
+    setExportOptionsOpen(false); // Đóng dialog
 
     try {
       invoke("start_group_export", {
-        groupId: group.id,
+        groupId: groupToExport.id,
         rootPathStr: rootPath,
+        useFullTree: useFullTree, // <-- TRUYỀN THAM SỐ MỚI
       });
     } catch (error) {
       console.error("Lỗi khi gọi command start_group_export:", error);
@@ -240,7 +252,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleExportGroup(group)}
+                  onClick={() => handleOpenExportOptions(group)} // <-- THAY ĐỔI Ở ĐÂY
                   disabled={!!exportingGroupId} // Vô hiệu hóa tất cả nút khi đang export
                 >
                   {exportingGroupId === group.id ? (
@@ -258,6 +270,44 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
           ))}
         </div>
       )}
+
+      {/* --- DIALOG MỚI CHO TÙY CHỌN XUẤT FILE --- */}
+      <AlertDialog open={exportOptionsOpen} onOpenChange={setExportOptionsOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Tùy chọn xuất cho nhóm "{groupToExport?.name}"
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Chọn cách bạn muốn cấu trúc cây thư mục trong file ngữ cảnh được
+              xuất ra.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="flex items-center space-x-2 my-4">
+            <Switch
+              id="full-tree-switch"
+              checked={useFullTree}
+              onCheckedChange={setUseFullTree}
+            />
+            <Label htmlFor="full-tree-switch" className="cursor-pointer">
+              Sử dụng cây thư mục đầy đủ của dự án
+            </Label>
+          </div>
+          <p className="text-sm text-muted-foreground -mt-2">
+            {useFullTree
+              ? "File xuất sẽ hiển thị toàn bộ cấu trúc dự án. Chỉ nội dung các tệp trong nhóm này được bao gồm."
+              : "File xuất sẽ chỉ hiển thị cấu trúc thư mục chứa các tệp đã chọn trong nhóm này."}
+          </p>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmExport}>
+              Xác nhận và Xuất
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

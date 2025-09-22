@@ -59,8 +59,8 @@ pub fn start_group_update(window: Window, group_id: String, root_path_str: Strin
 
 #[command]
 // Chữ ký đã đúng, giữ nguyên
-pub fn start_group_export(window: Window, group_id: String, root_path_str: String) {
-    println!("[RUST] EXPORT: Nhận được yêu cầu xuất cho nhóm ID: {}", group_id);
+pub fn start_group_export(window: Window, group_id: String, root_path_str: String, use_full_tree: bool) { // <-- THÊM use_full_tree
+    println!("[RUST] EXPORT: Nhận yêu cầu cho nhóm ID: {}, use_full_tree: {}", group_id, use_full_tree);
     std::thread::spawn(move || {
         let result: Result<String, String> = (|| {
             let project_data = file_cache::load_project_data(&root_path_str)?;
@@ -76,7 +76,12 @@ pub fn start_group_export(window: Window, group_id: String, root_path_str: Strin
             if expanded_files.is_empty() {
                 return Err("Nhóm này không chứa file nào để xuất.".to_string());
             }
-            context_generator::generate_context_from_files(&root_path_str, &expanded_files)
+            context_generator::generate_context_from_files(
+                &root_path_str, 
+                &expanded_files,
+                use_full_tree, // <-- Truyền tham số
+                &project_data.file_tree, // <-- Truyền cả cây thư mục đầy đủ
+            )
         })();
         match result {
             Ok(context) => {
@@ -101,7 +106,15 @@ pub fn start_project_export(window: Window, path: String) {
             if all_files.is_empty() {
                 return Err("Dự án không có file nào để xuất.".to_string());
             }
-            context_generator::generate_context_from_files(&path, &all_files)
+            // --- SỬA LỖI Ở ĐÂY ---
+            // Cung cấp 2 tham số còn thiếu
+            context_generator::generate_context_from_files(
+                &path, 
+                &all_files,
+                true, // Luôn dùng cây thư mục đầy đủ khi xuất toàn bộ dự án
+                &project_data.file_tree // Cung cấp cây thư mục đầy đủ
+            )
+            // --- KẾT THÚC SỬA LỖI ---
         })();
         match result {
             Ok(context) => {
