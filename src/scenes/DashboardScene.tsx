@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/tooltip";
 import { PlusCircle, FolderSync, RotateCw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ThemeToggle } from "@/components/ThemeToggle"; // <-- THÊM IMPORT NÀY
 
 export function DashboardScene() {
   // --- COMPONENT CHỈ CÒN LẠI VIỆC GỌI HOOK VÀ RENDER UI ---
@@ -70,7 +71,9 @@ export function DashboardScene() {
       <ResizablePanelGroup direction="horizontal" className="h-full w-full">
         {/* === SIDEBAR === */}
         <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-          <div className="flex h-full flex-col gap-4 p-4">
+          <div className="flex h-full flex-col gap-4 p-6">
+            {" "}
+            {/* Thay đổi padding p-4 -> p-6 */}
             <div className="flex items-center justify-between px-2">
               <h2 className="text-xl font-bold">Thông tin Dự án</h2>
               <div className="flex items-center">
@@ -123,7 +126,6 @@ export function DashboardScene() {
                 </Tooltip>
               </div>
             </div>
-
             <ProjectStatsComponent
               path={selectedPath}
               stats={projectStats}
@@ -135,31 +137,36 @@ export function DashboardScene() {
 
         <ResizableHandle withHandle />
 
-        {/* === MAIN CONTENT === */}
+        {/* === MAIN CONTENT (CÓ LAYOUT MỚI) === */}
         <ResizablePanel defaultSize={75}>
-          <ScrollArea className="h-full">
-            <div className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold">Phân Nhóm Ngữ Cảnh</h1>
-                  <p className="text-muted-foreground">
-                    Tạo và quản lý các nhóm ngữ cảnh cho dự án của bạn.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button onClick={() => handleOpenDialog()}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm mới
-                  </Button>
-                </div>
+          <div className="flex flex-col h-full">
+            {/* --- HEADER CỐ ĐỊNH --- */}
+            <header className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h1 className="text-3xl font-bold">Phân Nhóm Ngữ Cảnh</h1>
+                <p className="text-muted-foreground">
+                  Tạo và quản lý các nhóm ngữ cảnh cho dự án của bạn.
+                </p>
               </div>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => handleOpenDialog()}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm mới
+                </Button>
+                <ThemeToggle /> {/* <-- THÊM COMPONENT THEME TOGGLE */}
+              </div>
+            </header>
 
-              <GroupManager onEditGroup={handleOpenDialog} />
-            </div>
-          </ScrollArea>
+            {/* --- VÙNG NỘI DUNG CUỘN ĐƯỢC --- */}
+            <ScrollArea className="flex-1">
+              <div className="p-6">
+                <GroupManager onEditGroup={handleOpenDialog} />
+              </div>
+            </ScrollArea>
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      {/* === DIALOG TẠO/SỬA NHÓM === */}
+      {/* === DIALOG TẠO/SỬA NHÓM (Không thay đổi) === */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
