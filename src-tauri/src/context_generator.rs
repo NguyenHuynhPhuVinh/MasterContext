@@ -25,40 +25,27 @@ fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut Stri
 pub fn expand_group_paths_to_files(
     group_paths: &[String],
     metadata_cache: &BTreeMap<String, crate::models::FileMetadata>,
-    root_path: &Path,
+    _root_path: &Path, // _root_path không còn cần thiết vì chúng ta chỉ dựa vào cache
 ) -> Vec<String> {
     let mut all_files_in_group: HashSet<String> = HashSet::new();
+    let all_cached_files: Vec<&String> = metadata_cache.keys().collect();
 
     for path_str in group_paths {
-        // 1. Ưu tiên kiểm tra xem đường dẫn có phải là một file cụ thể trong cache không.
-        // Đây là trường hợp nhanh và phổ biến nhất.
+        // Trường hợp 1: Đường dẫn đã lưu là một file chính xác.
+        // Ví dụ: path_str = "src/App.tsx"
         if metadata_cache.contains_key(path_str) {
             all_files_in_group.insert(path_str.clone());
-            continue; // Đã xử lý xong, chuyển sang đường dẫn tiếp theo.
         }
 
-        // 2. Nếu không phải là file trong cache, nó có thể là một thư mục.
-        // Kiểm tra xem đường dẫn này có tương ứng với một thư mục thực sự trên đĩa không.
-        let full_path = root_path.join(path_str);
-        if full_path.is_dir() {
-            // 3. Nếu đúng là thư mục, tìm tất cả các file con của nó trong cache.
-            // Phải thêm dấu "/" để tránh trường hợp `src` khớp với `src-tauri`.
-             let dir_prefix = if path_str.is_empty() {
-                "".to_string() // Xử lý trường hợp chọn toàn bộ dự án
-            } else {
-                format!("{}/", path_str)
-            };
-
-            for cached_path in metadata_cache.keys() {
-                if path_str.is_empty() || cached_path.starts_with(&dir_prefix) {
-                    all_files_in_group.insert(cached_path.clone());
-                }
+        // Trường hợp 2: Đường dẫn đã lưu là một thư mục.
+        // Ví dụ: path_str = "src"
+        // Chúng ta cần tìm tất cả các file có tiền tố là "src/"
+        let dir_prefix = format!("{}/", path_str);
+        for &cached_file in &all_cached_files {
+            if cached_file.starts_with(&dir_prefix) {
+                all_files_in_group.insert(cached_file.clone());
             }
         }
-
-        // 4. Nếu đường dẫn không có trong cache và cũng không phải là thư mục trên đĩa
-        // (ví dụ: file/thư mục đã bị xóa), chúng ta sẽ bỏ qua nó một cách an toàn.
-        // Không cần khối `else` ở đây.
     }
     all_files_in_group.into_iter().collect()
 }

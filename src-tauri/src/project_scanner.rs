@@ -12,47 +12,34 @@ use tiktoken_rs::cl100k_base;
 pub fn recalculate_stats_for_paths(
     paths: &[String],
     metadata_cache: &BTreeMap<String, FileMetadata>,
-    root_path: &Path,
+    _root_path: &Path, // _root_path không còn cần thiết
 ) -> GroupStats {
     let mut stats = GroupStats::default();
     let mut all_files_in_group: HashSet<String> = HashSet::new();
     let mut all_dirs_in_group: HashSet<String> = HashSet::new();
+    let all_cached_files: Vec<&String> = metadata_cache.keys().collect();
 
     // Mở rộng các đường dẫn tối thiểu thành một danh sách file đầy đủ
     for path_str in paths {
-        // Trường hợp 1: Đường dẫn là một file cụ thể và tồn tại trong cache.
+        // Trường hợp 1: Đường dẫn đã lưu là một file chính xác.
         if metadata_cache.contains_key(path_str) {
             all_files_in_group.insert(path_str.clone());
-            continue;
         }
-        
-        // Trường hợp 2: Đường dẫn có thể là một thư mục.
-        let full_path = root_path.join(path_str);
-        if full_path.is_dir() {
-            all_dirs_in_group.insert(path_str.clone());
 
-            // === BẮT ĐẦU PHẦN SỬA LỖI QUAN TRỌNG ===
-            // Thêm dấu "/" vào sau tên thư mục để đảm bảo so sánh chính xác.
-            // Ví dụ: "src/" sẽ chỉ khớp với các file trong thư mục `src`,
-            // mà không khớp với thư mục `src-tauri`.
-            let dir_prefix = if path_str.is_empty() {
-                // Xử lý trường hợp chọn toàn bộ dự án
-                "".to_string()
-            } else {
-                format!("{}/", path_str)
-            };
-
-            for cached_path in metadata_cache.keys() {
-                // Chỉ thêm các file có tiền tố là `dir_prefix`
-                if path_str.is_empty() || cached_path.starts_with(&dir_prefix) {
-                    all_files_in_group.insert(cached_path.clone());
-                }
-            }
-            // === KẾT THÚC PHẦN SỬA LỖI QUAN TRỌNG ===
-
+        // Trường hợp 2: Đường dẫn đã lưu là một thư mục.
+        let dir_prefix = if path_str.is_empty() {
+            "".to_string()
         } else {
-            // Nếu đường dẫn không phải là thư mục, nó vẫn có thể là file (đã được xử lý ở trên).
-            // Nếu nó không có trong cache và không phải là thư mục, ta bỏ qua một cách an toàn.
+            format!("{}/", path_str)
+        };
+        for &cached_file in &all_cached_files {
+            if path_str.is_empty() || cached_file.starts_with(&dir_prefix) {
+                 all_files_in_group.insert(cached_file.clone());
+            }
+        }
+        // Thêm thư mục gốc của đường dẫn vào danh sách thư mục
+        if !path_str.is_empty() {
+             all_dirs_in_group.insert(path_str.clone());
         }
     }
 
