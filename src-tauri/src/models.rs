@@ -34,12 +34,6 @@ pub struct Group {
     pub stats: GroupStats,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GroupContextResult {
-    pub context: String,
-    pub stats: GroupStats,
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FileMetadata {
     pub size: u64,

@@ -103,11 +103,13 @@ export const useAppStore = create<AppState>((set, get) => {
     const { rootPath, groups } = get();
     if (rootPath) {
       try {
-        // Gọi command mới, chỉ gửi đi những gì cần cập nhật
+        // === BẮT ĐẦU SỬA LỖI ===
+        // Lệnh invoke giờ không cần app_handle nữa
         await invoke("update_groups_in_project_data", {
           path: rootPath,
-          groups: groups, // Chỉ gửi mảng groups
+          groups: groups,
         });
+        // === KẾT THÚC SỬA LỖI ===
       } catch (error) {
         console.error("Lỗi khi cập nhật nhóm trên backend:", error);
       }
@@ -221,12 +223,15 @@ export const useAppStore = create<AppState>((set, get) => {
       updateGroupPaths: async (groupId, paths) => {
         const rootPath = get().rootPath;
         if (!rootPath) return;
-        set({ isUpdatingGroupId: groupId }); // Bật loading
+        set({ isUpdatingGroupId: groupId });
+        // === BẮT ĐẦU SỬA LỖI ===
+        // Lệnh invoke giờ không cần app_handle nữa
         await invoke("start_group_update", {
           groupId,
           rootPathStr: rootPath,
           paths,
         });
+        // === KẾT THÚC SỬA LỖI ===
       },
 
       // --- CÁC ACTION MỚI ĐỂ XỬ LÝ SỰ KIỆN TỪ RUST ---

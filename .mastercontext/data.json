@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 64,
     "total_dirs": 14,
-    "total_size": 371527,
-    "total_tokens": 31394
+    "total_size": 371936,
+    "total_tokens": 31545
   },
   "file_tree": {
     "name": "MasterContext",
@@ -418,13 +418,12 @@
       "name": "TEST",
       "description": "TEST",
       "paths": [
-        "src/assets",
         "src/App.css",
         "src/App.tsx"
       ],
       "stats": {
         "total_files": 2,
-        "total_dirs": 2,
+        "total_dirs": 1,
         "total_size": 8165,
         "token_count": 2696
       }
@@ -552,9 +551,9 @@
       "token_count": 0
     },
     "src-tauri/src/commands.rs": {
-      "size": 4380,
-      "mtime": 1758523941,
-      "token_count": 956
+      "size": 4613,
+      "mtime": 1758524410,
+      "token_count": 1032
     },
     "src-tauri/src/context_generator.rs": {
       "size": 4978,
@@ -722,9 +721,9 @@
       "token_count": 341
     },
     "src/store/appStore.ts": {
-      "size": 12495,
-      "mtime": 1758522388,
-      "token_count": 3357
+      "size": 12671,
+      "mtime": 1758524410,
+      "token_count": 3432
     },
     "src/store/types.ts": {
       "size": 861,
