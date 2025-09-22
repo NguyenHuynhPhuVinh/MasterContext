@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea"; // <-- THÊM IMPORT
 import { ThemeToggle } from "./ThemeToggle";
-import { FolderUp, Loader2 } from "lucide-react";
+import { FolderUp, Loader2, FileText } from "lucide-react";
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -25,13 +25,15 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
-  const { syncEnabled, syncPath, customIgnorePatterns } = useAppStore(
-    useShallow((state) => ({
-      syncEnabled: state.syncEnabled,
-      syncPath: state.syncPath,
-      customIgnorePatterns: state.customIgnorePatterns,
-    }))
-  );
+  const { syncEnabled, syncPath, customIgnorePatterns, activeProfile } =
+    useAppStore(
+      useShallow((state) => ({
+        syncEnabled: state.syncEnabled,
+        syncPath: state.syncPath,
+        customIgnorePatterns: state.customIgnorePatterns,
+        activeProfile: state.activeProfile,
+      }))
+    );
   const { setSyncSettings, setCustomIgnorePatterns } = useAppActions();
 
   // State cục bộ cho textarea và trạng thái loading
@@ -90,8 +92,8 @@ export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
         <DialogHeader>
           <DialogTitle>Cài đặt</DialogTitle>
           <DialogDescription>
-            Tùy chỉnh các thiết lập cho ứng dụng. Các thay đổi sẽ được lưu tự
-            động.
+            Tùy chỉnh các thiết lập cho ứng dụng. Các cài đặt sẽ được áp dụng
+            cho hồ sơ đang hoạt động.
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
@@ -103,7 +105,20 @@ export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
             </div>
 
             <div className="space-y-4 rounded-lg border p-4">
-              <h3 className="font-semibold">Đồng bộ tự động</h3>
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold">Đồng bộ tự động</h3>
+                <div className="flex items-center text-sm text-muted-foreground gap-2 border rounded-full px-3 py-1">
+                  <FileText className="h-4 w-4" />
+                  <span>
+                    Hồ sơ:{" "}
+                    <span className="font-semibold">{activeProfile}</span>
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground -mt-2">
+                Cài đặt này chỉ áp dụng cho hồ sơ hiện tại. Mỗi hồ sơ có thể có
+                thư mục đồng bộ riêng.
+              </p>
               <div className="flex items-center justify-between">
                 <Label htmlFor="sync-toggle" className="flex flex-col">
                   <span>Bật đồng bộ nền</span>

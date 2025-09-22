@@ -429,12 +429,12 @@
       "description": "TESTcncg",
       "paths": [
         "src/components",
-        "src/hooks",
-        "src/lib",
-        "src/scenes",
         "src/store",
         "src/App.css",
-        "src/App.tsx"
+        "src/App.tsx",
+        "src/hooks",
+        "src/scenes",
+        "src/lib"
       ],
       "stats": {
         "total_files": 29,
@@ -442,7 +442,7 @@
         "total_size": 135365,
         "token_count": 32977
       },
-      "crossSyncEnabled": true,
+      "crossSyncEnabled": false,
       "tokenLimit": null
     }
   ],
