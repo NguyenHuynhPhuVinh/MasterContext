@@ -27,35 +27,41 @@ fn sanitize_group_name(name: &str) -> String {
 
 #[command]
 pub fn open_project(window: Window, path: String, profile_name: String) {
+    let window_clone = window.clone(); // Clone window để dùng trong thread
+    let path_clone = path.clone(); // Clone path để dùng trong thread
+
     std::thread::spawn(move || {
-        // Tải dữ liệu cũ để so sánh hash
         let old_data_result = file_cache::load_project_data(&path, &profile_name);
         let old_hash = old_data_result
             .as_ref()
             .ok()
             .and_then(|d| d.data_hash.clone());
+        
+        // --- LOGIC MỚI: Đọc cài đặt watcher từ file trước khi quét ---
+        let should_start_watching = old_data_result
+            .ok()
+            .and_then(|d| d.is_watching_files)
+            .unwrap_or(false);
 
-        // Thực hiện quét
         match project_scanner::perform_smart_scan_and_rebuild(&path, &profile_name) {
             Ok(new_data) => {
-                // Lưu dữ liệu mới vào cache
                 if let Err(e) = file_cache::save_project_data(&path, &profile_name, &new_data) {
                     let _ = window.emit("scan_error", e);
                     return;
                 }
-
-                // Gửi dữ liệu mới về cho frontend
                 let _ = window.emit("scan_complete", &new_data);
 
-                // Kiểm tra và thực hiện đồng bộ TỰ ĐỘNG
+                // --- LOGIC MỚI: Tự động bắt đầu watcher nếu cài đặt là true ---
+                if should_start_watching {
+                    if let Err(e) = start_file_watching(window_clone, path_clone) {
+                        println!("[Error] Auto-starting watcher failed: {}", e);
+                    }
+                }
+
                 let sync_enabled = new_data.sync_enabled.unwrap_or(false);
                 let has_changed = old_hash != new_data.data_hash;
-
                 if sync_enabled && has_changed && new_data.sync_path.is_some() {
-                    let _ = window.emit(
-                        "auto_sync_started",
-                        "Phát hiện thay đổi, bắt đầu đồng bộ...",
-                    );
+                    let _ = window.emit("auto_sync_started", "Phát hiện thay đổi, bắt đầu đồng bộ...");
                     perform_auto_export(&path, &profile_name, &new_data);
                     let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
                 }
@@ -468,6 +474,14 @@ pub fn rename_profile(
         return Err("Tên hồ sơ mới đã tồn tại.".to_string());
     }
     fs::rename(old_path, new_path).map_err(|e| e.to_string())
+}
+
+// --- COMMAND MỚI: Lưu cài đặt theo dõi file ---
+#[command]
+pub fn set_file_watching_setting(path: String, profile_name: String, enabled: bool) -> Result<(), String> {
+    let mut project_data = file_cache::load_project_data(&path, &profile_name)?;
+    project_data.is_watching_files = Some(enabled);
+    file_cache::save_project_data(&path, &profile_name, &project_data)
 }
 
 // --- COMMAND MỚI: Bắt đầu theo dõi file ---

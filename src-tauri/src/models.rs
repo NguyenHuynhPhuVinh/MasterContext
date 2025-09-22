@@ -70,6 +70,7 @@ pub struct CachedProjectData {
     pub sync_path: Option<String>,
     pub data_hash: Option<String>,
     pub custom_ignore_patterns: Option<Vec<String>>, // <-- THÊM TRƯỜNG NÀY
+    pub is_watching_files: Option<bool>, // <-- THÊM TRƯỜNG MỚI
 }
 
 #[derive(Debug, Clone)]

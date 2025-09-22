@@ -319,6 +319,7 @@ export const useAppStore = create<AppState>((set, get) => {
           syncEnabled: payload.sync_enabled ?? false,
           syncPath: payload.sync_path ?? null,
           customIgnorePatterns: payload.custom_ignore_patterns ?? [], // <-- CẬP NHẬT STATE
+          isWatchingFiles: payload.is_watching_files ?? false, // <-- CẬP NHẬT STATE TỪ FILE
           // file_metadata_cache được backend quản lý, frontend không cần lưu
         });
       },
@@ -597,9 +598,23 @@ export const useAppStore = create<AppState>((set, get) => {
       },
       // --- ACTION MỚI ĐỂ BẬT/TẮT THEO DÕI FILE ---
       setFileWatching: async (enabled: boolean) => {
-        const { rootPath } = get();
+        const { rootPath, activeProfile } = get();
         if (!rootPath) return;
 
+        // 1. Lưu cài đặt vào file trước
+        try {
+          await invoke("set_file_watching_setting", {
+            path: rootPath,
+            profileName: activeProfile,
+            enabled,
+          });
+        } catch (error) {
+          console.error("Lỗi khi lưu cài đặt theo dõi file:", error);
+          toast.error(`Không thể lưu cài đặt: ${error}`);
+          return; // Dừng lại nếu không lưu được
+        }
+
+        // 2. Cập nhật state và bắt đầu/dừng watcher
         set({ isWatchingFiles: enabled });
 
         try {

@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 66,
     "total_dirs": 14,
-    "total_size": 453993,
-    "total_tokens": 51718
+    "total_size": 455754,
+    "total_tokens": 52190
   },
   "file_tree": {
     "name": "MasterContext",
@@ -439,8 +439,8 @@
       "stats": {
         "total_files": 29,
         "total_dirs": 9,
-        "total_size": 139400,
-        "token_count": 33996
+        "total_size": 140125,
+        "token_count": 34199
       },
       "crossSyncEnabled": false,
       "tokenLimit": null
@@ -592,9 +592,9 @@
       "links": []
     },
     "src-tauri/src/commands.rs": {
-      "size": 20858,
-      "mtime": 1758546517,
-      "token_count": 4871,
+      "size": 21661,
+      "mtime": 1758547738,
+      "token_count": 5066,
       "links": []
     },
     "src-tauri/src/context_generator.rs": {
@@ -610,9 +610,9 @@
       "links": []
     },
     "src-tauri/src/lib.rs": {
-      "size": 1562,
-      "mtime": 1758546517,
-      "token_count": 332,
+      "size": 1639,
+      "mtime": 1758547738,
+      "token_count": 353,
       "links": []
     },
     "src-tauri/src/main.rs": {
@@ -622,15 +622,15 @@
       "links": []
     },
     "src-tauri/src/models.rs": {
-      "size": 2152,
-      "mtime": 1758539501,
-      "token_count": 568,
+      "size": 2222,
+      "mtime": 1758547738,
+      "token_count": 595,
       "links": []
     },
     "src-tauri/src/project_scanner.rs": {
-      "size": 19720,
-      "mtime": 1758544949,
-      "token_count": 4719,
+      "size": 19806,
+      "mtime": 1758547890,
+      "token_count": 4745,
       "links": []
     },
     "src-tauri/tauri.conf.json": {
@@ -900,26 +900,26 @@
     },
     "src/scenes/WelcomeScene.tsx": {
       "size": 1282,
-      "mtime": 1758465507,
+      "mtime": 1758547501,
       "token_count": 341,
       "links": [
-        "src/store/appStore.ts",
-        "src/components/ui/button.tsx"
+        "src/components/ui/button.tsx",
+        "src/store/appStore.ts"
       ]
     },
     "src/store/appStore.ts": {
-      "size": 24089,
-      "mtime": 1758546517,
-      "token_count": 6301,
+      "size": 24746,
+      "mtime": 1758547854,
+      "token_count": 6477,
       "links": [
         "src/store/types.ts",
         "src/lib/treeUtils.ts"
       ]
     },
     "src/store/types.ts": {
-      "size": 1127,
-      "mtime": 1758540143,
-      "token_count": 273,
+      "size": 1195,
+      "mtime": 1758547847,
+      "token_count": 300,
       "links": []
     },
     "src/vite-env.d.ts": {
@@ -949,6 +949,7 @@
   },
   "sync_enabled": true,
   "sync_path": "C:\\Users\\tomis\\Documents\\MasterContext\\.mastercontext",
-  "data_hash": "1aa6e0f058da7716af2ea435ef1ea3b3edba6c7c5e00d38dfc4bd0f2317c7e99",
-  "custom_ignore_patterns": []
+  "data_hash": "c2d74f6b841e8cda2495800549c8d5ec508749692374a2f59d2ecd7cb0255f16",
+  "custom_ignore_patterns": [],
+  "is_watching_files": true
 }

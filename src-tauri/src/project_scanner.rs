@@ -470,6 +470,7 @@ pub fn perform_smart_scan_and_rebuild(path: &str, profile_name: &str) -> Result<
         sync_path: old_data.sync_path,       // Giữ lại cài đặt cũ
         data_hash: Some(data_hash),
         custom_ignore_patterns: old_data.custom_ignore_patterns, // Giữ lại cài đặt cũ
+        is_watching_files: old_data.is_watching_files, // Giữ lại cài đặt cũ
     };
 
     // --- THAY ĐỔI: Trả về dữ liệu thay vì lưu và emit ---
