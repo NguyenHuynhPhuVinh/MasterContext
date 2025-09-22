@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 64,
     "total_dirs": 14,
-    "total_size": 370189,
-    "total_tokens": 30936
+    "total_size": 371527,
+    "total_tokens": 31394
   },
   "file_tree": {
     "name": "MasterContext",
@@ -418,13 +418,15 @@
       "name": "TEST",
       "description": "TEST",
       "paths": [
-        "src/store"
+        "src/assets",
+        "src/App.css",
+        "src/App.tsx"
       ],
       "stats": {
         "total_files": 2,
         "total_dirs": 2,
-        "total_size": 13356,
-        "token_count": 3556
+        "total_size": 8165,
+        "token_count": 2696
       }
     }
   ],
@@ -450,14 +452,14 @@
       "token_count": 118
     },
     "package.json": {
-      "size": 1445,
-      "mtime": 1758470459,
+      "size": 1442,
+      "mtime": 1758522605,
       "token_count": 542
     },
     "src-tauri/Cargo.toml": {
-      "size": 852,
-      "mtime": 1758521487,
-      "token_count": 244
+      "size": 823,
+      "mtime": 1758522679,
+      "token_count": 243
     },
     "src-tauri/build.rs": {
       "size": 42,
@@ -550,14 +552,14 @@
       "token_count": 0
     },
     "src-tauri/src/commands.rs": {
-      "size": 4439,
-      "mtime": 1758522355,
-      "token_count": 972
+      "size": 4380,
+      "mtime": 1758523941,
+      "token_count": 956
     },
     "src-tauri/src/context_generator.rs": {
-      "size": 3647,
-      "mtime": 1758518698,
-      "token_count": 792
+      "size": 4978,
+      "mtime": 1758523454,
+      "token_count": 1224
     },
     "src-tauri/src/file_cache.rs": {
       "size": 1944,
@@ -580,9 +582,9 @@
       "token_count": 373
     },
     "src-tauri/src/project_scanner.rs": {
-      "size": 8864,
-      "mtime": 1758522355,
-      "token_count": 2135
+      "size": 8396,
+      "mtime": 1758523886,
+      "token_count": 1948
     },
     "src-tauri/tauri.conf.json": {
       "size": 751,
@@ -685,9 +687,9 @@
       "token_count": 1183
     },
     "src/lib/treeUtils.ts": {
-      "size": 3169,
-      "mtime": 1758522387,
-      "token_count": 783
+      "size": 3735,
+      "mtime": 1758523649,
+      "token_count": 1013
     },
     "src/lib/utils.ts": {
       "size": 1645,

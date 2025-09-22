@@ -4,9 +4,9 @@ use tauri::{command, Window, AppHandle, Emitter};
 use std::path::Path;
 
 #[command]
-pub fn open_project(window: Window, app_handle: AppHandle, path: String) {
+pub fn open_project(window: Window, path: String) {
     std::thread::spawn(move || {
-        if let Err(e) = project_scanner::perform_smart_scan_and_rebuild(&window, &app_handle, &path) {
+        if let Err(e) = project_scanner::perform_smart_scan_and_rebuild(&window, &path) {
             let _ = window.emit("scan_error", e);
         }
     });
@@ -53,7 +53,7 @@ pub fn start_group_update(window: Window, app_handle: AppHandle, group_id: Strin
 }
 
 #[command]
-pub fn start_group_export(window: Window, app_handle: AppHandle, group_id: String, root_path_str: String) {
+pub fn start_group_export(window: Window, group_id: String, root_path_str: String) {
     std::thread::spawn(move || {
         let result: Result<String, String> = (|| {
             let project_data = file_cache::load_project_data(&root_path_str)?;

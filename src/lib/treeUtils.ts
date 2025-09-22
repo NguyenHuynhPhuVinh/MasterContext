@@ -15,15 +15,19 @@ export const areAllDescendantsSelected = (
   node: FileNode,
   selectedPaths: Set<string>
 ): boolean => {
+  // Một node chỉ được coi là "chọn tất cả" nếu chính nó được chọn...
   if (!selectedPaths.has(node.path)) return false;
+  // ...và tất cả các con của nó cũng được "chọn tất cả".
   if (Array.isArray(node.children)) {
     return node.children.every((child) =>
       areAllDescendantsSelected(child, selectedPaths)
     );
   }
+  // Nếu là file, chỉ cần kiểm tra chính nó.
   return true;
 };
 
+// === BẮT ĐẦU PHẦN SỬA LỖI QUAN TRỌNG NHẤT ===
 export const prunePathsForSave = (
   rootNode: FileNode,
   selectedPaths: Set<string>
@@ -31,35 +35,35 @@ export const prunePathsForSave = (
   const pruned: string[] = [];
 
   function traverse(node: FileNode) {
-    // *** PHẦN SỬA LỖI QUAN TRỌNG ***
-    // Logic mới không dừng lại ngay cả khi node hiện tại không được chọn,
-    // vì một trong các con của nó có thể được chọn.
-
-    // Nếu node này được chọn và TẤT CẢ các con cháu của nó cũng được chọn,
-    // đây là điểm "tối ưu". Ta chỉ cần thêm node này và không cần đi sâu hơn.
+    // Trường hợp 1: Node là một thư mục và TẤT CẢ con cháu của nó được chọn.
+    // Đây là điểm "tối ưu hóa" (pruning).
     if (
-      selectedPaths.has(node.path) &&
+      Array.isArray(node.children) &&
       areAllDescendantsSelected(node, selectedPaths)
     ) {
-      // Không thêm đường dẫn gốc "" vào danh sách lưu
+      // Chúng ta chỉ cần thêm đường dẫn của thư mục này và không cần đi sâu hơn nữa.
+      // Không thêm đường dẫn gốc "" rỗng vào danh sách cuối cùng.
       if (node.path !== "") {
         pruned.push(node.path);
-      }
-      // Nếu node gốc được chọn toàn bộ, vẫn cần duyệt con của nó
-      if (node.path === "" && Array.isArray(node.children)) {
+      } else {
+        // Xử lý trường hợp đặc biệt: Nếu toàn bộ dự án được chọn,
+        // chúng ta vẫn cần duyệt các con trực tiếp của nó để có danh sách
+        // cấp cao nhất (ví dụ: ["src", "public", "package.json"]).
         for (const child of node.children) {
           traverse(child);
         }
       }
+      // Dừng việc duyệt nhánh này vì đã tối ưu hóa.
       return;
     }
 
-    // Nếu node là một file và được chọn
+    // Trường hợp 2: Node là một file và nó được chọn.
     if (!Array.isArray(node.children) && selectedPaths.has(node.path)) {
       pruned.push(node.path);
     }
 
-    // Nếu là thư mục, luôn luôn duyệt các con của nó.
+    // Trường hợp 3: Node là một thư mục nhưng KHÔNG được chọn đầy đủ.
+    // Chúng ta phải đi sâu vào bên trong để tìm các file/thư mục con được chọn.
     if (Array.isArray(node.children)) {
       for (const child of node.children) {
         traverse(child);
@@ -70,6 +74,7 @@ export const prunePathsForSave = (
   traverse(rootNode);
   return pruned;
 };
+// === KẾT THÚC PHẦN SỬA LỖI QUAN TRỌNG NHẤT ===
 
 export const expandPaths = (
   rootNode: FileNode,

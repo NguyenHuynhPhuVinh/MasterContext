@@ -21,26 +21,49 @@ fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut Stri
     }
 }
 
+// === BẮT ĐẦU PHẦN SỬA LỖI TRIỆT ĐỂ ===
 pub fn expand_group_paths_to_files(
     group_paths: &[String],
     metadata_cache: &BTreeMap<String, crate::models::FileMetadata>,
     root_path: &Path,
 ) -> Vec<String> {
     let mut all_files_in_group: HashSet<String> = HashSet::new();
+
     for path_str in group_paths {
+        // 1. Ưu tiên kiểm tra xem đường dẫn có phải là một file cụ thể trong cache không.
+        // Đây là trường hợp nhanh và phổ biến nhất.
+        if metadata_cache.contains_key(path_str) {
+            all_files_in_group.insert(path_str.clone());
+            continue; // Đã xử lý xong, chuyển sang đường dẫn tiếp theo.
+        }
+
+        // 2. Nếu không phải là file trong cache, nó có thể là một thư mục.
+        // Kiểm tra xem đường dẫn này có tương ứng với một thư mục thực sự trên đĩa không.
         let full_path = root_path.join(path_str);
         if full_path.is_dir() {
+            // 3. Nếu đúng là thư mục, tìm tất cả các file con của nó trong cache.
+            // Phải thêm dấu "/" để tránh trường hợp `src` khớp với `src-tauri`.
+             let dir_prefix = if path_str.is_empty() {
+                "".to_string() // Xử lý trường hợp chọn toàn bộ dự án
+            } else {
+                format!("{}/", path_str)
+            };
+
             for cached_path in metadata_cache.keys() {
-                if cached_path.starts_with(path_str) && root_path.join(cached_path).is_file() {
+                if path_str.is_empty() || cached_path.starts_with(&dir_prefix) {
                     all_files_in_group.insert(cached_path.clone());
                 }
             }
-        } else {
-            all_files_in_group.insert(path_str.clone());
         }
+
+        // 4. Nếu đường dẫn không có trong cache và cũng không phải là thư mục trên đĩa
+        // (ví dụ: file/thư mục đã bị xóa), chúng ta sẽ bỏ qua nó một cách an toàn.
+        // Không cần khối `else` ở đây.
     }
     all_files_in_group.into_iter().collect()
 }
+// === KẾT THÚC PHẦN SỬA LỖI TRIỆT ĐỂ ===
+
 
 pub fn generate_context_from_files(root_path_str: &str, file_paths: &[String]) -> Result<String, String> {
     let root_path = Path::new(root_path_str);

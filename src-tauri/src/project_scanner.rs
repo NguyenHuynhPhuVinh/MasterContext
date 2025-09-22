@@ -20,23 +20,43 @@ pub fn recalculate_stats_for_paths(
 
     // Mở rộng các đường dẫn tối thiểu thành một danh sách file đầy đủ
     for path_str in paths {
+        // Trường hợp 1: Đường dẫn là một file cụ thể và tồn tại trong cache.
+        if metadata_cache.contains_key(path_str) {
+            all_files_in_group.insert(path_str.clone());
+            continue;
+        }
+        
+        // Trường hợp 2: Đường dẫn có thể là một thư mục.
         let full_path = root_path.join(path_str);
         if full_path.is_dir() {
             all_dirs_in_group.insert(path_str.clone());
-            // Duyệt qua cache để tìm các file con
+
+            // === BẮT ĐẦU PHẦN SỬA LỖI QUAN TRỌNG ===
+            // Thêm dấu "/" vào sau tên thư mục để đảm bảo so sánh chính xác.
+            // Ví dụ: "src/" sẽ chỉ khớp với các file trong thư mục `src`,
+            // mà không khớp với thư mục `src-tauri`.
+            let dir_prefix = if path_str.is_empty() {
+                // Xử lý trường hợp chọn toàn bộ dự án
+                "".to_string()
+            } else {
+                format!("{}/", path_str)
+            };
+
             for cached_path in metadata_cache.keys() {
-                // Chỉ cần check starts_with là đủ vì cache chỉ chứa file
-                if cached_path.starts_with(path_str) {
+                // Chỉ thêm các file có tiền tố là `dir_prefix`
+                if path_str.is_empty() || cached_path.starts_with(&dir_prefix) {
                     all_files_in_group.insert(cached_path.clone());
                 }
             }
+            // === KẾT THÚC PHẦN SỬA LỖI QUAN TRỌNG ===
+
         } else {
-            // Nếu là file, chỉ cần thêm nó vào
-            all_files_in_group.insert(path_str.clone());
+            // Nếu đường dẫn không phải là thư mục, nó vẫn có thể là file (đã được xử lý ở trên).
+            // Nếu nó không có trong cache và không phải là thư mục, ta bỏ qua một cách an toàn.
         }
     }
 
-    // Dùng cache để suy ra các thư mục con từ đường dẫn file
+    // Dùng cache để suy ra các thư mục cha từ đường dẫn file
     let mut subdirs_from_files = HashSet::new();
     for file_path in &all_files_in_group {
         let mut current = Path::new(file_path);
@@ -48,7 +68,6 @@ pub fn recalculate_stats_for_paths(
         }
     }
     all_dirs_in_group.extend(subdirs_from_files);
-
 
     // Tính toán stats từ danh sách file đã mở rộng và cache
     for file_path_str in &all_files_in_group {
@@ -64,19 +83,16 @@ pub fn recalculate_stats_for_paths(
     stats
 }
 
-pub fn perform_smart_scan_and_rebuild(window: &Window, app_handle: &tauri::AppHandle, path: &str) -> Result<(), String> {
+pub fn perform_smart_scan_and_rebuild(window: &Window, path: &str) -> Result<(), String> {
     let root_path = Path::new(path);
     let bpe = cl100k_base().map_err(|e| e.to_string())?;
 
-    // 1. Tải dữ liệu cũ để lấy cache metadata
     let old_data = file_cache::load_project_data(path).unwrap_or_default();
     let old_metadata_cache = old_data.file_metadata_cache;
 
-    // 2. Chuẩn bị các biến cho lần quét mới
     let mut new_project_stats = ProjectStats::default();
     let mut new_metadata_cache = BTreeMap::new();
-    let mut path_map = BTreeMap::new(); // Để xây dựng cây thư mục
-    // --- THÊM MỚI: Tạo một HashSet để kiểm tra sự tồn tại của file/thư mục một cách hiệu quả ---
+    let mut path_map = BTreeMap::new();
     let mut existing_paths = HashSet::new();
 
     let override_builder = {
@@ -88,18 +104,13 @@ pub fn perform_smart_scan_and_rebuild(window: &Window, app_handle: &tauri::AppHa
         builder.build().map_err(|e| e.to_string())?
     };
 
-    // 3. Bắt đầu quét hệ thống file
     for entry in WalkBuilder::new(root_path).overrides(override_builder.clone()).build().filter_map(Result::ok) {
         let entry_path = entry.path();
         if let (Ok(relative_path), Ok(metadata)) = (entry_path.strip_prefix(root_path), entry.metadata()) {
             if relative_path.as_os_str().is_empty() { continue; }
             let relative_path_str = relative_path.to_string_lossy().replace("\\", "/");
-
-            // --- THÊM MỚI: Thêm tất cả các đường dẫn tìm thấy vào HashSet ---
             existing_paths.insert(relative_path_str.clone());
-
             let _ = window.emit("scan_progress", relative_path_str.clone());
-
             path_map.insert(entry_path.to_path_buf(), metadata.is_dir());
 
             if metadata.is_dir() {
@@ -107,33 +118,21 @@ pub fn perform_smart_scan_and_rebuild(window: &Window, app_handle: &tauri::AppHa
             } else if metadata.is_file() {
                 new_project_stats.total_files += 1;
                 new_project_stats.total_size += metadata.len();
-
                 let current_mtime = metadata.modified()
                     .map(|t| t.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs())
                     .unwrap_or(0);
-
                 let mut token_count = 0;
-
-                // --- LOGIC "THÔNG MINH" NẮM Ở ĐÂY ---
                 if let Some(cached_meta) = old_metadata_cache.get(&relative_path_str) {
-                    // So sánh size và mtime để xem file có thay đổi không
                     if cached_meta.size == metadata.len() && cached_meta.mtime == current_mtime {
-                        // File không đổi -> Lấy token từ cache
                         token_count = cached_meta.token_count;
                     }
                 }
-
-                // Nếu token_count vẫn là 0 (vì là file mới, hoặc file đã thay đổi)
                 if token_count == 0 {
                     if let Ok(content) = fs::read_to_string(entry_path) {
                         token_count = bpe.encode_with_special_tokens(&content).len();
                     }
                 }
-                // --- KẾT THÚC LOGIC "THÔNG MINH" ---
-
                 new_project_stats.total_tokens += token_count;
-
-                // Cập nhật cache mới với thông tin của file này
                 new_metadata_cache.insert(relative_path_str, FileMetadata {
                     size: metadata.len(),
                     mtime: current_mtime,
@@ -143,7 +142,6 @@ pub fn perform_smart_scan_and_rebuild(window: &Window, app_handle: &tauri::AppHa
         }
     }
 
-    // 4. Xây dựng lại cây thư mục (logic này giữ nguyên)
     fn build_tree_from_map(parent: &Path, path_map: &BTreeMap<PathBuf, bool>, root_path: &Path) -> Vec<FileNode> {
         let mut children = Vec::new();
         for (path, is_dir) in path_map.range(parent.join("")..) {
@@ -170,19 +168,12 @@ pub fn perform_smart_scan_and_rebuild(window: &Window, app_handle: &tauri::AppHa
         children: Some(root_children),
     };
 
-    // 5. Dọn dẹp và tính toán lại stats cho các nhóm
     let mut updated_groups = old_data.groups;
     for group in &mut updated_groups {
-        // --- ĐÂY LÀ BƯỚC QUAN TRỌNG NHẤT: LOẠI BỎ CÁC ĐƯỜNG DẪN KHÔNG CÒN TỒN TẠI ---
         group.paths.retain(|path| existing_paths.contains(path));
-
-        // --- THAY THẾ TOÀN BỘ KHỐI LOGIC TÍNH TOÁN STATS CŨ ---
-        // Xóa toàn bộ khối code từ "let mut new_group_stats = ..." đến "group.stats = new_group_stats;"
-        // và thay bằng một dòng duy nhất này:
         group.stats = recalculate_stats_for_paths(&group.paths, &new_metadata_cache, root_path);
     }
 
-    // 6. Tập hợp dữ liệu cuối cùng và gửi về frontend
     let final_data = CachedProjectData {
         stats: new_project_stats,
         file_tree: Some(file_tree),
