@@ -8,7 +8,7 @@ export interface CachedProjectData {
   sync_enabled?: boolean | null;
   sync_path?: string | null;
   data_hash?: string | null;
-  customIgnorePatterns?: string[]; // <-- THÊM TRƯỜNG NÀY
+  custom_ignore_patterns?: string[]; // <-- Sửa thành snake_case
 }
 
 export interface FileNode {

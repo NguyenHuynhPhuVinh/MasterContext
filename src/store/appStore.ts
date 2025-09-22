@@ -294,7 +294,7 @@ export const useAppStore = create<AppState>((set, get) => {
           // Cập nhật cài đặt đồng bộ từ file đã tải
           syncEnabled: payload.sync_enabled ?? false,
           syncPath: payload.sync_path ?? null,
-          customIgnorePatterns: payload.customIgnorePatterns ?? [], // <-- CẬP NHẬT STATE
+          customIgnorePatterns: payload.custom_ignore_patterns ?? [], // <-- CẬP NHẬT STATE
           // file_metadata_cache được backend quản lý, frontend không cần lưu
         });
       },
