@@ -1,5 +1,5 @@
 // src/components/GroupManager.tsx
-import { useState, useEffect, useRef } from "react"; // Thêm useEffect và useRef
+import { useState, useEffect } from "react"; // Thêm useEffect
 import { listen } from "@tauri-apps/api/event"; // Thêm listen
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
@@ -58,53 +58,39 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
   const rootPath = useAppStore((state) => state.rootPath);
   const { deleteGroup, editGroupContent } = useAppActions();
 
-  // State loading cục bộ
+  // === CÁC STATE ĐƯỢC CẤU TRÚC LẠI ===
+
+  // State quản lý nhóm nào đang trong quá trình xuất
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
 
-  // --- STATE MỚI CHO DIALOG XUẤT FILE ---
+  // State quản lý dialog tùy chọn
   const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
   const [groupToExport, setGroupToExport] = useState<Group | null>(null);
   const [useFullTree, setUseFullTree] = useState(false);
 
-  // Ref để lưu trữ giá trị mới nhất của exportingGroupId, có thể truy cập từ listener
-  const exportingGroupIdRef = useRef<string | null>(null);
+  // State loading BÊN TRONG dialog
+  const [isConfirmingExport, setIsConfirmingExport] = useState(false);
 
-  // Đồng bộ ref với state mỗi khi state thay đổi
-  useEffect(() => {
-    exportingGroupIdRef.current = exportingGroupId;
-  }, [exportingGroupId]);
+  // State MỚI để lưu trữ context tạm thời từ backend
+  const [pendingExportData, setPendingExportData] = useState<{
+    context: string;
+    group: Group;
+  } | null>(null);
 
-  // --- LOGIC MỚI: Lắng nghe sự kiện để xử lý hộp thoại save ---
+  // --- useEffect 1: Lắng nghe sự kiện từ Rust ---
   useEffect(() => {
-    const unlisten = listen<{ groupId: string; context: string }>(
+    const unlistenComplete = listen<{ groupId: string; context: string }>(
       "group_export_complete",
-      async (event) => {
-        // LUÔN SỬ DỤNG GIÁ TRỊ TỪ REF BÊN TRONG LISTENER
-        if (event.payload.groupId === exportingGroupIdRef.current) {
-          const group = groups.find((g) => g.id === event.payload.groupId);
-          const defaultName = group
-            ? `${group.name.replace(/\s+/g, "_")}_context.txt`
-            : "context.txt";
-
-          try {
-            // Hiển thị hộp thoại lưu file
-            const filePath = await save({
-              title: `Lưu Ngữ cảnh cho nhóm "${group?.name}"`,
-              defaultPath: defaultName,
-              filters: [{ name: "Text File", extensions: ["txt"] }],
-            });
-            // Nếu người dùng chọn một file (không bấm Hủy)
-            if (filePath) {
-              await writeTextFile(filePath, event.payload.context);
-              alert(`Đã lưu file thành công!`);
-            }
-          } catch (error) {
-            console.error("Lỗi khi lưu file ngữ cảnh:", error);
-            alert("Đã xảy ra lỗi khi lưu file.");
-          } finally {
-            // Cập nhật cả state và ref
-            setExportingGroupId(null);
-          }
+      (event) => {
+        // Chỉ nhận dữ liệu và cập nhật state tạm thời
+        // Không gọi `save()` ở đây nữa
+        const targetGroup = groups.find((g) => g.id === event.payload.groupId);
+        if (targetGroup) {
+          console.log("Nhận được context, lưu vào state tạm thời.");
+          setPendingExportData({
+            context: event.payload.context,
+            group: targetGroup,
+          });
         }
       }
     );
@@ -112,17 +98,54 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
     const unlistenError = listen<string>("group_export_error", (event) => {
       console.error("Lỗi khi xuất nhóm từ backend:", event.payload);
       alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
+      // Dọn dẹp tất cả state khi có lỗi
+      setIsConfirmingExport(false);
       setExportingGroupId(null);
+      setExportOptionsOpen(false);
     });
 
     return () => {
-      unlisten.then((f) => f());
+      unlistenComplete.then((f) => f());
       unlistenError.then((f) => f());
     };
-    // Mảng dependency của useEffect này giờ có thể để trống,
-    // vì listener không còn phụ thuộc vào giá trị `exportingGroupId` "cũ" nữa.
-    // Nó sẽ chỉ được thiết lập một lần khi component mount.
-  }, [groups]); // Thêm `groups` để listener có thể truy cập danh sách group mới nhất
+  }, [groups]); // Phụ thuộc vào `groups` để có thể tìm `targetGroup` mới nhất
+
+  // --- useEffect 2: Xử lý việc mở dialog lưu file ---
+  useEffect(() => {
+    // Effect này chỉ chạy khi `pendingExportData` có giá trị
+    if (pendingExportData) {
+      const showSaveDialog = async () => {
+        try {
+          const defaultName = `${pendingExportData.group.name.replace(
+            /\s+/g,
+            "_"
+          )}_context.txt`;
+          const filePath = await save({
+            title: `Lưu Ngữ cảnh cho nhóm "${pendingExportData.group.name}"`,
+            defaultPath: defaultName,
+            filters: [{ name: "Text File", extensions: ["txt"] }],
+          });
+
+          if (filePath) {
+            await writeTextFile(filePath, pendingExportData.context);
+            alert(`Đã lưu file thành công!`);
+          }
+        } catch (error) {
+          console.error("Lỗi khi lưu file ngữ cảnh:", error);
+          alert("Đã xảy ra lỗi khi lưu file.");
+        } finally {
+          // Dọn dẹp TẤT CẢ các state sau khi dialog lưu file đóng lại
+          console.log("Dọn dẹp state sau khi lưu.");
+          setPendingExportData(null);
+          setIsConfirmingExport(false);
+          setExportingGroupId(null);
+          setExportOptionsOpen(false);
+        }
+      };
+
+      showSaveDialog();
+    }
+  }, [pendingExportData]); // Chỉ kích hoạt khi có dữ liệu mới để lưu
 
   // Hàm này giờ chỉ mở dialog
   const handleOpenExportOptions = (group: Group) => {
@@ -131,23 +154,33 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
     setUseFullTree(false); // Reset về mặc định mỗi khi mở
   };
 
-  // Hàm này thực sự gọi backend
   const handleConfirmExport = () => {
     if (!groupToExport || !rootPath) return;
 
+    setIsConfirmingExport(true);
     setExportingGroupId(groupToExport.id);
-    setExportOptionsOpen(false); // Đóng dialog
+
+    // Không đóng dialog nữa, nó sẽ được đóng trong `finally` của `useEffect` thứ hai
 
     try {
       invoke("start_group_export", {
         groupId: groupToExport.id,
         rootPathStr: rootPath,
-        useFullTree: useFullTree, // <-- TRUYỀN THAM SỐ MỚI
+        useFullTree: useFullTree,
       });
     } catch (error) {
       console.error("Lỗi khi gọi command start_group_export:", error);
       alert("Không thể bắt đầu quá trình xuất file.");
+      setIsConfirmingExport(false);
       setExportingGroupId(null);
+    }
+  };
+
+  // --- HÀM MỚI ĐỂ XỬ LÝ VIỆC ĐÓNG DIALOG ---
+  const handleCloseDialog = () => {
+    // Chỉ cho phép đóng khi không đang loading
+    if (!isConfirmingExport) {
+      setExportOptionsOpen(false);
     }
   };
 
@@ -249,19 +282,19 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                 {/* --- KẾT THÚC PHẦN UI MỚI --- */}
               </CardContent>
               <CardFooter className="flex justify-end gap-2">
+                {/* --- THAY ĐỔI DUY NHẤT Ở ĐÂY --- */}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleOpenExportOptions(group)} // <-- THAY ĐỔI Ở ĐÂY
-                  disabled={!!exportingGroupId} // Vô hiệu hóa tất cả nút khi đang export
+                  onClick={() => handleOpenExportOptions(group)}
+                  // Vô hiệu hóa TẤT CẢ các nút Xuất khác khi MỘT nhóm đang được xử lý
+                  disabled={!!exportingGroupId}
                 >
-                  {exportingGroupId === group.id ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  {exportingGroupId === group.id ? "Đang xuất..." : "Xuất"}
+                  {/* Gỡ bỏ hoàn toàn logic hiển thị icon loading và thay đổi text */}
+                  <Download className="mr-2 h-4 w-4" />
+                  Xuất
                 </Button>
+                {/* --- KẾT THÚC THAY ĐỔI --- */}
                 <Button size="sm" onClick={() => editGroupContent(group.id)}>
                   <ListChecks className="mr-2 h-4 w-4" /> Quản lý nội dung
                 </Button>
@@ -272,7 +305,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
       )}
 
       {/* --- DIALOG MỚI CHO TÙY CHỌN XUẤT FILE --- */}
-      <AlertDialog open={exportOptionsOpen} onOpenChange={setExportOptionsOpen}>
+      <AlertDialog open={exportOptionsOpen} onOpenChange={handleCloseDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -289,6 +322,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
               id="full-tree-switch"
               checked={useFullTree}
               onCheckedChange={setUseFullTree}
+              disabled={isConfirmingExport} // <-- Vô hiệu hóa khi đang loading
             />
             <Label htmlFor="full-tree-switch" className="cursor-pointer">
               Sử dụng cây thư mục đầy đủ của dự án
@@ -301,9 +335,18 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
           </p>
 
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmExport}>
-              Xác nhận và Xuất
+            <AlertDialogCancel disabled={isConfirmingExport}>
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmExport}
+              disabled={isConfirmingExport}
+            >
+              {/* --- THAY ĐỔI: Thêm icon loading vào nút xác nhận --- */}
+              {isConfirmingExport ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {isConfirmingExport ? "Đang xử lý..." : "Xác nhận và Xuất"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

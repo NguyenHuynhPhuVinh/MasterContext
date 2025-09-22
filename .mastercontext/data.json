@@ -423,13 +423,13 @@
       "name": "TESt",
       "description": "TEST",
       "paths": [
-        "src"
+        "src/App.css"
       ],
       "stats": {
-        "total_files": 30,
-        "total_dirs": 7,
-        "total_size": 105029,
-        "token_count": 26269
+        "total_files": 1,
+        "total_dirs": 2,
+        "total_size": 4091,
+        "token_count": 1615
       }
     }
   ],
