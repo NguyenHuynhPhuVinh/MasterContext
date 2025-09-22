@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 66,
     "total_dirs": 14,
-    "total_size": 424726,
-    "total_tokens": 45424
+    "total_size": 427934,
+    "total_tokens": 46201
   },
   "file_tree": {
     "name": "MasterContext",
@@ -586,9 +586,9 @@
       "links": []
     },
     "src-tauri/src/commands.rs": {
-      "size": 13005,
-      "mtime": 1758533370,
-      "token_count": 3053,
+      "size": 16213,
+      "mtime": 1758536879,
+      "token_count": 3830,
       "links": []
     },
     "src-tauri/src/context_generator.rs": {
@@ -940,5 +940,5 @@
   },
   "sync_enabled": true,
   "sync_path": "C:\\Users\\tomis\\Documents\\MasterContext\\.mastercontext",
-  "data_hash": "9bc4a2f8b22d70468b6fc94057de1b237af1a5463af5e371954971bc8e000bab"
+  "data_hash": "147b54844bff812f2ce42304722f9778e98ed8fe83937f9fc0ce53fe2e87948f"
 }

@@ -364,7 +364,15 @@ FILE: src-tauri/src/commands.rs
 use crate::{context_generator, file_cache, models, project_scanner};
 use std::fs;
 use std::path::{Path, PathBuf};
-use tauri::{command, Emitter, Window}; // Bỏ AppHandle khỏi use list vì không cần nữa
+use tauri::{command, Emitter, Window};
+
+// --- THÊM CÁC USE STATEMENTS NÀY ---
+use std::collections::{HashMap, HashSet};
+
+// --- HÀM HELPER MỚI: TÁCH RA ĐỂ TÁI SỬ DỤNG ---
+fn sanitize_group_name(name: &str) -> String {
+    name.replace(|c: char| !c.is_alphanumeric(), "_")
+} // Bỏ AppHandle khỏi use list vì không cần nữa
 
 #[command]
 pub fn open_project(window: Window, path: String) {
@@ -411,13 +419,73 @@ pub fn open_project(window: Window, path: String) {
 }
 
 #[command]
-// Bỏ _app_handle không cần thiết
 pub fn update_groups_in_project_data(
+    window: Window,
     path: String,
     groups: Vec<models::Group>,
 ) -> Result<(), String> {
+    // 1. Tải dữ liệu dự án hiện tại từ đĩa
     let mut project_data = file_cache::load_project_data(&path)?;
+    let old_groups = project_data.groups.clone();
+
+    // 2. Nếu đồng bộ được bật, xử lý xóa/đổi tên file
+    if project_data.sync_enabled.unwrap_or(false) {
+        if let Some(sync_path_str) = &project_data.sync_path {
+            let sync_path = PathBuf::from(sync_path_str);
+
+            let new_groups_map: HashMap<_, _> =
+                groups.iter().map(|g| (g.id.clone(), g)).collect();
+            let old_groups_map: HashMap<_, _> =
+                old_groups.iter().map(|g| (g.id.clone(), g)).collect();
+
+            // 2a. Xử lý xóa nhóm
+            for old_group in &old_groups {
+                if !new_groups_map.contains_key(&old_group.id) {
+                    // Nhóm này đã bị xóa
+                    let safe_name = sanitize_group_name(&old_group.name);
+                    let file_to_delete = sync_path.join(format!("{}_context.txt", safe_name));
+                    if file_to_delete.exists() {
+                        println!("[SYNC] Deleting file: {:?}", file_to_delete);
+                        let _ = fs::remove_file(file_to_delete); // Bỏ qua lỗi nếu file không tồn tại
+                    }
+                }
+            }
+
+            // 2b. Xử lý đổi tên nhóm
+            for new_group in &groups {
+                if let Some(old_group) = old_groups_map.get(&new_group.id) {
+                    if old_group.name != new_group.name {
+                        // Nhóm này đã được đổi tên
+                        let old_safe_name = sanitize_group_name(&old_group.name);
+                        let new_safe_name = sanitize_group_name(&new_group.name);
+                        let old_file = sync_path.join(format!("{}_context.txt", old_safe_name));
+                        let new_file = sync_path.join(format!("{}_context.txt", new_safe_name));
+
+                        if old_file.exists() {
+                            println!("[SYNC] Renaming file: {:?} -> {:?}", old_file, new_file);
+                            let _ = fs::rename(old_file, new_file); // Bỏ qua lỗi nếu không thành công
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. Cập nhật danh sách nhóm trong dữ liệu
     project_data.groups = groups;
+
+    // 4. Nếu đồng bộ được bật, chạy lại toàn bộ quá trình xuất
+    // Điều này đảm bảo các nhóm mới được tạo và nội dung các nhóm được cập nhật
+    if project_data.sync_enabled.unwrap_or(false) && project_data.sync_path.is_some() {
+        let _ = window.emit(
+            "auto_sync_started",
+            "Cập nhật nhóm, bắt đầu đồng bộ...",
+        );
+        perform_auto_export(&path, &project_data);
+        let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
+    }
+
+    // 5. Lưu lại dữ liệu dự án đã cập nhật
     file_cache::save_project_data(&path, &project_data)
 }
 
@@ -688,7 +756,8 @@ fn perform_auto_export(project_path: &str, data: &models::CachedProjectData) {
                 true,
                 &data.file_tree,
             ) {
-                let safe_name = group.name.replace(|c: char| !c.is_alphanumeric(), "_");
+                // --- SỬA Ở ĐÂY: DÙNG HÀM HELPER ---
+                let safe_name = sanitize_group_name(&group.name);
                 let file_name = sync_path_base.join(format!("{}_context.txt", safe_name));
                 let _ = save_context_to_path_internal(
                     file_name.to_string_lossy().to_string(),
