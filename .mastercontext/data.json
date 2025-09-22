@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 64,
     "total_dirs": 14,
-    "total_size": 368600,
-    "total_tokens": 30487
+    "total_size": 370189,
+    "total_tokens": 30936
   },
   "file_tree": {
     "name": "MasterContext",
@@ -418,13 +418,13 @@
       "name": "TEST",
       "description": "TEST",
       "paths": [
-        "src"
+        "src/store"
       ],
       "stats": {
-        "total_files": 56,
-        "total_dirs": 11,
-        "total_size": 362939,
-        "token_count": 28832
+        "total_files": 2,
+        "total_dirs": 2,
+        "total_size": 13356,
+        "token_count": 3556
       }
     }
   ],
@@ -455,9 +455,9 @@
       "token_count": 542
     },
     "src-tauri/Cargo.toml": {
-      "size": 821,
-      "mtime": 1758514108,
-      "token_count": 241
+      "size": 852,
+      "mtime": 1758521487,
+      "token_count": 244
     },
     "src-tauri/build.rs": {
       "size": 42,
@@ -551,7 +551,7 @@
     },
     "src-tauri/src/commands.rs": {
       "size": 4439,
-      "mtime": 1758518730,
+      "mtime": 1758522355,
       "token_count": 972
     },
     "src-tauri/src/context_generator.rs": {
@@ -566,7 +566,7 @@
     },
     "src-tauri/src/lib.rs": {
       "size": 824,
-      "mtime": 1758518698,
+      "mtime": 1758521476,
       "token_count": 183
     },
     "src-tauri/src/main.rs": {
@@ -581,7 +581,7 @@
     },
     "src-tauri/src/project_scanner.rs": {
       "size": 8864,
-      "mtime": 1758518730,
+      "mtime": 1758522355,
       "token_count": 2135
     },
     "src-tauri/tauri.conf.json": {
@@ -601,7 +601,7 @@
     },
     "src/components/FileTreeView.tsx": {
       "size": 3838,
-      "mtime": 1758473280,
+      "mtime": 1758521476,
       "token_count": 912
     },
     "src/components/GroupManager.tsx": {
@@ -685,9 +685,9 @@
       "token_count": 1183
     },
     "src/lib/treeUtils.ts": {
-      "size": 2608,
-      "mtime": 1758518698,
-      "token_count": 606
+      "size": 3169,
+      "mtime": 1758522387,
+      "token_count": 783
     },
     "src/lib/utils.ts": {
       "size": 1645,
@@ -706,7 +706,7 @@
     },
     "src/scenes/GroupEditorScene.tsx": {
       "size": 2861,
-      "mtime": 1758507756,
+      "mtime": 1758521476,
       "token_count": 725
     },
     "src/scenes/ScanningScene.tsx": {
@@ -720,9 +720,9 @@
       "token_count": 341
     },
     "src/store/appStore.ts": {
-      "size": 11498,
-      "mtime": 1758518698,
-      "token_count": 3088
+      "size": 12495,
+      "mtime": 1758522388,
+      "token_count": 3357
     },
     "src/store/types.ts": {
       "size": 861,

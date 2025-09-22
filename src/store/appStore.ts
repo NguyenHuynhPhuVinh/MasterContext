@@ -279,18 +279,36 @@ export const useAppStore = create<AppState>((set, get) => {
       },
 
       toggleEditingPath: (toggledNode: FileNode, isSelected: boolean) => {
-        const { tempSelectedPaths } = get();
-        if (!tempSelectedPaths) return;
+        set((state) => {
+          if (!state.tempSelectedPaths) return {};
 
-        const newSelectedPaths = new Set(tempSelectedPaths);
-        const pathsToToggle = getDescendantAndSelfPaths(toggledNode);
+          const newSelectedPaths = new Set(state.tempSelectedPaths);
+          const pathsToToggle = getDescendantAndSelfPaths(toggledNode);
 
-        if (isSelected) {
-          pathsToToggle.forEach((p) => newSelectedPaths.add(p));
-        } else {
-          pathsToToggle.forEach((p) => newSelectedPaths.delete(p));
-        }
-        set({ tempSelectedPaths: newSelectedPaths });
+          if (isSelected) {
+            // Thêm mục được chọn và tất cả các con của nó
+            pathsToToggle.forEach((p) => newSelectedPaths.add(p));
+
+            // *** PHẦN SỬA LỖI QUAN TRỌNG NHẤT ***
+            // Thêm tất cả các thư mục cha ngược lên đến gốc
+            // để đảm bảo logic duyệt cây không bị dừng sớm.
+            let parentPath = toggledNode.path;
+            while (parentPath.lastIndexOf("/") > -1) {
+              parentPath = parentPath.substring(0, parentPath.lastIndexOf("/"));
+              newSelectedPaths.add(parentPath);
+            }
+            // Luôn đảm bảo có đường dẫn gốc ""
+            newSelectedPaths.add("");
+          } else {
+            // Xóa mục được chọn và tất cả các con của nó
+            pathsToToggle.forEach((p) => newSelectedPaths.delete(p));
+
+            // Tùy chọn: Dọn dẹp các thư mục cha nếu chúng không còn con nào được chọn
+            // (Hiện tại có thể bỏ qua để giữ logic đơn giản, việc xóa đã hoạt động đúng)
+          }
+
+          return { tempSelectedPaths: newSelectedPaths };
+        });
       },
 
       cancelEditingGroup: () => {

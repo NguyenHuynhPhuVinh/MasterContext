@@ -29,34 +29,45 @@ export const prunePathsForSave = (
   selectedPaths: Set<string>
 ): string[] => {
   const pruned: string[] = [];
+
   function traverse(node: FileNode) {
-    if (!selectedPaths.has(node.path)) return;
-    if (areAllDescendantsSelected(node, selectedPaths)) {
-      pruned.push(node.path);
+    // *** PHẦN SỬA LỖI QUAN TRỌNG ***
+    // Logic mới không dừng lại ngay cả khi node hiện tại không được chọn,
+    // vì một trong các con của nó có thể được chọn.
+
+    // Nếu node này được chọn và TẤT CẢ các con cháu của nó cũng được chọn,
+    // đây là điểm "tối ưu". Ta chỉ cần thêm node này và không cần đi sâu hơn.
+    if (
+      selectedPaths.has(node.path) &&
+      areAllDescendantsSelected(node, selectedPaths)
+    ) {
+      // Không thêm đường dẫn gốc "" vào danh sách lưu
+      if (node.path !== "") {
+        pruned.push(node.path);
+      }
+      // Nếu node gốc được chọn toàn bộ, vẫn cần duyệt con của nó
+      if (node.path === "" && Array.isArray(node.children)) {
+        for (const child of node.children) {
+          traverse(child);
+        }
+      }
       return;
     }
+
+    // Nếu node là một file và được chọn
     if (!Array.isArray(node.children) && selectedPaths.has(node.path)) {
       pruned.push(node.path);
     }
+
+    // Nếu là thư mục, luôn luôn duyệt các con của nó.
     if (Array.isArray(node.children)) {
       for (const child of node.children) {
         traverse(child);
       }
     }
   }
-  if (Array.isArray(rootNode.children)) {
-    for (const child of rootNode.children) {
-      traverse(child);
-    }
-  }
-  // Xử lý trường hợp chỉ có thư mục gốc được chọn
-  if (
-    pruned.length === 0 &&
-    selectedPaths.has(rootNode.path) &&
-    areAllDescendantsSelected(rootNode, selectedPaths)
-  ) {
-    pruned.push(rootNode.path);
-  }
+
+  traverse(rootNode);
   return pruned;
 };
 
