@@ -4,7 +4,15 @@ import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { FileTreeView, type FileNode } from "@/components/FileTreeView";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, Loader2, Link, Link2Off } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Link,
+  Link2Off,
+  CheckCheck,
+  XCircle,
+} from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -15,6 +23,8 @@ export function GroupEditorScene() {
     cancelEditingGroup,
     toggleEditingPath,
     setCrossLinkingEnabled,
+    selectAllFiles, // <-- Lấy action mới
+    deselectAllFiles, // <-- Lấy action mới
   } = useAppActions();
 
   const {
@@ -60,6 +70,22 @@ export function GroupEditorScene() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          {/* --- KHỐI MỚI CHO CÁC NÚT CHỌN NHANH --- */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={selectAllFiles}>
+              <CheckCheck className="mr-2 h-4 w-4" />
+              Chọn tất cả
+            </Button>
+            <Button variant="outline" size="sm" onClick={deselectAllFiles}>
+              <XCircle className="mr-2 h-4 w-4" />
+              Bỏ chọn tất cả
+            </Button>
+          </div>
+          {/* --- KẾT THÚC KHỐI MỚI --- */}
+
+          {/* Dải phân cách trực quan */}
+          <div className="h-8 w-px bg-border"></div>
+
           <div className="flex items-center space-x-2">
             <Switch
               id="cross-linking-toggle"

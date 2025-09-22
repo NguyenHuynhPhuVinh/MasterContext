@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 65,
     "total_dirs": 14,
-    "total_size": 384555,
-    "total_tokens": 34608
+    "total_size": 386162,
+    "total_tokens": 35064
   },
   "file_tree": {
     "name": "MasterContext",
@@ -417,7 +417,20 @@
       }
     ]
   },
-  "groups": [],
+  "groups": [
+    {
+      "id": "1758529684008",
+      "name": "TESt",
+      "description": "TEST",
+      "paths": [],
+      "stats": {
+        "total_files": 0,
+        "total_dirs": 0,
+        "total_size": 0,
+        "token_count": 0
+      }
+    }
+  ],
   "file_metadata_cache": {
     "LICENSE": {
       "size": 1096,
@@ -832,16 +845,16 @@
       ]
     },
     "src/scenes/GroupEditorScene.tsx": {
-      "size": 3698,
-      "mtime": 1758528211,
-      "token_count": 872,
+      "size": 4511,
+      "mtime": 1758529838,
+      "token_count": 1099,
       "links": [
-        "src/components/ui/label.tsx",
         "src/components/ui/switch.tsx",
-        "src/store/appStore.ts",
+        "src/components/ui/label.tsx",
+        "src/components/FileTreeView.tsx",
         "src/components/ui/button.tsx",
         "src/components/ui/scroll-area.tsx",
-        "src/components/FileTreeView.tsx"
+        "src/store/appStore.ts"
       ]
     },
     "src/scenes/ScanningScene.tsx": {
@@ -862,9 +875,9 @@
       ]
     },
     "src/store/appStore.ts": {
-      "size": 14404,
-      "mtime": 1758528211,
-      "token_count": 3822,
+      "size": 15198,
+      "mtime": 1758529838,
+      "token_count": 4051,
       "links": [
         "src/lib/treeUtils.ts",
         "src/store/types.ts"

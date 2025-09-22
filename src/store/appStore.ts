@@ -98,6 +98,8 @@ interface AppState {
     cancelEditingGroup: () => void;
     saveEditingGroup: () => Promise<void>;
     setCrossLinkingEnabled: (enabled: boolean) => void; // <-- THÊM ACTION NÀY
+    selectAllFiles: () => void; // <-- THÊM ACTION NÀY
+    deselectAllFiles: () => void; // <-- THÊM ACTION NÀY
   };
 }
 
@@ -378,6 +380,22 @@ export const useAppStore = create<AppState>((set, get) => {
       },
       setCrossLinkingEnabled: (enabled: boolean) => {
         set({ isCrossLinkingEnabled: enabled });
+      },
+
+      // --- THÊM 2 ACTIONS MỚI Ở ĐÂY ---
+      selectAllFiles: () => {
+        const { fileTree } = get();
+        if (!fileTree) return;
+
+        // Lấy tất cả các đường dẫn có thể có từ fileTree
+        const allPaths = getDescendantAndSelfPaths(fileTree);
+        set({ tempSelectedPaths: new Set(allPaths) });
+      },
+
+      deselectAllFiles: () => {
+        // Đơn giản là set thành một Set rỗng, nhưng vẫn giữ lại đường dẫn gốc ""
+        // để cây thư mục không bị lỗi (logic prune/expand dựa vào sự tồn tại của "")
+        set({ tempSelectedPaths: new Set([""]) });
       },
     },
   };
