@@ -328,7 +328,7 @@ lazy_static = "1.5.0"
 path-clean = "1.0"
 sha2 = "0.10"
 tauri-plugin-clipboard-manager = "2"
-
+notify = "8.2.0"
 
 
 ================================================
@@ -362,10 +362,24 @@ FILE: src-tauri/src/commands.rs
 ================================================
 // src-tauri/src/commands.rs
 use crate::{context_generator, file_cache, models, project_scanner};
+use lazy_static::lazy_static; // <-- THÊM IMPORT
+use notify::{RecursiveMode, RecommendedWatcher, Watcher}; // <-- THÊM IMPORT
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex; // <-- THÊM IMPORT
+use std::time::{Duration, Instant}; // <-- THÊM IMPORT
 use tauri::{command, Emitter, Window};
+
+// --- BẮT ĐẦU KHỐI MÃ MỚI: QUẢN LÝ TRẠNG THÁI WATCHER ---
+lazy_static! {
+    // Global state để giữ watcher. Dùng Mutex để đảm bảo an toàn luồng.
+    // Option<RecommendedWatcher> cho phép chúng ta có trạng thái "không theo dõi".
+    static ref FILE_WATCHER: Mutex<Option<RecommendedWatcher>> = Mutex::new(None);
+    // State để debounce các sự kiện thay đổi file.
+    static ref LAST_CHANGE_TIME: Mutex<Option<Instant>> = Mutex::new(None);
+}
+// --- KẾT THÚC KHỐI MÃ MỚI ---
 
 fn sanitize_group_name(name: &str) -> String {
     name.replace(|c: char| !c.is_alphanumeric(), "_")
@@ -818,6 +832,61 @@ pub fn rename_profile(
     fs::rename(old_path, new_path).map_err(|e| e.to_string())
 }
 
+// --- COMMAND MỚI: Bắt đầu theo dõi file ---
+#[command]
+pub fn start_file_watching(window: Window, path: String) -> Result<(), String> {
+    // Dừng watcher cũ nếu có
+    stop_file_watching()?;
+
+    let window_clone = window.clone();
+    let debounce_duration = Duration::from_secs(2);
+
+    let mut watcher = notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+        match res {
+            Ok(event) => {
+                // Chỉ quan tâm đến các sự kiện thay đổi nội dung, tạo hoặc xóa file/thư mục.
+                if event.kind.is_modify() || event.kind.is_create() || event.kind.is_remove() {
+                    let mut last_change = LAST_CHANGE_TIME.lock().unwrap();
+                    let now = Instant::now();
+
+                    // Debounce: Nếu sự kiện mới đến quá nhanh, bỏ qua.
+                    if last_change.is_none() || now.duration_since(last_change.unwrap()) > debounce_duration {
+                        println!("[Watcher] Detected change: {:?}, triggering rescan.", event.paths);
+                        // Gửi sự kiện về frontend để yêu cầu quét lại.
+                        let _ = window_clone.emit("file_change_detected", ());
+                        *last_change = Some(now);
+                    }
+                }
+            }
+            Err(e) => println!("[Watcher] Error: {:?}", e),
+        }
+    })
+    .map_err(|e| format!("Không thể tạo watcher: {}", e))?;
+
+    // Bắt đầu theo dõi thư mục dự án một cách đệ quy.
+    watcher
+        .watch(Path::new(&path), RecursiveMode::Recursive)
+        .map_err(|e| format!("Không thể bắt đầu theo dõi thư mục: {}", e))?;
+
+    // Lưu watcher vào global state để nó tiếp tục chạy.
+    *FILE_WATCHER.lock().unwrap() = Some(watcher);
+    println!("[Watcher] Started watching path: {}", path);
+    Ok(())
+}
+
+// --- COMMAND MỚI: Dừng theo dõi file ---
+#[command]
+pub fn stop_file_watching() -> Result<(), String> {
+    // Lấy watcher ra khỏi Mutex, hành động này sẽ drop (hủy) watcher cũ,
+    // tự động dừng tiến trình theo dõi.
+    if let Some(watcher) = FILE_WATCHER.lock().unwrap().take() {
+        // Không cần làm gì với `watcher`, nó sẽ tự hủy khi ra khỏi scope.
+        drop(watcher);
+        println!("[Watcher] Stopped watching.");
+    }
+    Ok(())
+}
+
 
 ================================================
 FILE: src-tauri/src/context_generator.rs
@@ -1077,7 +1146,10 @@ pub fn run() {
             commands::list_profiles,
             commands::create_profile,
             commands::delete_profile,
-            commands::rename_profile
+            commands::rename_profile,
+            // --- THÊM 2 COMMAND MỚI VÀO ĐÂY ---
+            commands::start_file_watching,
+            commands::stop_file_watching
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -1851,6 +1923,7 @@ function App() {
     _setScanComplete,
     _setScanError,
     _setGroupUpdateComplete,
+    rescanProject, // <-- Lấy action rescanProject
   } = useAppActions();
 
   // --- THÊM MỚI: Logic áp dụng theme khi ứng dụng khởi động ---
@@ -1928,6 +2001,17 @@ function App() {
       })
     );
 
+    // --- THÊM LISTENER MỚI CHO VIỆC THEO DÕI FILE ---
+    unlistenFuncs.push(
+      listen<void>("file_change_detected", () => {
+        // Chỉ quét lại nếu không đang trong một quá trình quét khác
+        if (!useAppStore.getState().isScanning) {
+          toast.info("Phát hiện thay đổi, bắt đầu quét lại dự án...");
+          rescanProject();
+        }
+      })
+    );
+
     // Dọn dẹp listener khi component unmount
     return () => {
       unlistenFuncs.forEach((unlisten) => {
@@ -1940,6 +2024,7 @@ function App() {
     _setScanError,
     throttledSetScanProgress,
     _setGroupUpdateComplete,
+    rescanProject, // <-- Thêm dependency
   ]); // <-- Thêm dependency
 
   const renderContent = () => {
@@ -2704,16 +2789,26 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
-  const { syncEnabled, syncPath, customIgnorePatterns, activeProfile } =
-    useAppStore(
-      useShallow((state) => ({
-        syncEnabled: state.syncEnabled,
-        syncPath: state.syncPath,
-        customIgnorePatterns: state.customIgnorePatterns,
-        activeProfile: state.activeProfile,
-      }))
-    );
-  const { setSyncSettings, setCustomIgnorePatterns } = useAppActions();
+  const {
+    syncEnabled,
+    syncPath,
+    customIgnorePatterns,
+    activeProfile,
+    isWatchingFiles,
+    rootPath,
+  } = useAppStore(
+    // <-- Lấy thêm isWatchingFiles và rootPath
+    useShallow((state) => ({
+      syncEnabled: state.syncEnabled,
+      syncPath: state.syncPath,
+      customIgnorePatterns: state.customIgnorePatterns,
+      activeProfile: state.activeProfile,
+      isWatchingFiles: state.isWatchingFiles, // <-- Lấy state mới
+      rootPath: state.rootPath, // <-- Cần để biết có nên cho bật switch không
+    }))
+  );
+  const { setSyncSettings, setCustomIgnorePatterns, setFileWatching } =
+    useAppActions(); // <-- Lấy action mới
 
   // State cục bộ cho textarea và trạng thái loading
   const [ignoreText, setIgnoreText] = useState("");
@@ -2781,6 +2876,25 @@ export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
             <div className="flex items-center justify-between rounded-lg border p-4">
               <Label htmlFor="theme-toggle">Giao diện (Sáng/Tối)</Label>
               <ThemeToggle />
+            </div>
+
+            {/* --- THÊM KHỐI CÀI ĐẶT MỚI --- */}
+            <div className="space-y-4 rounded-lg border p-4">
+              <h3 className="font-semibold">Theo dõi dự án</h3>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="watching-toggle" className="flex flex-col">
+                  <span>Theo dõi thời gian thực</span>
+                  <span className="text-xs text-muted-foreground">
+                    Tự động quét lại khi có thay đổi file.
+                  </span>
+                </Label>
+                <Switch
+                  id="watching-toggle"
+                  checked={isWatchingFiles}
+                  onCheckedChange={setFileWatching}
+                  disabled={!rootPath} // Vô hiệu hóa nếu chưa mở dự án
+                />
+              </div>
             </div>
 
             <div className="space-y-4 rounded-lg border p-4">
@@ -5307,6 +5421,7 @@ interface AppState {
   // --- STATE MỚI CHO HỒ SƠ ---
   profiles: string[];
   activeProfile: string;
+  isWatchingFiles: boolean; // <-- THÊM STATE MỚI
 
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
@@ -5350,6 +5465,7 @@ interface AppState {
     createProfile: (profileName: string) => Promise<void>;
     renameProfile: (oldName: string, newName: string) => Promise<void>;
     deleteProfile: (profileName: string) => Promise<void>;
+    setFileWatching: (enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
   };
 }
 
@@ -5408,9 +5524,16 @@ export const useAppStore = create<AppState>((set, get) => {
     // --- GIÁ TRỊ MẶC ĐỊNH CHO STATE HỒ SƠ ---
     profiles: ["default"],
     activeProfile: "default",
+    isWatchingFiles: false, // <-- GIÁ TRỊ MẶC ĐỊNH
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
+        // Dừng watcher cũ trước khi chuyển dự án
+        const { isWatchingFiles } = get();
+        if (isWatchingFiles) {
+          await invoke("stop_file_watching");
+        }
+
         set({
           rootPath: path,
           selectedPath: path,
@@ -5426,6 +5549,11 @@ export const useAppStore = create<AppState>((set, get) => {
           set({ profiles });
           // Tải hồ sơ 'default' sau khi chọn một thư mục mới
           loadProfileData(path, "default");
+
+          // Bắt đầu watcher mới nếu cần
+          if (isWatchingFiles) {
+            await invoke("start_file_watching", { path });
+          }
         } catch (error) {
           console.error("Lỗi khi lấy danh sách hồ sơ:", error);
           set({
@@ -5809,6 +5937,30 @@ export const useAppStore = create<AppState>((set, get) => {
         } catch (error) {
           console.error("Lỗi khi xóa hồ sơ:", error);
           toast.error(`Không thể xóa hồ sơ: ${error}`);
+        }
+      },
+      // --- ACTION MỚI ĐỂ BẬT/TẮT THEO DÕI FILE ---
+      setFileWatching: async (enabled: boolean) => {
+        const { rootPath } = get();
+        if (!rootPath) return;
+
+        set({ isWatchingFiles: enabled });
+
+        try {
+          if (enabled) {
+            await invoke("start_file_watching", { path: rootPath });
+            toast.success("Đã bật theo dõi thay đổi thời gian thực.");
+          } else {
+            await invoke("stop_file_watching");
+            toast.info("Đã tắt theo dõi thay đổi thời gian thực.");
+          }
+        } catch (error) {
+          console.error("Lỗi khi thay đổi trạng thái theo dõi file:", error);
+          toast.error(
+            `Không thể ${enabled ? "bật" : "tắt"} theo dõi: ${error}`
+          );
+          // Revert state nếu có lỗi
+          set({ isWatchingFiles: !enabled });
         }
       },
     },

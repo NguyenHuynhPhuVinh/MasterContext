@@ -25,16 +25,26 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
-  const { syncEnabled, syncPath, customIgnorePatterns, activeProfile } =
-    useAppStore(
-      useShallow((state) => ({
-        syncEnabled: state.syncEnabled,
-        syncPath: state.syncPath,
-        customIgnorePatterns: state.customIgnorePatterns,
-        activeProfile: state.activeProfile,
-      }))
-    );
-  const { setSyncSettings, setCustomIgnorePatterns } = useAppActions();
+  const {
+    syncEnabled,
+    syncPath,
+    customIgnorePatterns,
+    activeProfile,
+    isWatchingFiles,
+    rootPath,
+  } = useAppStore(
+    // <-- Lấy thêm isWatchingFiles và rootPath
+    useShallow((state) => ({
+      syncEnabled: state.syncEnabled,
+      syncPath: state.syncPath,
+      customIgnorePatterns: state.customIgnorePatterns,
+      activeProfile: state.activeProfile,
+      isWatchingFiles: state.isWatchingFiles, // <-- Lấy state mới
+      rootPath: state.rootPath, // <-- Cần để biết có nên cho bật switch không
+    }))
+  );
+  const { setSyncSettings, setCustomIgnorePatterns, setFileWatching } =
+    useAppActions(); // <-- Lấy action mới
 
   // State cục bộ cho textarea và trạng thái loading
   const [ignoreText, setIgnoreText] = useState("");
@@ -102,6 +112,25 @@ export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
             <div className="flex items-center justify-between rounded-lg border p-4">
               <Label htmlFor="theme-toggle">Giao diện (Sáng/Tối)</Label>
               <ThemeToggle />
+            </div>
+
+            {/* --- THÊM KHỐI CÀI ĐẶT MỚI --- */}
+            <div className="space-y-4 rounded-lg border p-4">
+              <h3 className="font-semibold">Theo dõi dự án</h3>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="watching-toggle" className="flex flex-col">
+                  <span>Theo dõi thời gian thực</span>
+                  <span className="text-xs text-muted-foreground">
+                    Tự động quét lại khi có thay đổi file.
+                  </span>
+                </Label>
+                <Switch
+                  id="watching-toggle"
+                  checked={isWatchingFiles}
+                  onCheckedChange={setFileWatching}
+                  disabled={!rootPath} // Vô hiệu hóa nếu chưa mở dự án
+                />
+              </div>
             </div>
 
             <div className="space-y-4 rounded-lg border p-4">

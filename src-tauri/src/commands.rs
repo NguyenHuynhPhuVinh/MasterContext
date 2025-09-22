@@ -1,9 +1,23 @@
 // src-tauri/src/commands.rs
 use crate::{context_generator, file_cache, models, project_scanner};
+use lazy_static::lazy_static; // <-- THÊM IMPORT
+use notify::{RecursiveMode, RecommendedWatcher, Watcher}; // <-- THÊM IMPORT
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex; // <-- THÊM IMPORT
+use std::time::{Duration, Instant}; // <-- THÊM IMPORT
 use tauri::{command, Emitter, Window};
+
+// --- BẮT ĐẦU KHỐI MÃ MỚI: QUẢN LÝ TRẠNG THÁI WATCHER ---
+lazy_static! {
+    // Global state để giữ watcher. Dùng Mutex để đảm bảo an toàn luồng.
+    // Option<RecommendedWatcher> cho phép chúng ta có trạng thái "không theo dõi".
+    static ref FILE_WATCHER: Mutex<Option<RecommendedWatcher>> = Mutex::new(None);
+    // State để debounce các sự kiện thay đổi file.
+    static ref LAST_CHANGE_TIME: Mutex<Option<Instant>> = Mutex::new(None);
+}
+// --- KẾT THÚC KHỐI MÃ MỚI ---
 
 fn sanitize_group_name(name: &str) -> String {
     name.replace(|c: char| !c.is_alphanumeric(), "_")
@@ -454,4 +468,59 @@ pub fn rename_profile(
         return Err("Tên hồ sơ mới đã tồn tại.".to_string());
     }
     fs::rename(old_path, new_path).map_err(|e| e.to_string())
+}
+
+// --- COMMAND MỚI: Bắt đầu theo dõi file ---
+#[command]
+pub fn start_file_watching(window: Window, path: String) -> Result<(), String> {
+    // Dừng watcher cũ nếu có
+    stop_file_watching()?;
+
+    let window_clone = window.clone();
+    let debounce_duration = Duration::from_secs(2);
+
+    let mut watcher = notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+        match res {
+            Ok(event) => {
+                // Chỉ quan tâm đến các sự kiện thay đổi nội dung, tạo hoặc xóa file/thư mục.
+                if event.kind.is_modify() || event.kind.is_create() || event.kind.is_remove() {
+                    let mut last_change = LAST_CHANGE_TIME.lock().unwrap();
+                    let now = Instant::now();
+
+                    // Debounce: Nếu sự kiện mới đến quá nhanh, bỏ qua.
+                    if last_change.is_none() || now.duration_since(last_change.unwrap()) > debounce_duration {
+                        println!("[Watcher] Detected change: {:?}, triggering rescan.", event.paths);
+                        // Gửi sự kiện về frontend để yêu cầu quét lại.
+                        let _ = window_clone.emit("file_change_detected", ());
+                        *last_change = Some(now);
+                    }
+                }
+            }
+            Err(e) => println!("[Watcher] Error: {:?}", e),
+        }
+    })
+    .map_err(|e| format!("Không thể tạo watcher: {}", e))?;
+
+    // Bắt đầu theo dõi thư mục dự án một cách đệ quy.
+    watcher
+        .watch(Path::new(&path), RecursiveMode::Recursive)
+        .map_err(|e| format!("Không thể bắt đầu theo dõi thư mục: {}", e))?;
+
+    // Lưu watcher vào global state để nó tiếp tục chạy.
+    *FILE_WATCHER.lock().unwrap() = Some(watcher);
+    println!("[Watcher] Started watching path: {}", path);
+    Ok(())
+}
+
+// --- COMMAND MỚI: Dừng theo dõi file ---
+#[command]
+pub fn stop_file_watching() -> Result<(), String> {
+    // Lấy watcher ra khỏi Mutex, hành động này sẽ drop (hủy) watcher cũ,
+    // tự động dừng tiến trình theo dõi.
+    if let Some(watcher) = FILE_WATCHER.lock().unwrap().take() {
+        // Không cần làm gì với `watcher`, nó sẽ tự hủy khi ra khỏi scope.
+        drop(watcher);
+        println!("[Watcher] Stopped watching.");
+    }
+    Ok(())
 }

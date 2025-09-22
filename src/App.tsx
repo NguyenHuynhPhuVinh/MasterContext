@@ -20,6 +20,7 @@ function App() {
     _setScanComplete,
     _setScanError,
     _setGroupUpdateComplete,
+    rescanProject, // <-- Lấy action rescanProject
   } = useAppActions();
 
   // --- THÊM MỚI: Logic áp dụng theme khi ứng dụng khởi động ---
@@ -97,6 +98,17 @@ function App() {
       })
     );
 
+    // --- THÊM LISTENER MỚI CHO VIỆC THEO DÕI FILE ---
+    unlistenFuncs.push(
+      listen<void>("file_change_detected", () => {
+        // Chỉ quét lại nếu không đang trong một quá trình quét khác
+        if (!useAppStore.getState().isScanning) {
+          toast.info("Phát hiện thay đổi, bắt đầu quét lại dự án...");
+          rescanProject();
+        }
+      })
+    );
+
     // Dọn dẹp listener khi component unmount
     return () => {
       unlistenFuncs.forEach((unlisten) => {
@@ -109,6 +121,7 @@ function App() {
     _setScanError,
     throttledSetScanProgress,
     _setGroupUpdateComplete,
+    rescanProject, // <-- Thêm dependency
   ]); // <-- Thêm dependency
 
   const renderContent = () => {

@@ -231,6 +231,7 @@ function App() {
     _setScanComplete,
     _setScanError,
     _setGroupUpdateComplete,
+    rescanProject, // <-- Lấy action rescanProject
   } = useAppActions();
 
   // --- THÊM MỚI: Logic áp dụng theme khi ứng dụng khởi động ---
@@ -308,6 +309,17 @@ function App() {
       })
     );
 
+    // --- THÊM LISTENER MỚI CHO VIỆC THEO DÕI FILE ---
+    unlistenFuncs.push(
+      listen<void>("file_change_detected", () => {
+        // Chỉ quét lại nếu không đang trong một quá trình quét khác
+        if (!useAppStore.getState().isScanning) {
+          toast.info("Phát hiện thay đổi, bắt đầu quét lại dự án...");
+          rescanProject();
+        }
+      })
+    );
+
     // Dọn dẹp listener khi component unmount
     return () => {
       unlistenFuncs.forEach((unlisten) => {
@@ -320,6 +332,7 @@ function App() {
     _setScanError,
     throttledSetScanProgress,
     _setGroupUpdateComplete,
+    rescanProject, // <-- Thêm dependency
   ]); // <-- Thêm dependency
 
   const renderContent = () => {
@@ -1084,16 +1097,26 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
-  const { syncEnabled, syncPath, customIgnorePatterns, activeProfile } =
-    useAppStore(
-      useShallow((state) => ({
-        syncEnabled: state.syncEnabled,
-        syncPath: state.syncPath,
-        customIgnorePatterns: state.customIgnorePatterns,
-        activeProfile: state.activeProfile,
-      }))
-    );
-  const { setSyncSettings, setCustomIgnorePatterns } = useAppActions();
+  const {
+    syncEnabled,
+    syncPath,
+    customIgnorePatterns,
+    activeProfile,
+    isWatchingFiles,
+    rootPath,
+  } = useAppStore(
+    // <-- Lấy thêm isWatchingFiles và rootPath
+    useShallow((state) => ({
+      syncEnabled: state.syncEnabled,
+      syncPath: state.syncPath,
+      customIgnorePatterns: state.customIgnorePatterns,
+      activeProfile: state.activeProfile,
+      isWatchingFiles: state.isWatchingFiles, // <-- Lấy state mới
+      rootPath: state.rootPath, // <-- Cần để biết có nên cho bật switch không
+    }))
+  );
+  const { setSyncSettings, setCustomIgnorePatterns, setFileWatching } =
+    useAppActions(); // <-- Lấy action mới
 
   // State cục bộ cho textarea và trạng thái loading
   const [ignoreText, setIgnoreText] = useState("");
@@ -1161,6 +1184,25 @@ export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
             <div className="flex items-center justify-between rounded-lg border p-4">
               <Label htmlFor="theme-toggle">Giao diện (Sáng/Tối)</Label>
               <ThemeToggle />
+            </div>
+
+            {/* --- THÊM KHỐI CÀI ĐẶT MỚI --- */}
+            <div className="space-y-4 rounded-lg border p-4">
+              <h3 className="font-semibold">Theo dõi dự án</h3>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="watching-toggle" className="flex flex-col">
+                  <span>Theo dõi thời gian thực</span>
+                  <span className="text-xs text-muted-foreground">
+                    Tự động quét lại khi có thay đổi file.
+                  </span>
+                </Label>
+                <Switch
+                  id="watching-toggle"
+                  checked={isWatchingFiles}
+                  onCheckedChange={setFileWatching}
+                  disabled={!rootPath} // Vô hiệu hóa nếu chưa mở dự án
+                />
+              </div>
             </div>
 
             <div className="space-y-4 rounded-lg border p-4">
@@ -3673,6 +3715,7 @@ interface AppState {
   // --- STATE MỚI CHO HỒ SƠ ---
   profiles: string[];
   activeProfile: string;
+  isWatchingFiles: boolean; // <-- THÊM STATE MỚI
 
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
@@ -3716,6 +3759,7 @@ interface AppState {
     createProfile: (profileName: string) => Promise<void>;
     renameProfile: (oldName: string, newName: string) => Promise<void>;
     deleteProfile: (profileName: string) => Promise<void>;
+    setFileWatching: (enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
   };
 }
 
@@ -3774,9 +3818,16 @@ export const useAppStore = create<AppState>((set, get) => {
     // --- GIÁ TRỊ MẶC ĐỊNH CHO STATE HỒ SƠ ---
     profiles: ["default"],
     activeProfile: "default",
+    isWatchingFiles: false, // <-- GIÁ TRỊ MẶC ĐỊNH
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
+        // Dừng watcher cũ trước khi chuyển dự án
+        const { isWatchingFiles } = get();
+        if (isWatchingFiles) {
+          await invoke("stop_file_watching");
+        }
+
         set({
           rootPath: path,
           selectedPath: path,
@@ -3792,6 +3843,11 @@ export const useAppStore = create<AppState>((set, get) => {
           set({ profiles });
           // Tải hồ sơ 'default' sau khi chọn một thư mục mới
           loadProfileData(path, "default");
+
+          // Bắt đầu watcher mới nếu cần
+          if (isWatchingFiles) {
+            await invoke("start_file_watching", { path });
+          }
         } catch (error) {
           console.error("Lỗi khi lấy danh sách hồ sơ:", error);
           set({
@@ -4175,6 +4231,30 @@ export const useAppStore = create<AppState>((set, get) => {
         } catch (error) {
           console.error("Lỗi khi xóa hồ sơ:", error);
           toast.error(`Không thể xóa hồ sơ: ${error}`);
+        }
+      },
+      // --- ACTION MỚI ĐỂ BẬT/TẮT THEO DÕI FILE ---
+      setFileWatching: async (enabled: boolean) => {
+        const { rootPath } = get();
+        if (!rootPath) return;
+
+        set({ isWatchingFiles: enabled });
+
+        try {
+          if (enabled) {
+            await invoke("start_file_watching", { path: rootPath });
+            toast.success("Đã bật theo dõi thay đổi thời gian thực.");
+          } else {
+            await invoke("stop_file_watching");
+            toast.info("Đã tắt theo dõi thay đổi thời gian thực.");
+          }
+        } catch (error) {
+          console.error("Lỗi khi thay đổi trạng thái theo dõi file:", error);
+          toast.error(
+            `Không thể ${enabled ? "bật" : "tắt"} theo dõi: ${error}`
+          );
+          // Revert state nếu có lỗi
+          set({ isWatchingFiles: !enabled });
         }
       },
     },

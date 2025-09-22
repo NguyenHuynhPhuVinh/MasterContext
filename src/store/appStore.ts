@@ -77,6 +77,7 @@ interface AppState {
   // --- STATE MỚI CHO HỒ SƠ ---
   profiles: string[];
   activeProfile: string;
+  isWatchingFiles: boolean; // <-- THÊM STATE MỚI
 
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
@@ -120,6 +121,7 @@ interface AppState {
     createProfile: (profileName: string) => Promise<void>;
     renameProfile: (oldName: string, newName: string) => Promise<void>;
     deleteProfile: (profileName: string) => Promise<void>;
+    setFileWatching: (enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
   };
 }
 
@@ -178,9 +180,16 @@ export const useAppStore = create<AppState>((set, get) => {
     // --- GIÁ TRỊ MẶC ĐỊNH CHO STATE HỒ SƠ ---
     profiles: ["default"],
     activeProfile: "default",
+    isWatchingFiles: false, // <-- GIÁ TRỊ MẶC ĐỊNH
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
+        // Dừng watcher cũ trước khi chuyển dự án
+        const { isWatchingFiles } = get();
+        if (isWatchingFiles) {
+          await invoke("stop_file_watching");
+        }
+
         set({
           rootPath: path,
           selectedPath: path,
@@ -196,6 +205,11 @@ export const useAppStore = create<AppState>((set, get) => {
           set({ profiles });
           // Tải hồ sơ 'default' sau khi chọn một thư mục mới
           loadProfileData(path, "default");
+
+          // Bắt đầu watcher mới nếu cần
+          if (isWatchingFiles) {
+            await invoke("start_file_watching", { path });
+          }
         } catch (error) {
           console.error("Lỗi khi lấy danh sách hồ sơ:", error);
           set({
@@ -579,6 +593,30 @@ export const useAppStore = create<AppState>((set, get) => {
         } catch (error) {
           console.error("Lỗi khi xóa hồ sơ:", error);
           toast.error(`Không thể xóa hồ sơ: ${error}`);
+        }
+      },
+      // --- ACTION MỚI ĐỂ BẬT/TẮT THEO DÕI FILE ---
+      setFileWatching: async (enabled: boolean) => {
+        const { rootPath } = get();
+        if (!rootPath) return;
+
+        set({ isWatchingFiles: enabled });
+
+        try {
+          if (enabled) {
+            await invoke("start_file_watching", { path: rootPath });
+            toast.success("Đã bật theo dõi thay đổi thời gian thực.");
+          } else {
+            await invoke("stop_file_watching");
+            toast.info("Đã tắt theo dõi thay đổi thời gian thực.");
+          }
+        } catch (error) {
+          console.error("Lỗi khi thay đổi trạng thái theo dõi file:", error);
+          toast.error(
+            `Không thể ${enabled ? "bật" : "tắt"} theo dõi: ${error}`
+          );
+          // Revert state nếu có lỗi
+          set({ isWatchingFiles: !enabled });
         }
       },
     },
