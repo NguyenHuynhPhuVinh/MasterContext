@@ -29,6 +29,7 @@ import {
   Folder, // <-- Thêm icon
   HardDrive, // <-- Thêm icon
   Loader2, // Thêm Loader2
+  Link, // <-- THÊM ICON LINK
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -56,7 +57,7 @@ interface GroupManagerProps {
 export function GroupManager({ onEditGroup }: GroupManagerProps) {
   const groups = useAppStore((state) => state.groups);
   const rootPath = useAppStore((state) => state.rootPath);
-  const { deleteGroup, editGroupContent } = useAppActions();
+  const { deleteGroup, editGroupContent, setGroupCrossSync } = useAppActions(); // <-- Lấy action mới
 
   // === CÁC STATE ĐƯỢC CẤU TRÚC LẠI ===
 
@@ -277,6 +278,31 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                       Ước tính: {group.stats.token_count.toLocaleString()}{" "}
                       tokens
                     </span>
+                  </div>
+                </div>
+
+                {/* --- PHẦN UI MỚI CHO SWITCH --- */}
+                <div className="border-t mt-4 pt-4">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor={`cross-sync-${group.id}`}
+                      className="flex flex-col cursor-pointer"
+                    >
+                      <span>
+                        <Link className="inline-block h-4 w-4 mr-2" />
+                        Đồng bộ chéo
+                      </span>
+                      <span className="text-xs text-muted-foreground font-normal">
+                        Tự động thêm file liên quan khi quét lại.
+                      </span>
+                    </Label>
+                    <Switch
+                      id={`cross-sync-${group.id}`}
+                      checked={group.crossSyncEnabled ?? false}
+                      onCheckedChange={(enabled) =>
+                        setGroupCrossSync(group.id, enabled)
+                      }
+                    />
                   </div>
                 </div>
                 {/* --- KẾT THÚC PHẦN UI MỚI --- */}

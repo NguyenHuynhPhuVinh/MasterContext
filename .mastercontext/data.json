@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 66,
     "total_dirs": 14,
-    "total_size": 403790,
-    "total_tokens": 39534
+    "total_size": 409677,
+    "total_tokens": 40938
   },
   "file_tree": {
     "name": "MasterContext",
@@ -428,14 +428,15 @@
       "name": "TESt",
       "description": "TEST",
       "paths": [
-        "src-tauri"
+        "src"
       ],
       "stats": {
-        "total_files": 27,
-        "total_dirs": 4,
-        "total_size": 284930,
-        "token_count": 9551
-      }
+        "total_files": 31,
+        "total_dirs": 7,
+        "total_size": 115647,
+        "token_count": 28875
+      },
+      "cross_sync_enabled": true
     }
   ],
   "file_metadata_cache": {
@@ -470,9 +471,9 @@
       "links": []
     },
     "src-tauri/Cargo.toml": {
-      "size": 923,
-      "mtime": 1758530988,
-      "token_count": 275,
+      "size": 890,
+      "mtime": 1758532608,
+      "token_count": 274,
       "links": []
     },
     "src-tauri/build.rs": {
@@ -584,9 +585,9 @@
       "links": []
     },
     "src-tauri/src/commands.rs": {
-      "size": 10218,
-      "mtime": 1758531494,
-      "token_count": 2435,
+      "size": 10710,
+      "mtime": 1758532615,
+      "token_count": 2557,
       "links": []
     },
     "src-tauri/src/context_generator.rs": {
@@ -602,9 +603,9 @@
       "links": []
     },
     "src-tauri/src/lib.rs": {
-      "size": 869,
-      "mtime": 1758531269,
-      "token_count": 190,
+      "size": 914,
+      "mtime": 1758532615,
+      "token_count": 198,
       "links": []
     },
     "src-tauri/src/main.rs": {
@@ -614,15 +615,15 @@
       "links": []
     },
     "src-tauri/src/models.rs": {
-      "size": 2003,
-      "mtime": 1758530988,
-      "token_count": 512,
+      "size": 2046,
+      "mtime": 1758532615,
+      "token_count": 522,
       "links": []
     },
     "src-tauri/src/project_scanner.rs": {
-      "size": 15748,
-      "mtime": 1758531269,
-      "token_count": 3762,
+      "size": 18602,
+      "mtime": 1758532615,
+      "token_count": 4465,
       "links": []
     },
     "src-tauri/tauri.conf.json": {
@@ -661,19 +662,19 @@
       ]
     },
     "src/components/GroupManager.tsx": {
-      "size": 14503,
-      "mtime": 1758530486,
-      "token_count": 3344,
+      "size": 15700,
+      "mtime": 1758532615,
+      "token_count": 3564,
       "links": [
-        "src/components/ui/alert-dialog.tsx",
+        "src/components/ui/card.tsx",
         "src/store/types.ts",
-        "src/store/appStore.ts",
-        "src/components/ui/label.tsx",
-        "src/components/ui/switch.tsx",
-        "src/components/ui/button.tsx",
-        "src/components/ui/dropdown-menu.tsx",
         "src/lib/utils.ts",
-        "src/components/ui/card.tsx"
+        "src/components/ui/dropdown-menu.tsx",
+        "src/components/ui/button.tsx",
+        "src/components/ui/label.tsx",
+        "src/components/ui/alert-dialog.tsx",
+        "src/store/appStore.ts",
+        "src/components/ui/switch.tsx"
       ]
     },
     "src/components/ProjectStats.tsx": {
@@ -897,18 +898,18 @@
       ]
     },
     "src/store/appStore.ts": {
-      "size": 16468,
-      "mtime": 1758530988,
-      "token_count": 4409,
+      "size": 17726,
+      "mtime": 1758532615,
+      "token_count": 4744,
       "links": [
         "src/store/types.ts",
         "src/lib/treeUtils.ts"
       ]
     },
     "src/store/types.ts": {
-      "size": 975,
-      "mtime": 1758530988,
-      "token_count": 228,
+      "size": 1006,
+      "mtime": 1758532615,
+      "token_count": 235,
       "links": []
     },
     "src/vite-env.d.ts": {
@@ -938,5 +939,5 @@
   },
   "sync_enabled": true,
   "sync_path": "C:\\Users\\tomis\\Documents\\MasterContext\\.mastercontext",
-  "data_hash": "bf14de60bd8e596d8ab274edbe562098a5c81550b7c932f263bb612fba6d3f6a"
+  "data_hash": "e0c60b858eab092fa4fc45b790805112435a1650042f2b73fd11c177abe8281b"
 }

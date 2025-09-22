@@ -175,6 +175,19 @@ pub fn update_sync_settings(path: String, enabled: bool, sync_path: Option<Strin
     file_cache::save_project_data(&path, &project_data)
 }
 
+#[command]
+pub fn set_group_cross_sync(path: String, group_id: String, enabled: bool) -> Result<(), String> {
+    let mut project_data = file_cache::load_project_data(&path)?;
+    
+    if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
+        group.cross_sync_enabled = Some(enabled);
+    } else {
+        return Err(format!("Không tìm thấy nhóm với ID: {}", group_id));
+    }
+    
+    file_cache::save_project_data(&path, &project_data)
+}
+
 // --- HÀM HELPER: Lưu context, được sử dụng bởi auto_export ---
 fn save_context_to_path_internal(path: String, content: String) -> Result<(), String> {
     let file_path = Path::new(&path);

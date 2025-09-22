@@ -463,6 +463,19 @@ pub fn update_sync_settings(path: String, enabled: bool, sync_path: Option<Strin
     file_cache::save_project_data(&path, &project_data)
 }
 
+#[command]
+pub fn set_group_cross_sync(path: String, group_id: String, enabled: bool) -> Result<(), String> {
+    let mut project_data = file_cache::load_project_data(&path)?;
+    
+    if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
+        group.cross_sync_enabled = Some(enabled);
+    } else {
+        return Err(format!("Không tìm thấy nhóm với ID: {}", group_id));
+    }
+    
+    file_cache::save_project_data(&path, &project_data)
+}
+
 // --- HÀM HELPER: Lưu context, được sử dụng bởi auto_export ---
 fn save_context_to_path_internal(path: String, content: String) -> Result<(), String> {
     let file_path = Path::new(&path);
@@ -706,7 +719,8 @@ pub fn run() {
             commands::start_group_export,
             commands::start_project_export,
             commands::calculate_group_stats_from_cache,
-            commands::update_sync_settings
+            commands::update_sync_settings,
+            commands::set_group_cross_sync
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -775,6 +789,7 @@ pub struct Group {
     pub description: String,
     pub paths: Vec<String>,
     pub stats: GroupStats,
+    pub cross_sync_enabled: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -808,6 +823,7 @@ FILE: src-tauri/src/project_scanner.rs
 // src-tauri/src/project_scanner.rs
 use crate::models::{CachedProjectData, FileMetadata, FileNode, GroupStats, ProjectStats, TsConfig};
 use crate::file_cache;
+use crate::context_generator; // <-- THÊM USE STATEMENT NÀY
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -1131,7 +1147,57 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
 
     let mut updated_groups = old_data.groups;
     for group in &mut updated_groups {
-        group.paths.retain(|path| new_metadata_cache.contains_key(path) || path_map.values().any(|is_dir| *is_dir));
+        // 1. Giữ lại logic cũ: Xóa các file/thư mục không còn tồn tại
+        group.paths.retain(|p| new_metadata_cache.contains_key(p) || path_map.get(&root_path.join(p)).map_or(false, |is_dir| *is_dir));
+        
+        // --- LOGIC MỚI: TỰ ĐỘNG ĐỒNG BỘ CHÉO ---
+        // Kiểm tra xem tính năng có được bật cho nhóm này không (mặc định là false nếu không có)
+        if group.cross_sync_enabled.unwrap_or(false) {
+            // a. Mở rộng các đường dẫn tối thiểu thành một danh sách file đầy đủ
+            let current_files = context_generator::expand_group_paths_to_files(
+                &group.paths,
+                &new_metadata_cache,
+                root_path,
+            );
+
+            // b. Sử dụng đồ thị phụ thuộc để tìm tất cả các file liên quan
+            let mut all_related_files = HashSet::new();
+            let mut queue: Vec<String> = current_files.into_iter().collect();
+
+            while let Some(file_path) = queue.pop() {
+                if all_related_files.contains(&file_path) {
+                    continue;
+                }
+                all_related_files.insert(file_path.clone());
+
+                if let Some(metadata) = new_metadata_cache.get(&file_path) {
+                    for linked_file in &metadata.links {
+                        if !all_related_files.contains(linked_file) {
+                            queue.push(linked_file.clone());
+                        }
+                    }
+                }
+            }
+            
+            // c. Tối ưu hóa lại danh sách file đã mở rộng này thành một danh sách `paths` mới.
+            //    Đây là một bước phức tạp, chúng ta cần một hàm `prune_paths` ở Rust.
+            //    Để đơn giản hóa, ta có thể chỉ thêm các file mới tìm thấy.
+            //    Cách tốt hơn là tính toán lại toàn bộ.
+            //    Ở đây, ta sẽ giả định một cách tiếp cận đơn giản: chỉ thêm các file đơn lẻ mới.
+            //    Lưu ý: Cách tiếp cận này có thể không "tối ưu" danh sách paths.
+            let mut new_paths_set: HashSet<String> = group.paths.iter().cloned().collect();
+            for file in all_related_files {
+                 // Chỉ thêm nếu nó chưa được bao hàm bởi một thư mục cha đã có
+                let is_covered = new_paths_set.iter().any(|p| file.starts_with(&format!("{}/", p)));
+                if !is_covered {
+                    new_paths_set.insert(file);
+                }
+            }
+            group.paths = new_paths_set.into_iter().collect();
+        }
+        // --- KẾT THÚC LOGIC MỚI ---
+        
+        // 2. Luôn tính toán lại stats sau khi đã cập nhật `paths`
         group.stats = recalculate_stats_for_paths(&group.paths, &new_metadata_cache, root_path);
     }
 
@@ -1640,6 +1706,7 @@ import {
   Folder, // <-- Thêm icon
   HardDrive, // <-- Thêm icon
   Loader2, // Thêm Loader2
+  Link, // <-- THÊM ICON LINK
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1667,7 +1734,7 @@ interface GroupManagerProps {
 export function GroupManager({ onEditGroup }: GroupManagerProps) {
   const groups = useAppStore((state) => state.groups);
   const rootPath = useAppStore((state) => state.rootPath);
-  const { deleteGroup, editGroupContent } = useAppActions();
+  const { deleteGroup, editGroupContent, setGroupCrossSync } = useAppActions(); // <-- Lấy action mới
 
   // === CÁC STATE ĐƯỢC CẤU TRÚC LẠI ===
 
@@ -1888,6 +1955,31 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                       Ước tính: {group.stats.token_count.toLocaleString()}{" "}
                       tokens
                     </span>
+                  </div>
+                </div>
+
+                {/* --- PHẦN UI MỚI CHO SWITCH --- */}
+                <div className="border-t mt-4 pt-4">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor={`cross-sync-${group.id}`}
+                      className="flex flex-col cursor-pointer"
+                    >
+                      <span>
+                        <Link className="inline-block h-4 w-4 mr-2" />
+                        Đồng bộ chéo
+                      </span>
+                      <span className="text-xs text-muted-foreground font-normal">
+                        Tự động thêm file liên quan khi quét lại.
+                      </span>
+                    </Label>
+                    <Switch
+                      id={`cross-sync-${group.id}`}
+                      checked={group.crossSyncEnabled ?? false}
+                      onCheckedChange={(enabled) =>
+                        setGroupCrossSync(group.id, enabled)
+                      }
+                    />
                   </div>
                 </div>
                 {/* --- KẾT THÚC PHẦN UI MỚI --- */}
@@ -4360,6 +4452,7 @@ interface AppState {
       enabled: boolean;
       path: string | null;
     }) => Promise<void>;
+    setGroupCrossSync: (groupId: string, enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
   };
 }
 
@@ -4467,6 +4560,7 @@ export const useAppStore = create<AppState>((set, get) => {
           id: Date.now().toString(),
           paths: [],
           stats: defaultGroupStats(), // <-- Dùng stats mặc định
+          crossSyncEnabled: false, // <-- GÁN GIÁ TRỊ MẶC ĐỊNH
         };
         set((state) => ({ groups: [...state.groups, groupWithDefaults] }));
         updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
@@ -4523,6 +4617,7 @@ export const useAppStore = create<AppState>((set, get) => {
             ...g,
             paths: g.paths || [],
             stats: g.stats || defaultGroupStats(),
+            crossSyncEnabled: (g as any).cross_sync_enabled ?? false, // <-- XỬ LÝ DỮ LIỆU MỚI
           })),
           isScanning: false,
           // Cập nhật cài đặt đồng bộ từ file đã tải
@@ -4684,6 +4779,36 @@ export const useAppStore = create<AppState>((set, get) => {
           alert("Không thể lưu cài đặt đồng bộ.");
         }
       },
+
+      // --- ACTION MỚI ĐỂ BẬT/TẮT SWITCH ---
+      setGroupCrossSync: async (groupId, enabled) => {
+        const rootPath = get().rootPath;
+        if (!rootPath) return;
+
+        // Cập nhật UI ngay lập tức
+        set((state) => ({
+          groups: state.groups.map((g) =>
+            g.id === groupId ? { ...g, crossSyncEnabled: enabled } : g
+          ),
+        }));
+
+        // Gọi backend để lưu lại
+        try {
+          await invoke("set_group_cross_sync", {
+            path: rootPath,
+            groupId,
+            enabled,
+          });
+        } catch (error) {
+          console.error("Lỗi khi cập nhật cài đặt đồng bộ chéo:", error);
+          // Optional: revert state nếu có lỗi
+          set((state) => ({
+            groups: state.groups.map((g) =>
+              g.id === groupId ? { ...g, crossSyncEnabled: !enabled } : g
+            ),
+          }));
+        }
+      },
     },
   };
 });
@@ -4743,6 +4868,7 @@ export interface Group {
   description: string;
   paths: string[];
   stats: GroupStats;
+  crossSyncEnabled?: boolean;
 }
 
 

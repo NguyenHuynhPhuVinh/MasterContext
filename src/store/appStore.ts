@@ -108,6 +108,7 @@ interface AppState {
       enabled: boolean;
       path: string | null;
     }) => Promise<void>;
+    setGroupCrossSync: (groupId: string, enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
   };
 }
 
@@ -215,6 +216,7 @@ export const useAppStore = create<AppState>((set, get) => {
           id: Date.now().toString(),
           paths: [],
           stats: defaultGroupStats(), // <-- Dùng stats mặc định
+          crossSyncEnabled: false, // <-- GÁN GIÁ TRỊ MẶC ĐỊNH
         };
         set((state) => ({ groups: [...state.groups, groupWithDefaults] }));
         updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
@@ -271,6 +273,7 @@ export const useAppStore = create<AppState>((set, get) => {
             ...g,
             paths: g.paths || [],
             stats: g.stats || defaultGroupStats(),
+            crossSyncEnabled: (g as any).cross_sync_enabled ?? false, // <-- XỬ LÝ DỮ LIỆU MỚI
           })),
           isScanning: false,
           // Cập nhật cài đặt đồng bộ từ file đã tải
@@ -430,6 +433,36 @@ export const useAppStore = create<AppState>((set, get) => {
         } catch (error) {
           console.error("Lỗi khi lưu cài đặt đồng bộ:", error);
           alert("Không thể lưu cài đặt đồng bộ.");
+        }
+      },
+
+      // --- ACTION MỚI ĐỂ BẬT/TẮT SWITCH ---
+      setGroupCrossSync: async (groupId, enabled) => {
+        const rootPath = get().rootPath;
+        if (!rootPath) return;
+
+        // Cập nhật UI ngay lập tức
+        set((state) => ({
+          groups: state.groups.map((g) =>
+            g.id === groupId ? { ...g, crossSyncEnabled: enabled } : g
+          ),
+        }));
+
+        // Gọi backend để lưu lại
+        try {
+          await invoke("set_group_cross_sync", {
+            path: rootPath,
+            groupId,
+            enabled,
+          });
+        } catch (error) {
+          console.error("Lỗi khi cập nhật cài đặt đồng bộ chéo:", error);
+          // Optional: revert state nếu có lỗi
+          set((state) => ({
+            groups: state.groups.map((g) =>
+              g.id === groupId ? { ...g, crossSyncEnabled: !enabled } : g
+            ),
+          }));
         }
       },
     },

@@ -47,6 +47,7 @@ pub struct Group {
     pub description: String,
     pub paths: Vec<String>,
     pub stats: GroupStats,
+    pub cross_sync_enabled: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

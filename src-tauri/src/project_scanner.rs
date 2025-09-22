@@ -1,6 +1,7 @@
 // src-tauri/src/project_scanner.rs
 use crate::models::{CachedProjectData, FileMetadata, FileNode, GroupStats, ProjectStats, TsConfig};
 use crate::file_cache;
+use crate::context_generator; // <-- THÊM USE STATEMENT NÀY
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -324,7 +325,57 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
 
     let mut updated_groups = old_data.groups;
     for group in &mut updated_groups {
-        group.paths.retain(|path| new_metadata_cache.contains_key(path) || path_map.values().any(|is_dir| *is_dir));
+        // 1. Giữ lại logic cũ: Xóa các file/thư mục không còn tồn tại
+        group.paths.retain(|p| new_metadata_cache.contains_key(p) || path_map.get(&root_path.join(p)).map_or(false, |is_dir| *is_dir));
+        
+        // --- LOGIC MỚI: TỰ ĐỘNG ĐỒNG BỘ CHÉO ---
+        // Kiểm tra xem tính năng có được bật cho nhóm này không (mặc định là false nếu không có)
+        if group.cross_sync_enabled.unwrap_or(false) {
+            // a. Mở rộng các đường dẫn tối thiểu thành một danh sách file đầy đủ
+            let current_files = context_generator::expand_group_paths_to_files(
+                &group.paths,
+                &new_metadata_cache,
+                root_path,
+            );
+
+            // b. Sử dụng đồ thị phụ thuộc để tìm tất cả các file liên quan
+            let mut all_related_files = HashSet::new();
+            let mut queue: Vec<String> = current_files.into_iter().collect();
+
+            while let Some(file_path) = queue.pop() {
+                if all_related_files.contains(&file_path) {
+                    continue;
+                }
+                all_related_files.insert(file_path.clone());
+
+                if let Some(metadata) = new_metadata_cache.get(&file_path) {
+                    for linked_file in &metadata.links {
+                        if !all_related_files.contains(linked_file) {
+                            queue.push(linked_file.clone());
+                        }
+                    }
+                }
+            }
+            
+            // c. Tối ưu hóa lại danh sách file đã mở rộng này thành một danh sách `paths` mới.
+            //    Đây là một bước phức tạp, chúng ta cần một hàm `prune_paths` ở Rust.
+            //    Để đơn giản hóa, ta có thể chỉ thêm các file mới tìm thấy.
+            //    Cách tốt hơn là tính toán lại toàn bộ.
+            //    Ở đây, ta sẽ giả định một cách tiếp cận đơn giản: chỉ thêm các file đơn lẻ mới.
+            //    Lưu ý: Cách tiếp cận này có thể không "tối ưu" danh sách paths.
+            let mut new_paths_set: HashSet<String> = group.paths.iter().cloned().collect();
+            for file in all_related_files {
+                 // Chỉ thêm nếu nó chưa được bao hàm bởi một thư mục cha đã có
+                let is_covered = new_paths_set.iter().any(|p| file.starts_with(&format!("{}/", p)));
+                if !is_covered {
+                    new_paths_set.insert(file);
+                }
+            }
+            group.paths = new_paths_set.into_iter().collect();
+        }
+        // --- KẾT THÚC LOGIC MỚI ---
+        
+        // 2. Luôn tính toán lại stats sau khi đã cập nhật `paths`
         group.stats = recalculate_stats_for_paths(&group.paths, &new_metadata_cache, root_path);
     }
 

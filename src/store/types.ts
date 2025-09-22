@@ -47,4 +47,5 @@ export interface Group {
   description: string;
   paths: string[];
   stats: GroupStats;
+  crossSyncEnabled?: boolean;
 }

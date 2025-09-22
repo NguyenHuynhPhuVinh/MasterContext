@@ -82,978 +82,3618 @@ Directory structure:
 
 
 ================================================
-FILE: src-tauri/Cargo.toml
+FILE: src/App.css
 ================================================
-[package]
-name = "master-context"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-edition = "2021"
+@import "tailwindcss";
+@import "tw-animate-css";
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+@custom-variant dark (&:is(.dark *));
 
-[lib]
-# The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "master_context_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
-
-[build-dependencies]
-tauri-build = { version = "2", features = [] }
-
-[dependencies]
-tauri = { version = "2", features = [] }
-tauri-plugin-opener = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-tauri-plugin-dialog = "2"
-ignore = "0.4"
-tauri-plugin-fs = "2"
-tiktoken-rs = "0.7.0"
-regex = "1"
-lazy_static = "1.5.0"
-path-clean = "1.0"
-sha2 = "0.10"
-
-
-
-================================================
-FILE: src-tauri/build.rs
-================================================
-fn main() {
-    tauri_build::build()
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-
-================================================
-FILE: src-tauri/capabilities/default.json
-================================================
-{
-  "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
-  "permissions": [
-    "core:default",
-    "opener:default",
-    "dialog:default",
-    "fs:write-all"
-  ]
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
-
-================================================
-FILE: src-tauri/src/commands.rs
-================================================
-// src-tauri/src/commands.rs
-use crate::{models, file_cache, project_scanner, context_generator};
-use std::fs;
-use tauri::{command, Window, Emitter}; // Bỏ AppHandle khỏi use list vì không cần nữa
-use std::path::{Path, PathBuf};
-
-#[command]
-pub fn open_project(window: Window, path: String) {
-    std::thread::spawn(move || {
-        // --- LOGIC MỚI, KHÔNG CÒN VÒNG LẶP ---
-
-        // 1. Tải dữ liệu cũ để so sánh hash sau này
-        let old_data_result = file_cache::load_project_data(&path);
-        let old_hash = old_data_result.as_ref().ok().and_then(|d| d.data_hash.clone());
-
-        // 2. Thực hiện quét (hàm này giờ chỉ trả về dữ liệu, không ghi file)
-        match project_scanner::perform_smart_scan_and_rebuild(&path) {
-            Ok(new_data) => {
-                // 3. Lưu dữ liệu mới vào cache
-                if let Err(e) = file_cache::save_project_data(&path, &new_data) {
-                    let _ = window.emit("scan_error", e);
-                    return;
-                }
-
-                // 4. Gửi dữ liệu mới về cho frontend
-                let _ = window.emit("scan_complete", &new_data);
-
-                // 5. Kiểm tra và thực hiện đồng bộ TỰ ĐỘNG ngay tại đây
-                let sync_enabled = new_data.sync_enabled.unwrap_or(false);
-                let has_changed = old_hash != new_data.data_hash;
-
-                if sync_enabled && has_changed && new_data.sync_path.is_some() {
-                    let _ = window.emit("auto_sync_started", "Phát hiện thay đổi, bắt đầu đồng bộ...");
-                    perform_auto_export(&path, &new_data);
-                    let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
-                }
-            }
-            Err(e) => {
-                let _ = window.emit("scan_error", e);
-            }
-        }
-    });
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
-#[command]
-// Bỏ _app_handle không cần thiết
-pub fn update_groups_in_project_data(path: String, groups: Vec<models::Group>) -> Result<(), String> {
-    let mut project_data = file_cache::load_project_data(&path)?;
-    project_data.groups = groups;
-    file_cache::save_project_data(&path, &project_data)
-}
-
-#[command]
-// Bỏ _app_handle không cần thiết
-pub fn calculate_group_stats_from_cache(root_path_str: String, paths: Vec<String>) -> Result<models::GroupStats, String> {
-    let project_data = file_cache::load_project_data(&root_path_str)?;
-    let root_path = Path::new(&root_path_str);
-    Ok(project_scanner::recalculate_stats_for_paths(&paths, &project_data.file_metadata_cache, root_path))
-}
-
-#[command]
-// Bỏ app_handle không cần thiết
-pub fn start_group_update(window: Window, group_id: String, root_path_str: String, paths: Vec<String>) {
-    std::thread::spawn(move || {
-        // Gọi hàm không cần app_handle
-        let result = calculate_group_stats_from_cache(root_path_str.clone(), paths.clone());
-        match result {
-            Ok(new_stats) => {
-                if let Ok(mut project_data) = file_cache::load_project_data(&root_path_str) {
-                    if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
-                        group.paths = paths.clone();
-                        group.stats = new_stats;
-
-                        // --- LOGIC MỚI: KIỂM TRA VÀ KÍCH HOẠT ĐỒNG BỘ SAU KHI CẬP NHẬT NHÓM ---
-                        let sync_enabled = project_data.sync_enabled.unwrap_or(false);
-                        if sync_enabled && project_data.sync_path.is_some() {
-                            let _ = window.emit("auto_sync_started", "Phát hiện thay đổi nhóm, bắt đầu đồng bộ...");
-                            perform_auto_export(&root_path_str, &project_data);
-                            let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
-                        }
-                        // --- KẾT THÚC LOGIC MỚI ---
-
-                    }
-                    let _ = file_cache::save_project_data(&root_path_str, &project_data);
-                }
-                let _ = window.emit("group_update_complete", serde_json::json!({
-                    "groupId": group_id,
-                    "paths": paths,
-                    "stats": new_stats
-                }));
-            }
-            Err(e) => {
-                let _ = window.emit("group_update_error", e);
-            }
-        }
-    });
-}
-
-#[command]
-// Chữ ký đã đúng, giữ nguyên
-pub fn start_group_export(window: Window, group_id: String, root_path_str: String, use_full_tree: bool) { // <-- THÊM use_full_tree
-    println!("[RUST] EXPORT: Nhận yêu cầu cho nhóm ID: {}, use_full_tree: {}", group_id, use_full_tree);
-    std::thread::spawn(move || {
-        let result: Result<String, String> = (|| {
-            let project_data = file_cache::load_project_data(&root_path_str)?;
-            let root_path = Path::new(&root_path_str);
-            let group = project_data.groups.iter()
-                .find(|g| g.id == group_id)
-                .ok_or_else(|| format!("Không tìm thấy nhóm với ID: {}", group_id))?;
-            
-            println!("[RUST] EXPORT: Đã tìm thấy nhóm '{}'. Paths được lưu: {:?}", group.name, group.paths);
-            let expanded_files = context_generator::expand_group_paths_to_files(&group.paths, &project_data.file_metadata_cache, root_path);
-            
-            println!("[RUST] EXPORT: Sau khi mở rộng, có {} files: {:?}", expanded_files.len(), expanded_files);
-            if expanded_files.is_empty() {
-                return Err("Nhóm này không chứa file nào để xuất.".to_string());
-            }
-            context_generator::generate_context_from_files(
-                &root_path_str, 
-                &expanded_files,
-                use_full_tree, // <-- Truyền tham số
-                &project_data.file_tree, // <-- Truyền cả cây thư mục đầy đủ
-            )
-        })();
-        match result {
-            Ok(context) => {
-                println!("[RUST] EXPORT: Thành công! Đang gửi sự kiện group_export_complete.");
-                let _ = window.emit("group_export_complete", serde_json::json!({ "groupId": group_id, "context": context }));
-            }
-            Err(e) => {
-                println!("[RUST] EXPORT: Lỗi! Đang gửi sự kiện group_export_error: {}", e);
-                let _ = window.emit("group_export_error", e);
-            }
-        }
-    });
-}
-
-#[command]
-// Bỏ app_handle không cần thiết
-pub fn start_project_export(window: Window, path: String) {
-    std::thread::spawn(move || {
-        let result: Result<String, String> = (|| {
-            let project_data = file_cache::load_project_data(&path)?;
-            let all_files: Vec<String> = project_data.file_metadata_cache.keys().cloned().collect();
-            if all_files.is_empty() {
-                return Err("Dự án không có file nào để xuất.".to_string());
-            }
-            // --- SỬA LỖI Ở ĐÂY ---
-            // Cung cấp 2 tham số còn thiếu
-            context_generator::generate_context_from_files(
-                &path, 
-                &all_files,
-                true, // Luôn dùng cây thư mục đầy đủ khi xuất toàn bộ dự án
-                &project_data.file_tree // Cung cấp cây thư mục đầy đủ
-            )
-            // --- KẾT THÚC SỬA LỖI ---
-        })();
-        match result {
-            Ok(context) => {
-                let _ = window.emit("project_export_complete", context);
-            }
-            Err(e) => {
-                let _ = window.emit("project_export_error", e);
-            }
-        }
-    });
-}
-
-// --- COMMAND MỚI: Cập nhật cài đặt đồng bộ ---
-#[command]
-pub fn update_sync_settings(path: String, enabled: bool, sync_path: Option<String>) -> Result<(), String> {
-    let mut project_data = file_cache::load_project_data(&path)?;
-    project_data.sync_enabled = Some(enabled);
-    project_data.sync_path = sync_path;
-    file_cache::save_project_data(&path, &project_data)
-}
-
-// --- HÀM HELPER: Lưu context, được sử dụng bởi auto_export ---
-fn save_context_to_path_internal(path: String, content: String) -> Result<(), String> {
-    let file_path = Path::new(&path);
-    if let Some(parent) = file_path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Không thể tạo thư mục cha: {}", e))?;
-    }
-    fs::write(file_path, content)
-        .map_err(|e| format!("Không thể ghi vào file: {}", e))
-}
-
-// --- HÀM HELPER MỚI: Logic xuất tự động ---
-fn perform_auto_export(project_path: &str, data: &models::CachedProjectData) {
-    let sync_path_base = PathBuf::from(data.sync_path.as_ref().unwrap());
-    
-    // 1. Xuất toàn bộ dự án
-    let all_files: Vec<String> = data.file_metadata_cache.keys().cloned().collect();
-    if let Ok(proj_context) = context_generator::generate_context_from_files(project_path, &all_files, true, &data.file_tree) {
-        let file_name = sync_path_base.join("_PROJECT_CONTEXT.txt");
-        let _ = save_context_to_path_internal(file_name.to_string_lossy().to_string(), proj_context);
-    }
-
-    // 2. Xuất từng nhóm
-    for group in &data.groups {
-        let expanded_files = context_generator::expand_group_paths_to_files(&group.paths, &data.file_metadata_cache, Path::new(project_path));
-        if !expanded_files.is_empty() {
-            if let Ok(group_context) = context_generator::generate_context_from_files(project_path, &expanded_files, true, &data.file_tree) {
-                let safe_name = group.name.replace(|c: char| !c.is_alphanumeric(), "_");
-                let file_name = sync_path_base.join(format!("{}_context.txt", safe_name));
-                let _ = save_context_to_path_internal(file_name.to_string_lossy().to_string(), group_context);
-            }
-        }
-    }
-}
-
-================================================
-FILE: src-tauri/src/context_generator.rs
-================================================
-// src-tauri/src/context_generator.rs
-use crate::models::{FsEntry, FileNode}; // <-- Thêm FileNode
-use std::collections::{BTreeMap, HashSet};
-use std::fs;
-use std::path::Path;
-use std::fmt::Write as FmtWrite;
-
-fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut String) {
-    let mut entries = tree.iter().peekable();
-    while let Some((name, entry)) = entries.next() {
-        let is_last = entries.peek().is_none();
-        let connector = if is_last { "└── " } else { "├── " };
-        match entry {
-            FsEntry::File => { let _ = writeln!(output, "{}{}{}", prefix, connector, name); }
-            FsEntry::Directory(children) => {
-                let _ = writeln!(output, "{}{}{}/", prefix, connector, name);
-                let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
-                format_tree(children, &new_prefix, output);
-            }
-        }
-    }
-}
-
-// --- HÀM HELPER MỚI: Chuyển đổi từ FileNode (của cache) sang FsEntry (của builder) ---
-fn convert_file_node_to_fs_entry(node: &FileNode) -> FsEntry {
-    if let Some(children) = &node.children {
-        let mut child_map = BTreeMap::new();
-        for child in children {
-            child_map.insert(child.name.clone(), convert_file_node_to_fs_entry(child));
-        }
-        FsEntry::Directory(child_map)
-    } else {
-        FsEntry::File
-    }
-}
-
-
-// === BẮT ĐẦU PHẦN SỬA LỖI DỨT ĐIỂM ===
-pub fn expand_group_paths_to_files(
-    group_paths: &[String],
-    metadata_cache: &BTreeMap<String, crate::models::FileMetadata>,
-    _root_path: &Path, // Không cần truy cập đĩa nữa
-) -> Vec<String> {
-    let mut all_files_in_group: HashSet<String> = HashSet::new();
-
-    // Lấy danh sách tất cả các file đã được quét để duyệt hiệu quả hơn
-    let all_cached_files: Vec<&String> = metadata_cache.keys().collect();
-
-    for path_str in group_paths {
-        // Xử lý trường hợp đường dẫn đã lưu là MỘT FILE cụ thể
-        // Ví dụ: path_str = "src/App.tsx"
-        if metadata_cache.contains_key(path_str) {
-            all_files_in_group.insert(path_str.clone());
-        }
-
-        // Xử lý trường hợp đường dẫn đã lưu là MỘT THƯ MỤC
-        // Ví dụ: path_str = "src" -> tìm các file bắt đầu bằng "src/"
-        let dir_prefix = format!("{}/", path_str);
-        for &cached_file in &all_cached_files {
-            // Nếu path_str là thư mục gốc ("") thì dir_prefix sẽ là "/"
-            // và cached_file cũng sẽ bắt đầu bằng "/", điều này không đúng.
-            // Do đó, cần xử lý trường hợp thư mục gốc một cách đặc biệt.
-            if path_str.is_empty() {
-                 all_files_in_group.insert(cached_file.clone());
-            } else if cached_file.starts_with(&dir_prefix) {
-                all_files_in_group.insert(cached_file.clone());
-            }
-        }
-    }
-
-    all_files_in_group.into_iter().collect()
-}
-// === KẾT THÚC PHẦN SỬA LỖI DỨT ĐIỂM ===
-
-
-// --- CẬP NHẬT CHỮ KÝ VÀ LOGIC CỦA HÀM NÀY ---
-pub fn generate_context_from_files(
-    root_path_str: &str, 
-    file_paths: &[String],
-    use_full_tree: bool,
-    full_project_tree: &Option<FileNode>,
-) -> Result<String, String> {
-    let root_path = Path::new(root_path_str);
-    let mut tree_builder_root = BTreeMap::new();
-
-    // --- LOGIC IF/ELSE MỚI ĐỂ XÂY DỰNG CÂY THƯ MỤC ---
-    if use_full_tree {
-        if let Some(tree_node) = full_project_tree {
-             if let FsEntry::Directory(root_children) = convert_file_node_to_fs_entry(tree_node) {
-                tree_builder_root = root_children;
-            }
-        } else {
-            return Err("Không tìm thấy cây thư mục đầy đủ trong cache.".to_string());
-        }
-    } else {
-        // Giữ lại logic cũ để xây dựng cây thư mục tối giản
-        for rel_path_str in file_paths {
-            let rel_path = Path::new(rel_path_str);
-            let mut current_level = &mut tree_builder_root;
-            if let Some(components) = rel_path.parent() {
-                for component in components.components() {
-                    let component_str = component.as_os_str().to_string_lossy().into_owned();
-                    current_level = match current_level.entry(component_str).or_insert(FsEntry::Directory(BTreeMap::new())) {
-                        FsEntry::Directory(children) => children,
-                        _ => unreachable!(),
-                    };
-                }
-            }
-            if let Some(file_name) = rel_path.file_name() {
-                let file_name_str = file_name.to_string_lossy().into_owned();
-                current_level.insert(file_name_str, FsEntry::File);
-            }
-        }
-    }
-
-    let mut directory_structure = String::new();
-    format_tree(&tree_builder_root, "", &mut directory_structure);
-    
-    // Phần xử lý nội dung file giữ nguyên, không thay đổi
-    let mut file_contents_string = String::new();
-    let mut sorted_files = file_paths.to_vec();
-    sorted_files.sort();
-    for file_rel_path in sorted_files {
-        let file_path = root_path.join(&file_rel_path);
-        if let Ok(content) = fs::read_to_string(&file_path) {
-            let header = format!("================================================\nFILE: {}\n================================================\n", file_rel_path.replace("\\", "/"));
-            file_contents_string.push_str(&header);
-            file_contents_string.push_str(&content);
-            file_contents_string.push_str("\n\n");
-        }
-    }
-    let final_context = format!("Directory structure:\n{}\n\n{}", directory_structure, file_contents_string);
-    Ok(final_context)
-}
-
-================================================
-FILE: src-tauri/src/file_cache.rs
-================================================
-// src-tauri/src/file_cache.rs
-use crate::models::CachedProjectData;
-use std::fs::{self, File};
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
-
-pub fn get_project_config_path(project_path_str: &str) -> Result<PathBuf, String> {
-    let project_path = Path::new(project_path_str);
-    if !project_path.is_dir() {
-        return Err(format!("'{}' không phải là một thư mục hợp lệ.", project_path_str));
-    }
-    let config_dir = project_path.join(".mastercontext");
-    fs::create_dir_all(&config_dir)
-        .map_err(|e| format!("Không thể tạo thư mục cấu hình '.mastercontext': {}", e))?;
-    Ok(config_dir.join("data.json"))
-}
-
-pub fn load_project_data(path: &str) -> Result<CachedProjectData, String> {
-    let config_path = get_project_config_path(path)?;
-    if !config_path.exists() {
-        return Ok(CachedProjectData::default());
-    }
-    let mut file = File::open(config_path).map_err(|e| format!("Không thể mở file dữ liệu dự án: {}", e))?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).map_err(|e| format!("Không thể đọc file dữ liệu dự án: {}", e))?;
-    if contents.is_empty() {
-        return Ok(CachedProjectData::default());
-    }
-    serde_json::from_str(&contents).map_err(|e| format!("Lỗi phân tích cú pháp JSON: {}", e))
-}
-
-pub fn save_project_data(path: &str, data: &CachedProjectData) -> Result<(), String> {
-    let config_path = get_project_config_path(path)?;
-    let json_string = serde_json::to_string_pretty(data)
-        .map_err(|e| format!("Không thể serialize dữ liệu dự án: {}", e))?;
-    let mut file = File::create(config_path)
-        .map_err(|e| format!("Không thể tạo/ghi file dữ liệu dự án: {}", e))?;
-    file.write_all(json_string.as_bytes())
-        .map_err(|e| format!("Lỗi khi ghi file dữ liệu dự án: {}", e))?;
-    Ok(())
-}
-
-================================================
-FILE: src-tauri/src/lib.rs
-================================================
-// src-tauri/src/lib.rs
-
-// Khai báo các module mới
-mod models;
-mod file_cache;
-mod context_generator;
-mod project_scanner;
-mod commands;
-
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![
-            commands::open_project,
-            commands::update_groups_in_project_data,
-            commands::start_group_update,
-            commands::start_group_export,
-            commands::start_project_export,
-            commands::calculate_group_stats_from_cache,
-            commands::update_sync_settings
-        ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
-}
-
-================================================
-FILE: src-tauri/src/main.rs
-================================================
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
-fn main() {
-    master_context_lib::run()
-}
-
-
-================================================
-FILE: src-tauri/src/models.rs
-================================================
-// src-tauri/src/models.rs
-use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-
-// --- THÊM CÁC STRUCT MỚI Ở ĐẦU FILE ---
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct TsConfig {
-    pub compiler_options: Option<CompilerOptions>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CompilerOptions {
-    pub base_url: Option<String>,
-    pub paths: Option<BTreeMap<String, Vec<String>>>,
-}
-// --- KẾT THÚC PHẦN THÊM MỚI ---
-
-#[derive(Serialize, Deserialize, Debug, Default, Clone, Copy)]
-pub struct GroupStats {
-    pub total_files: u64,
-    pub total_dirs: u64,
-    pub total_size: u64,
-    pub token_count: usize,
-}
-
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
-pub struct ProjectStats {
-    pub total_files: u64,
-    pub total_dirs: u64,
-    pub total_size: u64,
-    pub total_tokens: usize,
-}
-
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
-pub struct FileNode {
-    pub name: String,
-    pub path: String,
-    pub children: Option<Vec<FileNode>>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
-pub struct Group {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub paths: Vec<String>,
-    pub stats: GroupStats,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct FileMetadata {
-    pub size: u64,
-    pub mtime: u64,
-    pub token_count: usize,
-    pub links: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
-pub struct CachedProjectData {
-    pub stats: ProjectStats,
-    pub file_tree: Option<FileNode>,
-    pub groups: Vec<Group>,
-    pub file_metadata_cache: BTreeMap<String, FileMetadata>,
-    pub sync_enabled: Option<bool>,
-    pub sync_path: Option<String>,
-    pub data_hash: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub enum FsEntry {
-    File,
-    Directory(BTreeMap<String, FsEntry>),
-}
-
-================================================
-FILE: src-tauri/src/project_scanner.rs
-================================================
-// src-tauri/src/project_scanner.rs
-use crate::models::{CachedProjectData, FileMetadata, FileNode, GroupStats, ProjectStats, TsConfig};
-use crate::file_cache;
-use std::collections::{BTreeMap, HashSet};
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
-// use tauri::{Emitter, Window}; // Không còn cần vì hàm không emit nữa
-use ignore::{WalkBuilder, overrides::OverrideBuilder};
-use tiktoken_rs::cl100k_base;
-use regex::Regex;
-use lazy_static::lazy_static;
-use path_clean::PathClean;
-use sha2::{Sha256, Digest};
-
-pub fn recalculate_stats_for_paths(
-    paths: &[String],
-    metadata_cache: &BTreeMap<String, FileMetadata>,
-    _root_path: &Path, // _root_path không còn cần thiết
-) -> GroupStats {
-    let mut stats = GroupStats::default();
-    let mut all_files_in_group: HashSet<String> = HashSet::new();
-    let mut all_dirs_in_group: HashSet<String> = HashSet::new();
-
-    let all_cached_files: Vec<&String> = metadata_cache.keys().collect();
-
-    // Mở rộng các đường dẫn tối thiểu thành một danh sách file đầy đủ
-    for path_str in paths {
-        // Xử lý trường hợp đường dẫn là MỘT FILE
-        if metadata_cache.contains_key(path_str) {
-            all_files_in_group.insert(path_str.clone());
-        }
-
-        // Xử lý trường hợp đường dẫn là MỘT THƯ MỤC
-        let dir_prefix = format!("{}/", path_str);
-        if !path_str.is_empty() {
-             all_dirs_in_group.insert(path_str.clone());
-        }
-
-        for &cached_file in &all_cached_files {
-            if path_str.is_empty() {
-                all_files_in_group.insert(cached_file.clone());
-            } else if cached_file.starts_with(&dir_prefix) {
-                all_files_in_group.insert(cached_file.clone());
-            }
-        }
-    }
-
-    // Dùng cache để suy ra các thư mục cha từ đường dẫn file
-    let mut subdirs_from_files = HashSet::new();
-    for file_path in &all_files_in_group {
-        let mut current = Path::new(file_path);
-        while let Some(parent) = current.parent() {
-            if parent.as_os_str().is_empty() { break; }
-            let parent_str = parent.to_string_lossy().replace("\\", "/");
-            subdirs_from_files.insert(parent_str);
-            current = parent;
-        }
-    }
-    all_dirs_in_group.extend(subdirs_from_files);
-
-    // Tính toán stats từ danh sách file đã mở rộng và cache
-    for file_path_str in &all_files_in_group {
-        if let Some(meta) = metadata_cache.get(file_path_str) {
-            stats.total_size += meta.size;
-            stats.token_count += meta.token_count;
-        }
-    }
-
-    stats.total_files = all_files_in_group.len() as u64;
-    stats.total_dirs = all_dirs_in_group.len() as u64;
-
-    stats
-}
-
-// --- THÊM KHỐI MÃ NÀY ---
-// Biên dịch các regex một lần duy nhất để tăng hiệu suất
-lazy_static! {
-    // --- THAY THẾ BẰNG REGEX ĐƠN GIẢN HƠN VÀ MẠNH MẼ HƠN ---
-    static ref IMPORT_EXPORT_REGEX: Regex = Regex::new(
-        r#"(?:from|import|require)\s*\(?\s*['"](?P<path>[./@][^'"]+)['"]\s*\)?"#
-    ).unwrap();
-}
-
-// --- THAY ĐỔI HÀM NÀY ĐỂ NHẬN VÀO ALIAS MAP ---
-fn resolve_link(
-    current_file_path: &Path,
-    link_path_str: &str,
-    all_project_files: &HashSet<String>,
-    aliases: &BTreeMap<String, String>, // <-- THAM SỐ MỚI
-) -> Option<String> {
-    let mut cleaned_path: Option<PathBuf> = None;
-
-    // --- BẮT ĐẦU LOGIC PHÂN GIẢI MỚI, LINH HOẠT HƠN ---
-    // Trường hợp 1: Kiểm tra xem đường dẫn có khớp với alias nào không
-    for (alias, base_path) in aliases {
-        if let Some(stripped) = link_path_str.strip_prefix(alias) {
-            let full_path = Path::new(base_path).join(stripped);
-            cleaned_path = Some(full_path.clean());
-            break; // Tìm thấy alias đầu tiên khớp, thoát khỏi vòng lặp
-        }
-    }
-
-    if cleaned_path.is_none() {
-        if link_path_str.starts_with('.') {
-            // Trường hợp 2: Tương đối (nếu không có alias nào khớp)
-            let current_dir = current_file_path.parent().unwrap_or_else(|| Path::new(""));
-            cleaned_path = Some(current_dir.join(link_path_str).clean());
-        } else {
-            // Trường hợp 3: Package npm hoặc không hợp lệ, bỏ qua
-            return None;
-        }
-    }
-    // --- KẾT THÚC LOGIC PHÂN GIẢI MỚI ---
-
-    let cleaned_path_str = cleaned_path.unwrap().to_string_lossy().replace("\\", "/");
-
-    // Thử tìm file với các extension phổ biến
-    let extensions = ["", ".ts", ".tsx", ".js", ".jsx", ".json"];
-    for ext in extensions.iter() {
-        // Thử trường hợp 1: Đường dẫn chính xác (có thể có hoặc không có extension)
-        // ví dụ: ./utils.ts -> utils.ts
-        let potential_path = format!("{}{}", cleaned_path_str, ext);
-        if all_project_files.contains(&potential_path) {
-            return Some(potential_path);
-        }
-
-        // Thử trường hợp 2: Đường dẫn là một thư mục, tìm file index bên trong
-        // ví dụ: ./components -> ./components/index.ts
-        let potential_index_path = format!("{}/index{}", cleaned_path_str, ext);
-        if all_project_files.contains(&potential_index_path) {
-            return Some(potential_index_path);
-        }
-    }
-
-    None
-}
-
-pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, String> {
-    let root_path = Path::new(path);
-    let bpe = cl100k_base().map_err(|e| e.to_string())?;
-
-    let old_data = file_cache::load_project_data(path).unwrap_or_default();
-    let old_metadata_cache = old_data.file_metadata_cache;
-
-    let mut new_project_stats = ProjectStats::default();
-    let mut new_metadata_cache = BTreeMap::new();
-    let mut path_map = BTreeMap::new(); // Dùng để xây dựng cây thư mục
-
-    // --- BƯỚC MỚI: ĐỌC VÀ PHÂN TÍCH ALIAS ---
-    let mut aliases = BTreeMap::new();
-    let tsconfig_path = root_path.join("tsconfig.json");
-    let jsconfig_path = root_path.join("jsconfig.json");
-
-    let config_path = if tsconfig_path.exists() {
-        Some(tsconfig_path)
-    } else if jsconfig_path.exists() {
-        Some(jsconfig_path)
-    } else {
-        None
-    };
-
-    if let Some(path) = config_path {
-        if let Ok(content) = fs::read_to_string(path) {
-            if let Ok(tsconfig) = serde_json::from_str::<TsConfig>(&content) {
-                if let Some(options) = tsconfig.compiler_options {
-                    let base_url = options.base_url.unwrap_or_else(|| ".".to_string());
-                    if let Some(paths) = options.paths {
-                        for (alias, replacements) in paths {
-                            // Chỉ lấy replacement đầu tiên và đơn giản hóa nó
-                            if let Some(first_replacement) = replacements.get(0) {
-                                // Bỏ "/*" ở cuối alias và replacement
-                                let clean_alias = alias.strip_suffix("/*").unwrap_or(&alias);
-                                let clean_replacement = first_replacement.strip_suffix("/*").unwrap_or(first_replacement);
-                                
-                                // Tạo đường dẫn đầy đủ từ baseUrl
-                                let full_base_path = Path::new(&base_url).join(clean_replacement).clean();
-                                aliases.insert(
-                                    clean_alias.to_string(), 
-                                    full_base_path.to_string_lossy().to_string()
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    // Hard-code alias mặc định nếu không tìm thấy trong tsconfig
-    // Điều này giúp tương thích ngược với các dự án không có cấu hình rõ ràng
-    aliases.entry("@/".to_string()).or_insert_with(|| "src/".to_string());
-    println!("[INFO] Aliases đã phát hiện: {:?}", aliases);
-    // --- KẾT THÚC PHẦN PHÂN TÍCH ALIAS ---
-
-    let override_builder = {
-        let mut builder = OverrideBuilder::new(root_path);
-        builder.add("!package-lock.json").map_err(|e| e.to_string())?;
-        builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
-        builder.add("!yarn.lock").map_err(|e| e.to_string())?;
-        builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
-        builder.build().map_err(|e| e.to_string())?
-    };
-
-    // --- BƯỚC 1: Quét một lần duy nhất và thu thập thông tin thô ---
-    struct RawFileInfo {
-        relative_path: PathBuf,
-        metadata: std::fs::Metadata,
-        content: Option<String>,
-    }
-    let mut raw_files: Vec<RawFileInfo> = Vec::new();
-    let mut all_valid_files = HashSet::new();
-
-    for entry in WalkBuilder::new(root_path).overrides(override_builder.clone()).build().filter_map(Result::ok) {
-        let entry_path = entry.path();
-        if let (Ok(relative_path), Ok(metadata)) = (entry_path.strip_prefix(root_path), entry.metadata()) {
-            if relative_path.as_os_str().is_empty() { continue; }
-            
-            // Bỏ qua việc gửi progress trong lần refactor này để đơn giản hóa
-            path_map.insert(entry_path.to_path_buf(), metadata.is_dir());
-
-            if metadata.is_dir() {
-                new_project_stats.total_dirs += 1;
-            } else if metadata.is_file() {
-                new_project_stats.total_files += 1;
-                new_project_stats.total_size += metadata.len();
-                
-                let content = fs::read_to_string(entry_path).ok();
-                raw_files.push(RawFileInfo {
-                    relative_path: relative_path.to_path_buf(),
-                    metadata,
-                    content,
-                });
-                all_valid_files.insert(relative_path.to_string_lossy().replace("\\", "/"));
-            }
-        }
-    }
-
-    // --- BƯỚC 2: Xử lý thông tin thô để xây dựng metadata cache ---
-    for file_info in raw_files {
-        let relative_path_str = file_info.relative_path.to_string_lossy().replace("\\", "/");
-        let current_mtime = file_info.metadata.modified()
-            .map(|t| t.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs())
-            .unwrap_or(0);
-        
-        let mut token_count = 0;
-        let mut links = Vec::new();
-
-        if let Some(cached_meta) = old_metadata_cache.get(&relative_path_str) {
-            if cached_meta.size == file_info.metadata.len() && cached_meta.mtime == current_mtime {
-                token_count = cached_meta.token_count;
-                links = cached_meta.links.clone();
-            }
-        }
-
-        if token_count == 0 { // Nếu file mới/thay đổi, xử lý lại
-            if let Some(content) = &file_info.content { // <-- Thêm & để borrow
-                token_count = bpe.encode_with_special_tokens(content).len();
-                
-                let mut found_links = HashSet::new();
-                
-                // --- BẮT ĐẦU VÙNG DEBUG SÂU ---
-                println!("\n[DEBUG] Đang phân tích file: {}", relative_path_str);
-                
-                for cap in IMPORT_EXPORT_REGEX.captures_iter(content) {
-                    // Lấy group có tên "path" hoặc "path2"
-                    let link_path_opt = cap.name("path");
-                    
-                    if let Some(link_path_match) = link_path_opt {
-                        let link_path = link_path_match.as_str();
-                        println!("[DEBUG]   => Regex khớp: '{}'", link_path);
-                        
-                        if let Some(resolved) = resolve_link(&file_info.relative_path, link_path, &all_valid_files, &aliases) {
-                            println!("[DEBUG]     => Phân giải thành công: '{}'", resolved);
-                            found_links.insert(resolved);
-                        } else {
-                            println!("[DEBUG]     => Phân giải thất bại.");
-                        }
-                    } else {
-                        // In ra toàn bộ capture để xem có gì sai không
-                        println!("[DEBUG]   => Regex khớp nhưng không tìm thấy group 'path'. Full capture: {:?}", &cap);
-                    }
-                }
-                // --- KẾT THÚC VÙNG DEBUG SÂU ---
-                
-                links = found_links.into_iter().collect();
-            }
-        }
-
-        new_project_stats.total_tokens += token_count;
-        new_metadata_cache.insert(relative_path_str, FileMetadata {
-            size: file_info.metadata.len(),
-            mtime: current_mtime,
-            token_count,
-            links,
-        });
-    }
-
-    // --- BƯỚC 3: Xây dựng cây thư mục và cập nhật nhóm (giữ nguyên) ---
-    fn build_tree_from_map(parent: &Path, path_map: &BTreeMap<PathBuf, bool>, root_path: &Path) -> Vec<FileNode> {
-        let mut children = Vec::new();
-        for (path, is_dir) in path_map.range(parent.join("")..) {
-            if path.parent() == Some(parent) {
-                let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-                let relative_path_str = path.strip_prefix(root_path).unwrap().to_string_lossy().replace("\\", "/");
-                children.push(FileNode {
-                    name,
-                    path: relative_path_str,
-                    children: if *is_dir { Some(build_tree_from_map(path, path_map, root_path)) } else { None },
-                });
-            }
-        }
-        children.sort_by(|a, b| {
-            let a_is_dir = a.children.is_some(); let b_is_dir = b.children.is_some();
-            if a_is_dir != b_is_dir { b_is_dir.cmp(&a_is_dir) } else { a.name.cmp(&b.name) }
-        });
-        children
-    }
-    let root_children = build_tree_from_map(root_path, &path_map, root_path);
-    let file_tree = FileNode {
-        name: root_path.file_name().unwrap_or_default().to_string_lossy().to_string(),
-        path: "".to_string(),
-        children: Some(root_children),
-    };
-
-    let mut updated_groups = old_data.groups;
-    for group in &mut updated_groups {
-        group.paths.retain(|path| new_metadata_cache.contains_key(path) || path_map.values().any(|is_dir| *is_dir));
-        group.stats = recalculate_stats_for_paths(&group.paths, &new_metadata_cache, root_path);
-    }
-
-    // --- BƯỚC 4: Tính toán hash để theo dõi thay đổi ---
-    let metadata_json = serde_json::to_string(&new_metadata_cache).unwrap_or_default();
-    let mut hasher = Sha256::new();
-    hasher.update(metadata_json.as_bytes());
-    let hash_result = hasher.finalize();
-    let data_hash = format!("{:x}", hash_result);
-
-    let final_data = CachedProjectData {
-        stats: new_project_stats,
-        file_tree: Some(file_tree),
-        groups: updated_groups,
-        file_metadata_cache: new_metadata_cache,
-        sync_enabled: old_data.sync_enabled, // Giữ lại cài đặt cũ
-        sync_path: old_data.sync_path,       // Giữ lại cài đặt cũ
-        data_hash: Some(data_hash),
-    };
-
-    // --- THAY ĐỔI: Trả về dữ liệu thay vì lưu và emit ---
-    Ok(final_data)
-}
-
-================================================
-FILE: src-tauri/tauri.conf.json
-================================================
-{
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "master-context",
-  "version": "0.1.0",
-  "identifier": "com.tomisakae.master-context",
-  "build": {
-    "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist"
-  },
-  "app": {
-    "windows": [
-      {
-        "title": "Master Context",
-        "width": 1280,
-        "height": 720
-      }
-    ],
-    "security": {
-      "csp": null
-    }
-  },
-  "bundle": {
-    "active": true,
-    "targets": "all",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ]
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
+
+
+================================================
+FILE: src/App.tsx
+================================================
+// src/App.tsx
+import { useEffect, useMemo } from "react"; // <-- Thêm useMemo
+import { listen } from "@tauri-apps/api/event";
+// import { invoke } from "@tauri-apps/api/core"; // Không còn dùng
+import { useAppStore, useAppActions } from "./store/appStore";
+import { type GroupStats, type CachedProjectData } from "./store/types";
+import { WelcomeScene } from "./scenes/WelcomeScene";
+import { DashboardScene } from "./scenes/DashboardScene";
+import { GroupEditorScene } from "./scenes/GroupEditorScene";
+import { ScanningScene } from "./scenes/ScanningScene";
+import { throttle } from "@/lib/utils"; // <-- Import hàm throttle
+import "./App.css";
+
+function App() {
+  const selectedPath = useAppStore((state) => state.selectedPath);
+  const activeScene = useAppStore((state) => state.activeScene);
+  const isScanning = useAppStore((state) => state.isScanning); // <-- Lấy state isScanning
+  const {
+    _setScanProgress,
+    _setScanComplete,
+    _setScanError,
+    _setGroupUpdateComplete,
+  } = useAppActions();
+
+  // --- THÊM MỚI: Logic áp dụng theme khi ứng dụng khởi động ---
+  useEffect(() => {
+    // Đọc theme từ localStorage, nếu không có thì mặc định là 'light'
+    const theme = localStorage.getItem("theme") || "light";
+    const root = window.document.documentElement;
+
+    // Xóa các class cũ để đảm bảo sạch sẽ
+    root.classList.remove("light", "dark");
+
+    // Thêm class theme hiện tại vào thẻ <html>
+    root.classList.add(theme);
+  }, []); // Mảng rỗng `[]` đảm bảo effect này chỉ chạy một lần khi App được mount
+
+  // --- THAY ĐỔI: Tạo một phiên bản throttled của hàm cập nhật ---
+  const throttledSetScanProgress = useMemo(
+    () => throttle((file: string) => _setScanProgress(file), 10), // Cập nhật tối đa 10 lần/giây
+    [_setScanProgress]
+  );
+
+  // --- LẮNG NGHE SỰ KIỆN TỪ RUST ---
+  useEffect(() => {
+    const unlistenFuncs: Promise<() => void>[] = [];
+
+    // --- THAY ĐỔI: Sử dụng hàm đã được throttle ---
+    unlistenFuncs.push(
+      listen<string>("scan_progress", (event) => {
+        throttledSetScanProgress(event.payload);
+      })
+    );
+
+    unlistenFuncs.push(
+      // --- SỬA LỖI: SỬA KIỂU DỮ LIỆU TỪ ProjectStats THÀNH CachedProjectData ---
+      listen<CachedProjectData>("scan_complete", (event) => {
+        _setScanComplete(event.payload);
+        // --- ĐÃ XÓA LỆNH GỌI GÂY LẶP. Logic này giờ được xử lý hoàn toàn trong Rust. ---
+      })
+    );
+
+    unlistenFuncs.push(
+      listen<string>("scan_error", (event) => {
+        _setScanError(event.payload);
+      })
+    );
+
+    // Thêm listener cho group_update_complete
+    unlistenFuncs.push(
+      // --- THAY ĐỔI: Thêm `paths` vào payload ---
+      listen<{ groupId: string; stats: GroupStats; paths: string[] }>(
+        "group_update_complete",
+        (event) => {
+          _setGroupUpdateComplete(event.payload);
+        }
+      )
+    );
+
+    // Thêm listener cho các sự kiện đồng bộ tự động
+    unlistenFuncs.push(
+      listen<string>("auto_sync_started", (event) => {
+        console.log("Auto Sync:", event.payload);
+        // Tương lai có thể hiển thị toast notification ở đây
+      })
+    );
+    unlistenFuncs.push(
+      listen<string>("auto_sync_complete", (event) => {
+        console.log("Auto Sync:", event.payload);
+      })
+    );
+    unlistenFuncs.push(
+      listen<string>("auto_sync_error", (event) => {
+        console.error("Auto Sync Error:", event.payload);
+      })
+    );
+
+    // Dọn dẹp listener khi component unmount
+    return () => {
+      unlistenFuncs.forEach((unlisten) => {
+        unlisten.then((f) => f());
+      });
+    };
+  }, [
+    _setScanProgress,
+    _setScanComplete,
+    _setScanError,
+    throttledSetScanProgress,
+    _setGroupUpdateComplete,
+  ]); // <-- Thêm dependency
+
+  const renderContent = () => {
+    // Ưu tiên hiển thị màn hình quét
+    if (isScanning) {
+      return <ScanningScene />;
+    }
+
+    if (!selectedPath) {
+      return (
+        <div className="flex flex-1 items-center justify-center">
+          <WelcomeScene />
+        </div>
+      );
+    }
+
+    switch (activeScene) {
+      case "groupEditor":
+        return <GroupEditorScene />;
+      case "dashboard":
+      default:
+        return <DashboardScene />;
+    }
+  };
+
+  return (
+    <div className="h-screen w-screen flex flex-col bg-background text-foreground">
+      {renderContent()}
+    </div>
+  );
+}
+
+export default App;
+
+
+================================================
+FILE: src/components/FileTreeView.tsx
+================================================
+// src/components/FileTreeView.tsx
+import { useState, useEffect, useRef } from "react"; // <-- Thêm useEffect, useRef
+import { ChevronRight, Folder, File as FileIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export interface FileNode {
+  name: string;
+  path: string;
+  children?: FileNode[] | null;
+}
+
+// --- HÀM HELPER: Lấy tất cả đường dẫn con cháu ---
+const getDescendantPaths = (node: FileNode): string[] => {
+  if (!Array.isArray(node.children)) return [];
+  return node.children.flatMap((child) => [
+    child.path,
+    ...getDescendantPaths(child),
+  ]);
+};
+
+// --- HÀM HELPER: Xác định trạng thái lựa chọn của một node ---
+const getNodeSelectionState = (
+  node: FileNode,
+  selectedPaths: Set<string>
+): "checked" | "unchecked" | "indeterminate" => {
+  if (!Array.isArray(node.children)) {
+    return selectedPaths.has(node.path) ? "checked" : "unchecked";
+  }
+
+  const descendantPaths = getDescendantPaths(node);
+  const selectedDescendants = descendantPaths.filter((p) =>
+    selectedPaths.has(p)
+  );
+
+  if (selectedDescendants.length === 0) {
+    return "unchecked";
+  }
+  if (
+    selectedDescendants.length === descendantPaths.length &&
+    selectedPaths.has(node.path)
+  ) {
+    return "checked";
+  }
+  return "indeterminate";
+};
+
+interface FileTreeViewProps {
+  node: FileNode;
+  selectedPaths: Set<string>;
+  onToggle: (node: FileNode, isSelected: boolean) => void; // <-- Sửa prop để truyền cả node
+  level?: number;
+}
+
+export function FileTreeView({
+  node,
+  selectedPaths,
+  onToggle,
+  level = 0,
+}: FileTreeViewProps) {
+  const checkboxRef = useRef<HTMLInputElement>(null);
+  const isDirectory = Array.isArray(node.children);
+  const [isOpen, setIsOpen] = useState(level < 2);
+
+  const selectionState = isDirectory
+    ? getNodeSelectionState(node, selectedPaths)
+    : selectedPaths.has(node.path)
+    ? "checked"
+    : "unchecked";
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = selectionState === "indeterminate";
+    }
+  }, [selectionState]);
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onToggle(node, e.target.checked);
+  };
+
+  const handleToggleDirectory = () => {
+    if (isDirectory) setIsOpen(!isOpen);
+  };
+
+  return (
+    <div>
+      <div
+        className="flex items-center py-1 px-2 rounded-md hover:bg-accent"
+        style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
+      >
+        <input
+          ref={checkboxRef}
+          type="checkbox"
+          checked={selectionState === "checked"}
+          onChange={handleCheckboxChange}
+          onClick={(e) => e.stopPropagation()}
+          className="mr-2 h-4 w-4"
+        />
+        <div
+          onClick={handleToggleDirectory}
+          className="flex items-center cursor-pointer flex-grow"
+        >
+          {isDirectory ? (
+            <>
+              <ChevronRight
+                className={cn(
+                  "h-4 w-4 mr-1 shrink-0 transition-transform duration-200",
+                  isOpen && "rotate-90"
+                )}
+              />
+              <Folder className="h-4 w-4 mr-2 text-yellow-500" />
+            </>
+          ) : (
+            <FileIcon className="h-4 w-4 mr-2 text-blue-500" />
+          )}
+          <span>{node.name}</span>
+        </div>
+      </div>
+      {isDirectory && isOpen && node.children && (
+        <div>
+          {node.children.map((child) => (
+            <FileTreeView
+              key={child.path}
+              node={child}
+              selectedPaths={selectedPaths}
+              onToggle={onToggle}
+              level={level + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+================================================
+FILE: src/components/GroupManager.tsx
+================================================
+// src/components/GroupManager.tsx
+import { useState, useEffect } from "react"; // Thêm useEffect
+import { listen } from "@tauri-apps/api/event"; // Thêm listen
+import { useAppStore, useAppActions } from "@/store/appStore";
+import { type Group } from "@/store/types";
+import { invoke } from "@tauri-apps/api/core";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { formatBytes } from "@/lib/utils"; // <-- Import hàm tiện ích
+import { Label } from "@/components/ui/label"; // <-- THÊM IMPORT
+import { Switch } from "@/components/ui/switch"; // <-- THÊM IMPORT
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent, // <-- Thêm CardContent
+  CardDescription,
+  CardFooter, // <-- Thêm CardFooter
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  MoreHorizontal,
+  Trash2,
+  Pencil,
+  Download,
+  BrainCircuit,
+  ListChecks,
+  File, // <-- Thêm icon
+  Folder, // <-- Thêm icon
+  HardDrive, // <-- Thêm icon
+  Loader2, // Thêm Loader2
+  Link, // <-- THÊM ICON LINK
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+// --- THAY ĐỔI: Component giờ nhận props để mở dialog từ bên ngoài ---
+interface GroupManagerProps {
+  onEditGroup: (group: Group) => void;
+}
+
+export function GroupManager({ onEditGroup }: GroupManagerProps) {
+  const groups = useAppStore((state) => state.groups);
+  const rootPath = useAppStore((state) => state.rootPath);
+  const { deleteGroup, editGroupContent, setGroupCrossSync } = useAppActions(); // <-- Lấy action mới
+
+  // === CÁC STATE ĐƯỢC CẤU TRÚC LẠI ===
+
+  // State quản lý nhóm nào đang trong quá trình xuất
+  const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
+
+  // State quản lý dialog tùy chọn
+  const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
+  const [groupToExport, setGroupToExport] = useState<Group | null>(null);
+  const [useFullTree, setUseFullTree] = useState(false);
+
+  // State loading BÊN TRONG dialog
+  const [isConfirmingExport, setIsConfirmingExport] = useState(false);
+
+  // State MỚI để lưu trữ context tạm thời từ backend
+  const [pendingExportData, setPendingExportData] = useState<{
+    context: string;
+    group: Group;
+  } | null>(null);
+
+  // --- useEffect 1: Lắng nghe sự kiện từ Rust ---
+  useEffect(() => {
+    const unlistenComplete = listen<{ groupId: string; context: string }>(
+      "group_export_complete",
+      (event) => {
+        // Chỉ nhận dữ liệu và cập nhật state tạm thời
+        // Không gọi `save()` ở đây nữa
+        const targetGroup = groups.find((g) => g.id === event.payload.groupId);
+        if (targetGroup) {
+          console.log("Nhận được context, lưu vào state tạm thời.");
+          setPendingExportData({
+            context: event.payload.context,
+            group: targetGroup,
+          });
+        }
+      }
+    );
+
+    const unlistenError = listen<string>("group_export_error", (event) => {
+      console.error("Lỗi khi xuất nhóm từ backend:", event.payload);
+      alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
+      // Dọn dẹp tất cả state khi có lỗi
+      setIsConfirmingExport(false);
+      setExportingGroupId(null);
+      setExportOptionsOpen(false);
+    });
+
+    return () => {
+      unlistenComplete.then((f) => f());
+      unlistenError.then((f) => f());
+    };
+  }, [groups]); // Phụ thuộc vào `groups` để có thể tìm `targetGroup` mới nhất
+
+  // --- useEffect 2: Xử lý việc mở dialog lưu file ---
+  useEffect(() => {
+    // Effect này chỉ chạy khi `pendingExportData` có giá trị
+    if (pendingExportData) {
+      const showSaveDialog = async () => {
+        try {
+          const defaultName = `${pendingExportData.group.name.replace(
+            /\s+/g,
+            "_"
+          )}_context.txt`;
+          const filePath = await save({
+            title: `Lưu Ngữ cảnh cho nhóm "${pendingExportData.group.name}"`,
+            defaultPath: defaultName,
+            filters: [{ name: "Text File", extensions: ["txt"] }],
+          });
+
+          if (filePath) {
+            await writeTextFile(filePath, pendingExportData.context);
+            alert(`Đã lưu file thành công!`);
+          }
+        } catch (error) {
+          console.error("Lỗi khi lưu file ngữ cảnh:", error);
+          alert("Đã xảy ra lỗi khi lưu file.");
+        } finally {
+          // Dọn dẹp TẤT CẢ các state sau khi dialog lưu file đóng lại
+          console.log("Dọn dẹp state sau khi lưu.");
+          setPendingExportData(null);
+          setIsConfirmingExport(false);
+          setExportingGroupId(null);
+          setExportOptionsOpen(false);
+        }
+      };
+
+      showSaveDialog();
+    }
+  }, [pendingExportData]); // Chỉ kích hoạt khi có dữ liệu mới để lưu
+
+  // Hàm này giờ chỉ mở dialog
+  const handleOpenExportOptions = (group: Group) => {
+    setGroupToExport(group);
+    setExportOptionsOpen(true);
+    setUseFullTree(false); // Reset về mặc định mỗi khi mở
+  };
+
+  const handleConfirmExport = () => {
+    if (!groupToExport || !rootPath) return;
+
+    setIsConfirmingExport(true);
+    setExportingGroupId(groupToExport.id);
+
+    // Không đóng dialog nữa, nó sẽ được đóng trong `finally` của `useEffect` thứ hai
+
+    try {
+      invoke("start_group_export", {
+        groupId: groupToExport.id,
+        rootPathStr: rootPath,
+        useFullTree: useFullTree,
+      });
+    } catch (error) {
+      console.error("Lỗi khi gọi command start_group_export:", error);
+      alert("Không thể bắt đầu quá trình xuất file.");
+      setIsConfirmingExport(false);
+      setExportingGroupId(null);
+    }
+  };
+
+  // --- HÀM MỚI ĐỂ XỬ LÝ VIỆC ĐÓNG DIALOG ---
+  const handleCloseDialog = () => {
+    // Chỉ cho phép đóng khi không đang loading
+    if (!isConfirmingExport) {
+      setExportOptionsOpen(false);
+    }
+  };
+
+  return (
+    <>
+      {groups.length === 0 ? (
+        <div className="text-center py-16 border-2 border-dashed rounded-lg mt-6">
+          <h3 className="text-xl font-semibold">Chưa có nhóm nào</h3>
+          <p className="text-muted-foreground mt-2">
+            Hãy bắt đầu bằng cách tạo một nhóm mới.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
+          {groups.map((group) => (
+            <Card key={group.id} className="flex flex-col">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>{group.name}</CardTitle>
+                    <CardDescription className="pt-2 line-clamp-3">
+                      {group.description || "Không có mô tả"}
+                    </CardDescription>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {/* --- THAY ĐỔI: Gọi hàm prop onEditGroup --- */}
+                      <DropdownMenuItem onClick={() => onEditGroup(group)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Chỉnh sửa
+                      </DropdownMenuItem>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem
+                            onSelect={(e: Event) => e.preventDefault()}
+                            className="text-red-500"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Xóa
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Bạn có chắc chắn muốn xóa?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Hành động này không thể hoàn tác. Nhóm "
+                              {group.name}" sẽ bị xóa vĩnh viễn.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Hủy</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteGroup(group.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Xóa
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                {/* --- PHẦN UI MỚI CHO STATS --- */}
+                <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <File className="h-4 w-4" />
+                    <span>
+                      {group.stats.total_files.toLocaleString()} tệp tin
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Folder className="h-4 w-4" />
+                    <span>
+                      {group.stats.total_dirs.toLocaleString()} thư mục
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="h-4 w-4" />
+                    <span>
+                      Tổng dung lượng: {formatBytes(group.stats.total_size)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <BrainCircuit className="h-4 w-4" />
+                    <span>
+                      Ước tính: {group.stats.token_count.toLocaleString()}{" "}
+                      tokens
+                    </span>
+                  </div>
+                </div>
+
+                {/* --- PHẦN UI MỚI CHO SWITCH --- */}
+                <div className="border-t mt-4 pt-4">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor={`cross-sync-${group.id}`}
+                      className="flex flex-col cursor-pointer"
+                    >
+                      <span>
+                        <Link className="inline-block h-4 w-4 mr-2" />
+                        Đồng bộ chéo
+                      </span>
+                      <span className="text-xs text-muted-foreground font-normal">
+                        Tự động thêm file liên quan khi quét lại.
+                      </span>
+                    </Label>
+                    <Switch
+                      id={`cross-sync-${group.id}`}
+                      checked={group.crossSyncEnabled ?? false}
+                      onCheckedChange={(enabled) =>
+                        setGroupCrossSync(group.id, enabled)
+                      }
+                    />
+                  </div>
+                </div>
+                {/* --- KẾT THÚC PHẦN UI MỚI --- */}
+              </CardContent>
+              <CardFooter className="flex justify-end gap-2">
+                {/* --- THAY ĐỔI DUY NHẤT Ở ĐÂY --- */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenExportOptions(group)}
+                  // Vô hiệu hóa TẤT CẢ các nút Xuất khác khi MỘT nhóm đang được xử lý
+                  disabled={!!exportingGroupId}
+                >
+                  {/* Gỡ bỏ hoàn toàn logic hiển thị icon loading và thay đổi text */}
+                  <Download className="mr-2 h-4 w-4" />
+                  Xuất
+                </Button>
+                {/* --- KẾT THÚC THAY ĐỔI --- */}
+                <Button size="sm" onClick={() => editGroupContent(group.id)}>
+                  <ListChecks className="mr-2 h-4 w-4" /> Quản lý nội dung
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* --- DIALOG MỚI CHO TÙY CHỌN XUẤT FILE --- */}
+      <AlertDialog open={exportOptionsOpen} onOpenChange={handleCloseDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Tùy chọn xuất cho nhóm "{groupToExport?.name}"
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Chọn cách bạn muốn cấu trúc cây thư mục trong file ngữ cảnh được
+              xuất ra.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="flex items-center space-x-2 my-4">
+            <Switch
+              id="full-tree-switch"
+              checked={useFullTree}
+              onCheckedChange={setUseFullTree}
+              disabled={isConfirmingExport} // <-- Vô hiệu hóa khi đang loading
+            />
+            <Label htmlFor="full-tree-switch" className="cursor-pointer">
+              Sử dụng cây thư mục đầy đủ của dự án
+            </Label>
+          </div>
+          <p className="text-sm text-muted-foreground -mt-2">
+            {useFullTree
+              ? "File xuất sẽ hiển thị toàn bộ cấu trúc dự án. Chỉ nội dung các tệp trong nhóm này được bao gồm."
+              : "File xuất sẽ chỉ hiển thị cấu trúc thư mục chứa các tệp đã chọn trong nhóm này."}
+          </p>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isConfirmingExport}>
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmExport}
+              disabled={isConfirmingExport}
+            >
+              {/* --- THAY ĐỔI: Thêm icon loading vào nút xác nhận --- */}
+              {isConfirmingExport ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {isConfirmingExport ? "Đang xử lý..." : "Xác nhận và Xuất"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+
+================================================
+FILE: src/components/ProjectStats.tsx
+================================================
+// src/components/ProjectStats.tsx
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter, // <-- Thêm CardFooter
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button"; // <-- Thêm Button
+import {
+  File,
+  Folder,
+  HardDrive,
+  Info,
+  BrainCircuit,
+  Download,
+  Loader2,
+} from "lucide-react"; // <-- Thêm icon
+import { type ProjectStats as ProjectStatsData } from "@/store/types"; // <-- Sửa đường dẫn import
+import { formatBytes } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+// --- CẬP NHẬT: Thêm props cho chức năng export ---
+interface ProjectStatsProps {
+  path: string | null;
+  stats: ProjectStatsData | null;
+  onExportProject: () => void;
+  isExporting: boolean;
+}
+
+export function ProjectStats({
+  path,
+  stats,
+  onExportProject,
+  isExporting,
+}: ProjectStatsProps) {
+  return (
+    <Card className="flex flex-col h-fit">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-base">Thống kê dự án</CardTitle>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="h-4 w-4 cursor-help text-muted-foreground" />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              Các tệp bị loại trừ bởi .gitignore và các file lock sẽ không được
+              tính.
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </CardHeader>
+      <CardContent>
+        {/* Phần hiển thị stats giữ nguyên */}
+        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Folder className="h-4 w-4 shrink-0" />
+            <span className="truncate" title={path ?? ""}>
+              {path ?? "..."}
+            </span>
+          </div>
+          {stats ? (
+            <>
+              <div className="flex items-center gap-2">
+                <File className="h-4 w-4" />
+                <span>{stats.total_files.toLocaleString()} tệp tin</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Folder className="h-4 w-4" />
+                <span>{stats.total_dirs.toLocaleString()} thư mục</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <HardDrive className="h-4 w-4" />
+                <span>Tổng dung lượng: {formatBytes(stats.total_size)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BrainCircuit className="h-4 w-4" />
+                <span>
+                  Ước tính: {stats.total_tokens.toLocaleString()} tokens
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="pt-2">Đang tải thống kê...</div>
+          )}
+        </div>
+      </CardContent>
+      {/* --- PHẦN MỚI: Thêm footer với nút export --- */}
+      <CardFooter>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onExportProject}
+          disabled={isExporting}
+          className="w-full"
+        >
+          {isExporting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
+          {isExporting ? "Đang xuất..." : "Xuất toàn bộ dự án"}
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+
+================================================
+FILE: src/components/SettingsDialog.tsx
+================================================
+// src/components/SettingsDialog.tsx
+import { useAppStore, useAppActions } from "@/store/appStore";
+import { useShallow } from "zustand/react/shallow";
+import { open } from "@tauri-apps/plugin-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { ThemeToggle } from "./ThemeToggle";
+import { FolderUp } from "lucide-react";
+
+interface SettingsDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
+  const { syncEnabled, syncPath } = useAppStore(
+    useShallow((state) => ({
+      syncEnabled: state.syncEnabled,
+      syncPath: state.syncPath,
+    }))
+  );
+  const { setSyncSettings } = useAppActions();
+
+  const handleToggleSync = (enabled: boolean) => {
+    // Nếu bật mà chưa có đường dẫn, không làm gì cả (bắt buộc chọn thư mục trước)
+    if (enabled && !syncPath) {
+      alert("Bạn phải chọn một thư mục đồng bộ trước khi bật tính năng này.");
+      return;
+    }
+    setSyncSettings({ enabled, path: syncPath });
+  };
+
+  const handleChooseSyncPath = async () => {
+    try {
+      const result = await open({
+        directory: true,
+        multiple: false,
+        title: "Chọn thư mục để tự động đồng bộ",
+      });
+      if (typeof result === "string") {
+        // Cập nhật đường dẫn và tự động bật nếu chưa bật
+        setSyncSettings({ enabled: true, path: result });
+      }
+    } catch (error) {
+      console.error("Lỗi khi chọn thư mục đồng bộ:", error);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Cài đặt</DialogTitle>
+          <DialogDescription>
+            Tùy chỉnh các thiết lập cho ứng dụng.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-6 py-4">
+          {/* Cài đặt Giao diện */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="theme-toggle">Giao diện (Sáng/Tối)</Label>
+            <ThemeToggle />
+          </div>
+
+          {/* Cài đặt Đồng bộ tự động */}
+          <div className="space-y-4 rounded-lg border p-4">
+            <h3 className="font-semibold">Đồng bộ tự động</h3>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="sync-toggle" className="flex flex-col">
+                <span>Bật đồng bộ trong nền</span>
+                <span className="text-xs text-muted-foreground">
+                  Tự động xuất lại khi phát hiện thay đổi.
+                </span>
+              </Label>
+              <Switch
+                id="sync-toggle"
+                checked={syncEnabled}
+                onCheckedChange={handleToggleSync}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sync-path">Thư mục đồng bộ</Label>
+              <div className="flex items-center gap-2">
+                <div
+                  id="sync-path"
+                  className="flex-grow truncate rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground"
+                >
+                  {syncPath || "Chưa chọn..."}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleChooseSyncPath}
+                >
+                  <FolderUp className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+================================================
+FILE: src/components/ThemeToggle.tsx
+================================================
+// src/components/ThemeToggle.tsx
+import { Moon, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+
+type Theme = "dark" | "light";
+
+export function ThemeToggle() {
+  // Khởi tạo state từ localStorage hoặc mặc định là 'light'
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof localStorage !== "undefined") {
+      return (localStorage.getItem("theme") as Theme) || "light";
+    }
+    return "light";
+  });
+
+  // Effect để cập nhật class trên thẻ <html> và lưu vào localStorage
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+  };
+
+  return (
+    <Button variant="ghost" size="icon" onClick={toggleTheme}>
+      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <span className="sr-only">Toggle theme</span>
+    </Button>
+  );
+}
+
+
+================================================
+FILE: src/components/ui/alert-dialog.tsx
+================================================
+"use client"
+
+import * as React from "react"
+import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
+
+import { cn } from "@/lib/utils"
+import { buttonVariants } from "@/components/ui/button"
+
+function AlertDialog({
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
+  return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
+}
+
+function AlertDialogTrigger({
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Trigger>) {
+  return (
+    <AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props} />
+  )
+}
+
+function AlertDialogPortal({
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
+  return (
+    <AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props} />
+  )
+}
+
+function AlertDialogOverlay({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Overlay>) {
+  return (
+    <AlertDialogPrimitive.Overlay
+      data-slot="alert-dialog-overlay"
+      className={cn(
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
+  return (
+    <AlertDialogPortal>
+      <AlertDialogOverlay />
+      <AlertDialogPrimitive.Content
+        data-slot="alert-dialog-content"
+        className={cn(
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
+          className
+        )}
+        {...props}
+      />
+    </AlertDialogPortal>
+  )
+}
+
+function AlertDialogHeader({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-dialog-header"
+      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogFooter({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-dialog-footer"
+      className={cn(
+        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogTitle({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
+  return (
+    <AlertDialogPrimitive.Title
+      data-slot="alert-dialog-title"
+      className={cn("text-lg font-semibold", className)}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogDescription({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Description>) {
+  return (
+    <AlertDialogPrimitive.Description
+      data-slot="alert-dialog-description"
+      className={cn("text-muted-foreground text-sm", className)}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogAction({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
+  return (
+    <AlertDialogPrimitive.Action
+      className={cn(buttonVariants(), className)}
+      {...props}
+    />
+  )
+}
+
+function AlertDialogCancel({
+  className,
+  ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
+  return (
+    <AlertDialogPrimitive.Cancel
+      className={cn(buttonVariants({ variant: "outline" }), className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  AlertDialog,
+  AlertDialogPortal,
+  AlertDialogOverlay,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+}
+
+
+================================================
+FILE: src/components/ui/button.tsx
+================================================
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+        outline:
+          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost:
+          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-9 px-4 py-2 has-[>svg]:px-3",
+        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
+        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
+        icon: "size-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+function Button({
+  className,
+  variant,
+  size,
+  asChild = false,
+  ...props
+}: React.ComponentProps<"button"> &
+  VariantProps<typeof buttonVariants> & {
+    asChild?: boolean
+  }) {
+  const Comp = asChild ? Slot : "button"
+
+  return (
+    <Comp
+      data-slot="button"
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
+  )
+}
+
+export { Button, buttonVariants }
+
+
+================================================
+FILE: src/components/ui/card.tsx
+================================================
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Card({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card"
+      className={cn(
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-header"
+      className={cn(
+        "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-title"
+      className={cn("leading-none font-semibold", className)}
+      {...props}
+    />
+  )
+}
+
+function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-description"
+      className={cn("text-muted-foreground text-sm", className)}
+      {...props}
+    />
+  )
+}
+
+function CardAction({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-action"
+      className={cn(
+        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function CardContent({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-content"
+      className={cn("px-6", className)}
+      {...props}
+    />
+  )
+}
+
+function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="card-footer"
+      className={cn("flex items-center px-6 [.border-t]:pt-6", className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardAction,
+  CardDescription,
+  CardContent,
+}
+
+
+================================================
+FILE: src/components/ui/dialog.tsx
+================================================
+import * as React from "react"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { XIcon } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+function Dialog({
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Root>) {
+  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+}
+
+function DialogTrigger({
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
+  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+}
+
+function DialogPortal({
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Portal>) {
+  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
+}
+
+function DialogClose({
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Close>) {
+  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
+}
+
+function DialogOverlay({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+  return (
+    <DialogPrimitive.Overlay
+      data-slot="dialog-overlay"
+      className={cn(
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DialogContent({
+  className,
+  children,
+  showCloseButton = true,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  showCloseButton?: boolean
+}) {
+  return (
+    <DialogPortal data-slot="dialog-portal">
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        data-slot="dialog-content"
+        className={cn(
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        {showCloseButton && (
+          <DialogPrimitive.Close
+            data-slot="dialog-close"
+            className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+          >
+            <XIcon />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        )}
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  )
+}
+
+function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-header"
+      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      {...props}
+    />
+  )
+}
+
+function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-footer"
+      className={cn(
+        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DialogTitle({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Title>) {
+  return (
+    <DialogPrimitive.Title
+      data-slot="dialog-title"
+      className={cn("text-lg leading-none font-semibold", className)}
+      {...props}
+    />
+  )
+}
+
+function DialogDescription({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Description>) {
+  return (
+    <DialogPrimitive.Description
+      data-slot="dialog-description"
+      className={cn("text-muted-foreground text-sm", className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+}
+
+
+================================================
+FILE: src/components/ui/dropdown-menu.tsx
+================================================
+import * as React from "react"
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
+import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+
+function DropdownMenu({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
+  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
+}
+
+function DropdownMenuPortal({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Portal>) {
+  return (
+    <DropdownMenuPrimitive.Portal data-slot="dropdown-menu-portal" {...props} />
+  )
+}
+
+function DropdownMenuTrigger({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
+  return (
+    <DropdownMenuPrimitive.Trigger
+      data-slot="dropdown-menu-trigger"
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuContent({
+  className,
+  sideOffset = 4,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+  return (
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.Content
+        data-slot="dropdown-menu-content"
+        sideOffset={sideOffset}
+        className={cn(
+          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
+          className
+        )}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
+  )
+}
+
+function DropdownMenuGroup({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Group>) {
+  return (
+    <DropdownMenuPrimitive.Group data-slot="dropdown-menu-group" {...props} />
+  )
+}
+
+function DropdownMenuItem({
+  className,
+  inset,
+  variant = "default",
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
+  inset?: boolean
+  variant?: "default" | "destructive"
+}) {
+  return (
+    <DropdownMenuPrimitive.Item
+      data-slot="dropdown-menu-item"
+      data-inset={inset}
+      data-variant={variant}
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuCheckboxItem({
+  className,
+  children,
+  checked,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+  return (
+    <DropdownMenuPrimitive.CheckboxItem
+      data-slot="dropdown-menu-checkbox-item"
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      checked={checked}
+      {...props}
+    >
+      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+        <DropdownMenuPrimitive.ItemIndicator>
+          <CheckIcon className="size-4" />
+        </DropdownMenuPrimitive.ItemIndicator>
+      </span>
+      {children}
+    </DropdownMenuPrimitive.CheckboxItem>
+  )
+}
+
+function DropdownMenuRadioGroup({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>) {
+  return (
+    <DropdownMenuPrimitive.RadioGroup
+      data-slot="dropdown-menu-radio-group"
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuRadioItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
+  return (
+    <DropdownMenuPrimitive.RadioItem
+      data-slot="dropdown-menu-radio-item"
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    >
+      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+        <DropdownMenuPrimitive.ItemIndicator>
+          <CircleIcon className="size-2 fill-current" />
+        </DropdownMenuPrimitive.ItemIndicator>
+      </span>
+      {children}
+    </DropdownMenuPrimitive.RadioItem>
+  )
+}
+
+function DropdownMenuLabel({
+  className,
+  inset,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Label> & {
+  inset?: boolean
+}) {
+  return (
+    <DropdownMenuPrimitive.Label
+      data-slot="dropdown-menu-label"
+      data-inset={inset}
+      className={cn(
+        "px-2 py-1.5 text-sm font-medium data-[inset]:pl-8",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
+  return (
+    <DropdownMenuPrimitive.Separator
+      data-slot="dropdown-menu-separator"
+      className={cn("bg-border -mx-1 my-1 h-px", className)}
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuShortcut({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      data-slot="dropdown-menu-shortcut"
+      className={cn(
+        "text-muted-foreground ml-auto text-xs tracking-widest",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuSub({
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Sub>) {
+  return <DropdownMenuPrimitive.Sub data-slot="dropdown-menu-sub" {...props} />
+}
+
+function DropdownMenuSubTrigger({
+  className,
+  inset,
+  children,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
+  inset?: boolean
+}) {
+  return (
+    <DropdownMenuPrimitive.SubTrigger
+      data-slot="dropdown-menu-sub-trigger"
+      data-inset={inset}
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <ChevronRightIcon className="ml-auto size-4" />
+    </DropdownMenuPrimitive.SubTrigger>
+  )
+}
+
+function DropdownMenuSubContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
+  return (
+    <DropdownMenuPrimitive.SubContent
+      data-slot="dropdown-menu-sub-content"
+      className={cn(
+        "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export {
+  DropdownMenu,
+  DropdownMenuPortal,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+}
+
+
+================================================
+FILE: src/components/ui/form.tsx
+================================================
+import * as React from "react"
+import * as LabelPrimitive from "@radix-ui/react-label"
+import { Slot } from "@radix-ui/react-slot"
+import {
+  Controller,
+  FormProvider,
+  useFormContext,
+  useFormState,
+  type ControllerProps,
+  type FieldPath,
+  type FieldValues,
+} from "react-hook-form"
+
+import { cn } from "@/lib/utils"
+import { Label } from "@/components/ui/label"
+
+const Form = FormProvider
+
+type FormFieldContextValue<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+> = {
+  name: TName
+}
+
+const FormFieldContext = React.createContext<FormFieldContextValue>(
+  {} as FormFieldContextValue
+)
+
+const FormField = <
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+>({
+  ...props
+}: ControllerProps<TFieldValues, TName>) => {
+  return (
+    <FormFieldContext.Provider value={{ name: props.name }}>
+      <Controller {...props} />
+    </FormFieldContext.Provider>
+  )
+}
+
+const useFormField = () => {
+  const fieldContext = React.useContext(FormFieldContext)
+  const itemContext = React.useContext(FormItemContext)
+  const { getFieldState } = useFormContext()
+  const formState = useFormState({ name: fieldContext.name })
+  const fieldState = getFieldState(fieldContext.name, formState)
+
+  if (!fieldContext) {
+    throw new Error("useFormField should be used within <FormField>")
+  }
+
+  const { id } = itemContext
+
+  return {
+    id,
+    name: fieldContext.name,
+    formItemId: `${id}-form-item`,
+    formDescriptionId: `${id}-form-item-description`,
+    formMessageId: `${id}-form-item-message`,
+    ...fieldState,
+  }
+}
+
+type FormItemContextValue = {
+  id: string
+}
+
+const FormItemContext = React.createContext<FormItemContextValue>(
+  {} as FormItemContextValue
+)
+
+function FormItem({ className, ...props }: React.ComponentProps<"div">) {
+  const id = React.useId()
+
+  return (
+    <FormItemContext.Provider value={{ id }}>
+      <div
+        data-slot="form-item"
+        className={cn("grid gap-2", className)}
+        {...props}
+      />
+    </FormItemContext.Provider>
+  )
+}
+
+function FormLabel({
+  className,
+  ...props
+}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+  const { error, formItemId } = useFormField()
+
+  return (
+    <Label
+      data-slot="form-label"
+      data-error={!!error}
+      className={cn("data-[error=true]:text-destructive", className)}
+      htmlFor={formItemId}
+      {...props}
+    />
+  )
+}
+
+function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
+  const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
+
+  return (
+    <Slot
+      data-slot="form-control"
+      id={formItemId}
+      aria-describedby={
+        !error
+          ? `${formDescriptionId}`
+          : `${formDescriptionId} ${formMessageId}`
+      }
+      aria-invalid={!!error}
+      {...props}
+    />
+  )
+}
+
+function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
+  const { formDescriptionId } = useFormField()
+
+  return (
+    <p
+      data-slot="form-description"
+      id={formDescriptionId}
+      className={cn("text-muted-foreground text-sm", className)}
+      {...props}
+    />
+  )
+}
+
+function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
+  const { error, formMessageId } = useFormField()
+  const body = error ? String(error?.message ?? "") : props.children
+
+  if (!body) {
+    return null
+  }
+
+  return (
+    <p
+      data-slot="form-message"
+      id={formMessageId}
+      className={cn("text-destructive text-sm", className)}
+      {...props}
+    >
+      {body}
+    </p>
+  )
+}
+
+export {
+  useFormField,
+  Form,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormDescription,
+  FormMessage,
+  FormField,
+}
+
+
+================================================
+FILE: src/components/ui/input.tsx
+================================================
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+  return (
+    <input
+      type={type}
+      data-slot="input"
+      className={cn(
+        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Input }
+
+
+================================================
+FILE: src/components/ui/label.tsx
+================================================
+"use client"
+
+import * as React from "react"
+import * as LabelPrimitive from "@radix-ui/react-label"
+
+import { cn } from "@/lib/utils"
+
+function Label({
+  className,
+  ...props
+}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+  return (
+    <LabelPrimitive.Root
+      data-slot="label"
+      className={cn(
+        "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Label }
+
+
+================================================
+FILE: src/components/ui/resizable.tsx
+================================================
+"use client"
+
+import * as React from "react"
+import { GripVerticalIcon } from "lucide-react"
+import * as ResizablePrimitive from "react-resizable-panels"
+
+import { cn } from "@/lib/utils"
+
+function ResizablePanelGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof ResizablePrimitive.PanelGroup>) {
+  return (
+    <ResizablePrimitive.PanelGroup
+      data-slot="resizable-panel-group"
+      className={cn(
+        "flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function ResizablePanel({
+  ...props
+}: React.ComponentProps<typeof ResizablePrimitive.Panel>) {
+  return <ResizablePrimitive.Panel data-slot="resizable-panel" {...props} />
+}
+
+function ResizableHandle({
+  withHandle,
+  className,
+  ...props
+}: React.ComponentProps<typeof ResizablePrimitive.PanelResizeHandle> & {
+  withHandle?: boolean
+}) {
+  return (
+    <ResizablePrimitive.PanelResizeHandle
+      data-slot="resizable-handle"
+      className={cn(
+        "bg-border focus-visible:ring-ring relative flex w-px items-center justify-center after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:outline-hidden data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:translate-x-0 data-[panel-group-direction=vertical]:after:-translate-y-1/2 [&[data-panel-group-direction=vertical]>div]:rotate-90",
+        className
+      )}
+      {...props}
+    >
+      {withHandle && (
+        <div className="bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border">
+          <GripVerticalIcon className="size-2.5" />
+        </div>
+      )}
+    </ResizablePrimitive.PanelResizeHandle>
+  )
+}
+
+export { ResizablePanelGroup, ResizablePanel, ResizableHandle }
+
+
+================================================
+FILE: src/components/ui/scroll-area.tsx
+================================================
+import * as React from "react"
+import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
+
+import { cn } from "@/lib/utils"
+
+function ScrollArea({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+  return (
+    <ScrollAreaPrimitive.Root
+      data-slot="scroll-area"
+      className={cn("relative", className)}
+      {...props}
+    >
+      <ScrollAreaPrimitive.Viewport
+        data-slot="scroll-area-viewport"
+        className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+      >
+        {children}
+      </ScrollAreaPrimitive.Viewport>
+      <ScrollBar />
+      <ScrollAreaPrimitive.Corner />
+    </ScrollAreaPrimitive.Root>
+  )
+}
+
+function ScrollBar({
+  className,
+  orientation = "vertical",
+  ...props
+}: React.ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>) {
+  return (
+    <ScrollAreaPrimitive.ScrollAreaScrollbar
+      data-slot="scroll-area-scrollbar"
+      orientation={orientation}
+      className={cn(
+        "flex touch-none p-px transition-colors select-none",
+        orientation === "vertical" &&
+          "h-full w-2.5 border-l border-l-transparent",
+        orientation === "horizontal" &&
+          "h-2.5 flex-col border-t border-t-transparent",
+        className
+      )}
+      {...props}
+    >
+      <ScrollAreaPrimitive.ScrollAreaThumb
+        data-slot="scroll-area-thumb"
+        className="bg-border relative flex-1 rounded-full"
+      />
+    </ScrollAreaPrimitive.ScrollAreaScrollbar>
+  )
+}
+
+export { ScrollArea, ScrollBar }
+
+
+================================================
+FILE: src/components/ui/switch.tsx
+================================================
+import * as React from "react"
+import * as SwitchPrimitive from "@radix-ui/react-switch"
+
+import { cn } from "@/lib/utils"
+
+function Switch({
+  className,
+  ...props
+}: React.ComponentProps<typeof SwitchPrimitive.Root>) {
+  return (
+    <SwitchPrimitive.Root
+      data-slot="switch"
+      className={cn(
+        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      {...props}
+    >
+      <SwitchPrimitive.Thumb
+        data-slot="switch-thumb"
+        className={cn(
+          "bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
+        )}
+      />
+    </SwitchPrimitive.Root>
+  )
+}
+
+export { Switch }
+
+
+================================================
+FILE: src/components/ui/textarea.tsx
+================================================
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
+
+function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
+  return (
+    <textarea
+      data-slot="textarea"
+      className={cn(
+        "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Textarea }
+
+
+================================================
+FILE: src/components/ui/tooltip.tsx
+================================================
+import * as React from "react"
+import * as TooltipPrimitive from "@radix-ui/react-tooltip"
+
+import { cn } from "@/lib/utils"
+
+function TooltipProvider({
+  delayDuration = 0,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
+  return (
+    <TooltipPrimitive.Provider
+      data-slot="tooltip-provider"
+      delayDuration={delayDuration}
+      {...props}
+    />
+  )
+}
+
+function Tooltip({
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  return (
+    <TooltipProvider>
+      <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+    </TooltipProvider>
+  )
+}
+
+function TooltipTrigger({
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
+  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+}
+
+function TooltipContent({
+  className,
+  sideOffset = 0,
+  children,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  return (
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Content
+        data-slot="tooltip-content"
+        sideOffset={sideOffset}
+        className={cn(
+          "bg-primary text-primary-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-xs text-balance",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <TooltipPrimitive.Arrow className="bg-primary fill-primary z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]" />
+      </TooltipPrimitive.Content>
+    </TooltipPrimitive.Portal>
+  )
+}
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+
+
+================================================
+FILE: src/hooks/useDashboard.ts
+================================================
+// src/hooks/useDashboard.ts
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { save, open } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { useAppStore, useAppActions } from "@/store/appStore";
+import { type Group } from "@/store/types";
+import { useShallow } from "zustand/react/shallow"; // <-- BƯỚC 1: IMPORT useShallow
+
+// Schema validation cho form
+const groupSchema = z.object({
+  name: z.string().min(1, "Tên nhóm không được để trống"),
+  description: z.string().optional(),
+});
+type GroupFormValues = z.infer<typeof groupSchema>;
+
+export function useDashboard() {
+  // --- LẤY STATE VÀ ACTIONS TỪ STORE ---
+  // BƯỚC 2: SỬ DỤNG useShallow
+  const { rootPath, projectStats, selectedPath } = useAppStore(
+    useShallow((state) => ({
+      rootPath: state.rootPath,
+      projectStats: state.projectStats,
+      selectedPath: state.selectedPath,
+    }))
+  );
+  const { addGroup, updateGroup, selectRootPath, rescanProject } =
+    useAppActions();
+
+  // --- STATE CỤC BỘ CỦA SCENE ---
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // --- QUẢN LÝ FORM ---
+  const form = useForm<GroupFormValues>({
+    resolver: zodResolver(groupSchema),
+    defaultValues: { name: "", description: "" },
+  });
+
+  // --- LOGIC LẮNG NGHE SỰ KIỆN TỪ BACKEND ---
+  useEffect(() => {
+    const unlistenComplete = listen<string>(
+      "project_export_complete",
+      async (event) => {
+        try {
+          const filePath = await save({
+            title: "Lưu Ngữ cảnh Dự án",
+            defaultPath: "project_context.txt",
+            filters: [{ name: "Text File", extensions: ["txt"] }],
+          });
+          if (filePath) {
+            await writeTextFile(filePath, event.payload);
+            alert(`Đã lưu file thành công!`);
+          }
+        } catch (error) {
+          console.error("Lỗi khi lưu file ngữ cảnh dự án:", error);
+          alert("Đã xảy ra lỗi khi lưu file.");
+        } finally {
+          setIsExporting(false);
+        }
+      }
+    );
+
+    const unlistenError = listen<string>("project_export_error", (event) => {
+      console.error("Lỗi khi xuất dự án:", event.payload);
+      alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
+      setIsExporting(false);
+    });
+
+    return () => {
+      unlistenComplete.then((f) => f());
+      unlistenError.then((f) => f());
+    };
+  }, []); // Chỉ chạy một lần
+
+  // --- CÁC HÀM XỬ LÝ SỰ KIỆN (HANDLERS) ---
+  const handleOpenDialog = (group: Group | null = null) => {
+    setEditingGroup(group);
+    form.reset(
+      group
+        ? { name: group.name, description: group.description || "" }
+        : { name: "", description: "" }
+    );
+    setIsDialogOpen(true);
+  };
+
+  const onSubmit = (data: GroupFormValues) => {
+    if (editingGroup) {
+      updateGroup({ ...editingGroup, ...data });
+    } else {
+      addGroup({ name: data.name, description: data.description || "" });
+    }
+    setIsDialogOpen(false);
+  };
+
+  const handleOpenAnotherFolder = async () => {
+    try {
+      const result = await open({
+        directory: true,
+        multiple: false,
+        title: "Chọn một thư mục dự án khác",
+      });
+      if (typeof result === "string") {
+        selectRootPath(result);
+      }
+    } catch (error) {
+      console.error("Lỗi khi chọn thư mục khác:", error);
+    }
+  };
+
+  const handleExportProject = () => {
+    // Không cần async nữa
+    if (!rootPath) return;
+    setIsExporting(true);
+    // Chỉ "bắn" lệnh đi và không chờ đợi
+    invoke("start_project_export", { path: rootPath });
+    // Logic sẽ được tiếp tục trong listener sự kiện `project_export_complete`
+  };
+
+  const handleConfirmRescan = async () => {
+    await rescanProject();
+  };
+
+  // --- TRẢ VỀ "API" CHO COMPONENT UI ---
+  return {
+    // Data
+    selectedPath,
+    projectStats,
+    // Trạng thái UI
+    isDialogOpen,
+    isExporting,
+    editingGroup,
+    // Form
+    form,
+    // Handlers
+    setIsDialogOpen,
+    handleOpenDialog,
+    onSubmit,
+    handleOpenAnotherFolder,
+    handleExportProject,
+    handleConfirmRescan,
+  };
+}
+
+
+================================================
+FILE: src/lib/treeUtils.ts
+================================================
+// src/lib/treeUtils.ts
+import type { FileNode } from "@/store/types";
+
+/**
+ * Lấy tất cả đường dẫn của chính node và các con cháu của nó.
+ * @param node - Node bắt đầu.
+ * @returns Mảng các chuỗi đường dẫn.
+ */
+export const getDescendantAndSelfPaths = (node: FileNode): string[] => {
+  const paths = [node.path];
+  if (Array.isArray(node.children)) {
+    for (const child of node.children) {
+      paths.push(...getDescendantAndSelfPaths(child));
+    }
+  }
+  return paths;
+};
+
+/**
+ * Tối ưu hóa danh sách các đường dẫn đã chọn thành một danh sách tối thiểu để lưu.
+ * Nếu một thư mục được chọn hoàn toàn, chỉ đường dẫn thư mục đó được giữ lại.
+ * Nếu một thư mục chỉ được chọn một phần, hàm sẽ đi sâu vào trong.
+ * @param node - Node gốc của cây thư mục.
+ * @param selectedPaths - Set chứa tất cả các đường dẫn được chọn trên UI (đã mở rộng).
+ * @returns Mảng các đường dẫn đã được tối ưu hóa.
+ */
+export const prunePathsForSave = (
+  node: FileNode,
+  selectedPaths: Set<string>
+): string[] => {
+  const prunedPaths: string[] = [];
+
+  // Hàm đệ quy để duyệt cây
+  function traverse(currentNode: FileNode) {
+    // Bỏ qua nếu node này không được chọn và không phải là thư mục gốc
+    if (!selectedPaths.has(currentNode.path) && currentNode.path !== "") {
+      return;
+    }
+
+    // Trường hợp 1: Node là một file. Nếu được chọn, thêm nó vào.
+    if (
+      !Array.isArray(currentNode.children) ||
+      currentNode.children.length === 0
+    ) {
+      if (selectedPaths.has(currentNode.path)) {
+        prunedPaths.push(currentNode.path);
+      }
+      return;
+    }
+
+    // Trường hợp 2: Node là một thư mục.
+    const descendantPaths = getDescendantAndSelfPaths(currentNode);
+    // Kiểm tra xem TẤT CẢ các con cháu (và chính nó) có nằm trong selectedPaths không.
+    const isFullySelected = descendantPaths.every((p) => selectedPaths.has(p));
+
+    if (isFullySelected) {
+      // Nếu được chọn hoàn toàn, chỉ cần thêm đường dẫn của thư mục này và dừng lại.
+      // Không thêm đường dẫn gốc rỗng vào kết quả cuối cùng.
+      if (currentNode.path !== "") {
+        prunedPaths.push(currentNode.path);
+      } else {
+        // Trường hợp đặc biệt: Nếu TOÀN BỘ dự án được chọn, chúng ta cần duyệt
+        // các con cấp 1 của nó để trả về danh sách ["src", "public", ...]
+        for (const child of currentNode.children ?? []) {
+          traverse(child);
+        }
+      }
+    } else {
+      // Nếu chỉ được chọn một phần, phải đi sâu vào từng con để kiểm tra.
+      for (const child of currentNode.children ?? []) {
+        traverse(child);
+      }
+    }
+  }
+
+  traverse(node);
+  return prunedPaths;
+};
+
+/**
+ * Mở rộng một danh sách đường dẫn tối thiểu (đã lưu) thành một Set đầy đủ để hiển thị trên UI.
+ * @param rootNode - Node gốc của cây thư mục.
+ * @param savedPaths - Set chứa các đường dẫn đã được tối ưu hóa.
+ * @returns Set chứa tất cả các đường dẫn cần được check trên UI.
+ */
+export const expandPaths = (
+  rootNode: FileNode,
+  savedPaths: Set<string>
+): Set<string> => {
+  const expanded = new Set<string>();
+
+  function traverse(node: FileNode) {
+    // Nếu đường dẫn của node này nằm trong danh sách đã lưu,
+    // thêm nó và tất cả các con cháu của nó vào set mở rộng.
+    if (savedPaths.has(node.path)) {
+      getDescendantAndSelfPaths(node).forEach((p) => expanded.add(p));
+      // Vì đã thêm tất cả, không cần đi sâu hơn nữa từ node này.
+      return;
+    }
+
+    // Nếu không, tiếp tục duyệt các con của nó.
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        traverse(child);
+      }
+    }
+  }
+
+  // Luôn bắt đầu từ gốc
+  traverse(rootNode);
+
+  // Sau khi mở rộng, phải thêm các thư mục cha ngược lên đến gốc
+  // để đảm bảo UI hiển thị đúng (VD: checkbox indeterminate).
+  const pathsToAddParentsFor = [...expanded];
+  for (const path of pathsToAddParentsFor) {
+    let current = path;
+    while (current.includes("/")) {
+      current = current.substring(0, current.lastIndexOf("/"));
+      if (current) {
+        // Chỉ thêm nếu không phải chuỗi rỗng
+        expanded.add(current);
+      }
+    }
+  }
+  // Luôn thêm đường dẫn gốc
+  expanded.add("");
+
+  return expanded;
+};
+
+
+================================================
+FILE: src/lib/utils.ts
+================================================
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+// --- HÀM MỚI ---
+export function formatBytes(bytes: number, decimals = 2): string {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+}
+
+// --- HÀM MỚI: THROTTLE ---
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function throttle<T extends (...args: any[]) => void>(
+  func: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let inThrottle: boolean;
+  let lastArgs: Parameters<T> | null = null;
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
+    lastArgs = args;
+    if (!inThrottle) {
+      inThrottle = true;
+      func.apply(this, args);
+      setTimeout(() => {
+        inThrottle = false;
+        if (lastArgs) {
+          // Nếu có cuộc gọi nào bị bỏ lỡ, thực hiện cuộc gọi cuối cùng
+          func.apply(this, lastArgs);
+          lastArgs = null;
+        }
+      }, delay);
+    } else if (timeoutId === null) {
+      // Đảm bảo cập nhật cuối cùng sau khi hết throttle
+      timeoutId = setTimeout(() => {
+        if (lastArgs) {
+          func.apply(this, lastArgs);
+          lastArgs = null;
+        }
+        timeoutId = null;
+      }, delay);
+    }
+  };
+}
+
+
+================================================
+FILE: src/main.tsx
+================================================
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+
+ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
+
+
+================================================
+FILE: src/scenes/DashboardScene.tsx
+================================================
+// src/scenes/DashboardScene.tsx
+import { useState } from "react";
+import { useDashboard } from "@/hooks/useDashboard";
+
+// Import các component UI cần thiết
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
+import { ProjectStats as ProjectStatsComponent } from "@/components/ProjectStats";
+import { GroupManager } from "@/components/GroupManager";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { PlusCircle, FolderSync, RotateCw, Settings } from "lucide-react"; // Thêm Settings
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { SettingsDialog } from "@/components/SettingsDialog"; // <-- THAY ĐỔI: Import Dialog mới
+
+export function DashboardScene() {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // --- COMPONENT CHỈ CÒN LẠI VIỆC GỌI HOOK VÀ RENDER UI ---
+  const {
+    selectedPath,
+    projectStats,
+    isDialogOpen,
+    isExporting,
+    editingGroup,
+    form,
+    setIsDialogOpen,
+    handleOpenDialog,
+    onSubmit,
+    handleOpenAnotherFolder,
+    handleExportProject,
+    handleConfirmRescan,
+  } = useDashboard();
+
+  return (
+    <>
+      <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+        {/* === SIDEBAR === */}
+        <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+          <div className="flex h-full flex-col gap-4 p-6">
+            {" "}
+            {/* Thay đổi padding p-4 -> p-6 */}
+            <div className="flex items-center justify-between px-2">
+              <h2 className="text-xl font-bold">Thông tin Dự án</h2>
+              <div className="flex items-center">
+                <AlertDialog>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <RotateCw className="h-5 w-5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Quét lại dự án</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Bạn có chắc chắn muốn quét lại?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Hành động này sẽ đọc lại toàn bộ cây thư mục và cập nhật
+                        tất cả thống kê, bao gồm cả các nhóm đã tạo. Quá trình
+                        này có thể mất một lúc đối với các dự án lớn.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Hủy</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleConfirmRescan}>
+                        Tiếp tục
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleOpenAnotherFolder}
+                    >
+                      <FolderSync className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Mở dự án khác</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+            <ProjectStatsComponent
+              path={selectedPath}
+              stats={projectStats}
+              onExportProject={handleExportProject}
+              isExporting={isExporting}
+            />
+          </div>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* === MAIN CONTENT (CÓ LAYOUT MỚI) === */}
+        <ResizablePanel defaultSize={75}>
+          <div className="flex flex-col h-full">
+            {/* --- HEADER CỐ ĐỊNH --- */}
+            <header className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h1 className="text-3xl font-bold">Phân Nhóm Ngữ Cảnh</h1>
+                <p className="text-muted-foreground">
+                  Tạo và quản lý các nhóm ngữ cảnh cho dự án của bạn.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => handleOpenDialog()}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm mới
+                </Button>
+                {/* --- THAY ĐỔI: Thay ThemeToggle bằng nút Cài đặt --- */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSettingsOpen(true)}
+                >
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </div>
+            </header>
+
+            {/* --- VÙNG NỘI DUNG CUỘN ĐƯỢC --- */}
+            <ScrollArea className="flex-1">
+              <div className="p-6">
+                <GroupManager onEditGroup={handleOpenDialog} />
+              </div>
+            </ScrollArea>
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
+
+      {/* === DIALOG TẠO/SỬA NHÓM (Không thay đổi) === */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingGroup ? "Chỉnh sửa nhóm" : "Tạo nhóm mới"}
+            </DialogTitle>
+            <DialogDescription>
+              Điền thông tin chi tiết cho nhóm của bạn.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tên nhóm</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ví dụ: Backend APIs" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mô tả</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Mô tả ngắn về chức năng của nhóm này..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="ghost">
+                    Hủy
+                  </Button>
+                </DialogClose>
+                <Button type="submit">Lưu</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- THÊM MỚI: Render Dialog Cài đặt --- */}
+      <SettingsDialog
+        isOpen={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+      />
+    </>
+  );
+}
+
+
+================================================
+FILE: src/scenes/GroupEditorScene.tsx
+================================================
+// src/scenes/GroupEditorScene.tsx
+import { useCallback } from "react";
+import { useAppStore, useAppActions } from "@/store/appStore";
+import { useShallow } from "zustand/react/shallow";
+import { FileTreeView, type FileNode } from "@/components/FileTreeView";
+import { Button } from "@/components/ui/button";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Link,
+  Link2Off,
+  CheckCheck,
+  XCircle,
+} from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
+export function GroupEditorScene() {
+  const {
+    saveEditingGroup,
+    cancelEditingGroup,
+    toggleEditingPath,
+    setCrossLinkingEnabled,
+    selectAllFiles, // <-- Lấy action mới
+    deselectAllFiles, // <-- Lấy action mới
+  } = useAppActions();
+
+  const {
+    group,
+    fileTree,
+    isSaving,
+    tempSelectedPaths,
+    isCrossLinkingEnabled,
+  } = useAppStore(
+    useShallow((state) => ({
+      group: state.groups.find((g) => g.id === state.editingGroupId),
+      fileTree: state.fileTree,
+      isSaving: state.isUpdatingGroupId === state.editingGroupId,
+      tempSelectedPaths: state.tempSelectedPaths,
+      isCrossLinkingEnabled: state.isCrossLinkingEnabled,
+    }))
+  );
+
+  const handleTogglePath = useCallback(
+    (toggledNode: FileNode, isSelected: boolean) => {
+      toggleEditingPath(toggledNode, isSelected);
+    },
+    [toggleEditingPath]
+  );
+
+  if (!group || !fileTree || tempSelectedPaths === null) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-screen">
+      <header className="flex items-center justify-between p-4 border-b">
+        <div>
+          <h1 className="text-2xl font-bold">
+            Chỉnh sửa nội dung nhóm: {group.name}
+          </h1>
+          <p className="text-muted-foreground">
+            Chọn các tệp và thư mục để đưa vào ngữ cảnh.
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* --- KHỐI MỚI CHO CÁC NÚT CHỌN NHANH --- */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={selectAllFiles}>
+              <CheckCheck className="mr-2 h-4 w-4" />
+              Chọn tất cả
+            </Button>
+            <Button variant="outline" size="sm" onClick={deselectAllFiles}>
+              <XCircle className="mr-2 h-4 w-4" />
+              Bỏ chọn tất cả
+            </Button>
+          </div>
+          {/* --- KẾT THÚC KHỐI MỚI --- */}
+
+          {/* Dải phân cách trực quan */}
+          <div className="h-8 w-px bg-border"></div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="cross-linking-toggle"
+              checked={isCrossLinkingEnabled}
+              onCheckedChange={setCrossLinkingEnabled}
+            />
+            <Label
+              htmlFor="cross-linking-toggle"
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              {isCrossLinkingEnabled ? (
+                <Link className="h-4 w-4" />
+              ) : (
+                <Link2Off className="h-4 w-4" />
+              )}
+              Tự động chọn file liên quan
+            </Label>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={cancelEditingGroup}
+              disabled={isSaving}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
+            </Button>
+            <Button onClick={saveEditingGroup} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+            </Button>
+          </div>
+        </div>
+      </header>
+      <main className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full p-4">
+          <FileTreeView
+            node={fileTree}
+            selectedPaths={tempSelectedPaths}
+            onToggle={handleTogglePath}
+          />
+        </ScrollArea>
+      </main>
+    </div>
+  );
+}
+
+
+================================================
+FILE: src/scenes/ScanningScene.tsx
+================================================
+// src/scenes/ScanningScene.tsx
+import { useAppStore } from "@/store/appStore";
+import { Loader2 } from "lucide-react";
+
+export function ScanningScene() {
+  const currentFile = useAppStore((state) => state.scanProgress.currentFile);
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-4">
+      <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <h2 className="text-2xl font-semibold">Đang phân tích dự án...</h2>
+      <p className="text-muted-foreground max-w-xl truncate text-center font-mono text-sm">
+        {currentFile ? currentFile : "Đang khởi tạo..."}
+      </p>
+    </div>
+  );
+}
+
+
+================================================
+FILE: src/scenes/WelcomeScene.tsx
+================================================
+// src/scenes/WelcomeScene.tsx
+import { Folder } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { useAppActions } from "@/store/appStore";
+import { Button } from "@/components/ui/button"; // <-- Import Button từ Shadcn
+
+export function WelcomeScene() {
+  const { selectRootPath } = useAppActions();
+
+  const handleSelectFolder = async () => {
+    try {
+      const result = await open({
+        directory: true,
+        multiple: false,
+        title: "Chọn một thư mục dự án",
+      });
+      if (typeof result === "string") {
+        selectRootPath(result);
+      }
+    } catch (error) {
+      console.error("Lỗi khi chọn thư mục:", error);
+    }
+  };
+
+  return (
+    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
+      <h1 className="text-4xl font-bold">Master Context</h1>
+      <p className="text-sm text-muted-foreground">
+        Công cụ quản lý và tạo ngữ cảnh cho dự án của bạn.
+      </p>
+      {/* --- CẬP NHẬT: Thay thế <button> bằng <Button> --- */}
+      <Button size="lg" onClick={handleSelectFolder}>
+        <Folder className="mr-2 h-6 w-6" />
+        Chọn Thư Mục
+      </Button>
+    </main>
+  );
+}
+
+
+================================================
+FILE: src/store/appStore.ts
+================================================
+// src/store/appStore.ts
+import { create } from "zustand";
+import { invoke } from "@tauri-apps/api/core";
+import {
+  type CachedProjectData,
+  type FileNode,
+  type GroupStats,
+  type ProjectStats,
+  type ScanProgress,
+  type Group,
+  type FileMetadata,
+} from "./types";
+import {
+  getDescendantAndSelfPaths,
+  prunePathsForSave,
+  expandPaths,
+} from "@/lib/treeUtils";
+
+// --- DI CHUYỂN TOÀN BỘ CÁC HÀM HELPER VÀO ĐÂY ---
+// Điều này giúp tập trung logic xử lý state ở một nơi duy nhất.
+
+// --- PHẦN MỚI: Định nghĩa kiểu dữ liệu ProjectData khớp với Rust ---
+// Thay thế bằng CachedProjectData
+
+// Thêm FileNode interface
+
+// --- INTERFACE MỚI CHO THỐNG KÊ NHÓM ---
+
+// --- INTERFACE MỚI CHO METADATA FILE ---
+
+// --- INTERFACE CHO THỐNG KÊ TỔNG QUAN DỰ ÁN ---
+
+// --- HÀM TẠO STATS MẶC ĐỊNH ---
+const defaultGroupStats = (): GroupStats => ({
+  total_files: 0,
+  total_dirs: 0,
+  total_size: 0,
+  token_count: 0,
+});
+
+// --- INTERFACE MỚI TỪ RUST ---
+/*
+interface GroupContextResult {
+  context: string;
+  stats: GroupStats; // <-- Nhận về stats
+}
+*/
+
+// Payload từ sự kiện scan_complete
+// interface ScanCompletePayload {
+//   stats: ProjectStats;
+//   fileTree: FileNode;
+// }
+
+interface AppState {
+  rootPath: string | null;
+  selectedPath: string | null;
+  groups: Group[];
+  // --- STATE MỚI ĐỂ ĐIỀU HƯỚNG ---
+  activeScene: "dashboard" | "groupEditor";
+  editingGroupId: string | null;
+  // --- STATE MỚI ---
+  projectStats: ProjectStats | null;
+  isScanning: boolean;
+  scanProgress: ScanProgress; // <-- THÊM STATE MỚI
+  fileTree: FileNode | null; // <-- THÊM STATE MỚI
+  isUpdatingGroupId: string | null; // <-- State loading khi lưu nhóm
+  // --- STATE MỚI ---
+  tempSelectedPaths: Set<string> | null; // State tạm để chỉnh sửa cây thư mục
+  fileMetadataCache: Record<string, FileMetadata> | null; // <-- THÊM STATE NÀY
+  isCrossLinkingEnabled: boolean; // <-- THÊM STATE NÀY
+  // --- STATE MỚI CHO CÀI ĐẶT ĐỒNG BỘ ---
+  syncEnabled: boolean;
+  syncPath: string | null;
+
+  actions: {
+    selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
+    // --- THÊM MỚI: Action để quét lại dự án ---
+    rescanProject: () => Promise<void>;
+    reset: () => void;
+    addGroup: (group: Omit<Group, "id" | "paths" | "stats">) => void;
+    updateGroup: (group: Omit<Group, "paths" | "stats">) => void;
+    deleteGroup: (groupId: string) => void;
+    // --- ACTIONS MỚI ---
+    editGroupContent: (groupId: string) => void;
+    showDashboard: () => void;
+    updateGroupPaths: (groupId: string, paths: string[]) => void;
+    // --- THÊM CÁC ACTION "NỘI BỘ" ĐỂ XỬ LÝ SỰ KIỆN ---
+    _setScanProgress: (file: string) => void;
+    _setScanComplete: (payload: CachedProjectData) => void;
+    _setScanError: (error: string) => void;
+    // --- ACTIONS MỚI ---
+    _setGroupUpdateComplete: (payload: {
+      groupId: string;
+      stats: GroupStats;
+      paths: string[];
+    }) => void;
+    // --- ACTIONS MỚI CHO VIỆC CHỈNH SỬA NHÓM ---
+    startEditingGroup: (groupId: string) => void;
+    toggleEditingPath: (node: FileNode, isSelected: boolean) => void;
+    cancelEditingGroup: () => void;
+    saveEditingGroup: () => Promise<void>;
+    setCrossLinkingEnabled: (enabled: boolean) => void; // <-- THÊM ACTION NÀY
+    selectAllFiles: () => void; // <-- THÊM ACTION NÀY
+    deselectAllFiles: () => void; // <-- THÊM ACTION NÀY
+    // --- ACTION MỚI CHO CÀI ĐẶT ---
+    setSyncSettings: (settings: {
+      enabled: boolean;
+      path: string | null;
+    }) => Promise<void>;
+    setGroupCrossSync: (groupId: string, enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
+  };
+}
+
+export const useAppStore = create<AppState>((set, get) => {
+  // --- PHẦN MỚI: Hàm trợ giúp để cập nhật groups trên backend ---
+  const updateGroupsOnBackend = async () => {
+    const { rootPath, groups } = get();
+    if (rootPath) {
+      try {
+        // === BẮT ĐẦU SỬA LỖI ===
+        // Lệnh invoke giờ không cần app_handle nữa
+        await invoke("update_groups_in_project_data", {
+          path: rootPath,
+          groups: groups,
+        });
+        // === KẾT THÚC SỬA LỖI ===
+      } catch (error) {
+        console.error("Lỗi khi cập nhật nhóm trên backend:", error);
+      }
+    }
+  };
+
+  return {
+    rootPath: null,
+    selectedPath: null,
+    groups: [],
+    activeScene: "dashboard", // <-- Giá trị mặc định
+    editingGroupId: null,
+    // --- GIÁ TRỊ MẶC ĐỊNH CHO STATE MỚI ---
+    projectStats: null,
+    isScanning: false,
+    scanProgress: { currentFile: null }, // <-- GIÁ TRỊ MẶC ĐỊNH
+    fileTree: null,
+    isUpdatingGroupId: null,
+    tempSelectedPaths: null, // Giá trị mặc định
+    fileMetadataCache: null, // <-- Thêm giá trị mặc định
+    isCrossLinkingEnabled: false, // <-- Thêm giá trị mặc định
+    // --- GIÁ TRỊ MẶC ĐỊNH CHO CÀI ĐẶT ĐỒNG BỘ ---
+    syncEnabled: false,
+    syncPath: null,
+    actions: {
+      // --- CẬP NHẬT selectRootPath ---
+      selectRootPath: async (path) => {
+        // 1. Cập nhật state UI ngay lập tức để hiển thị màn hình Scanning
+        set({
+          isScanning: true,
+          rootPath: path,
+          selectedPath: path,
+          projectStats: null,
+          fileTree: null,
+          groups: [],
+          activeScene: "dashboard", // Vẫn giữ để sau khi quét xong sẽ vào dashboard
+          scanProgress: { currentFile: "Đang khởi tạo quá trình quét..." },
+        });
+
+        // 2. Kích hoạt quá trình quét ở backend
+        try {
+          // === THAY ĐỔI QUAN TRỌNG: XÓA `await` ===
+          // Frontend chỉ cần ra lệnh cho backend bắt đầu, không cần chờ nó xong.
+          // Kết quả sẽ được xử lý bởi listener sự kiện trong `App.tsx`.
+          invoke("open_project", { path });
+        } catch (error) {
+          console.error("Lỗi khi gọi command open_project:", error);
+          // Nếu việc `invoke` thất bại ngay lập tức (hiếm), chúng ta vẫn xử lý lỗi
+          set({ isScanning: false });
+          alert("Không thể bắt đầu phân tích dự án.");
+        }
+      },
+      // --- THÊM MỚI: Logic cho action rescanProject ---
+      rescanProject: async () => {
+        const { rootPath } = get();
+        if (!rootPath) {
+          console.warn("Không thể quét lại vì chưa có dự án nào được chọn.");
+          return;
+        }
+        // 1. Đặt trạng thái đang quét
+        set({
+          isScanning: true,
+          scanProgress: { currentFile: "Bắt đầu quét lại dự án..." },
+        });
+        // 2. Gọi lại command 'open_project' với đường dẫn hiện tại
+        try {
+          invoke("open_project", { path: rootPath });
+        } catch (error) {
+          console.error("Lỗi khi bắt đầu quét lại dự án:", error);
+          set({
+            isScanning: false,
+            scanProgress: { currentFile: null },
+          });
+          alert("Không thể bắt đầu quá trình quét lại dự án.");
+        }
+      },
+      reset: () =>
+        set({
+          rootPath: null,
+          selectedPath: null,
+          groups: [],
+          activeScene: "dashboard",
+          editingGroupId: null,
+        }), // Reset cả groups
+
+      addGroup: (newGroup) => {
+        const groupWithDefaults: Group = {
+          ...newGroup,
+          id: Date.now().toString(),
+          paths: [],
+          stats: defaultGroupStats(), // <-- Dùng stats mặc định
+          crossSyncEnabled: false, // <-- GÁN GIÁ TRỊ MẶC ĐỊNH
+        };
+        set((state) => ({ groups: [...state.groups, groupWithDefaults] }));
+        updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
+      },
+      updateGroup: (updatedGroup) => {
+        set((state) => ({
+          groups: state.groups.map((g) =>
+            g.id === updatedGroup.id ? { ...g, ...updatedGroup } : g
+          ),
+        }));
+        updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
+      },
+      deleteGroup: (groupId) => {
+        set((state) => ({
+          groups: state.groups.filter((g) => g.id !== groupId),
+        }));
+        updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
+      },
+
+      // --- CÁC ACTION MỚI ---
+      editGroupContent: (groupId) => {
+        get().actions.startEditingGroup(groupId);
+        set({ activeScene: "groupEditor", editingGroupId: groupId });
+      },
+      showDashboard: () => {
+        set({ activeScene: "dashboard", editingGroupId: null });
+      },
+      updateGroupPaths: (groupId, paths) => {
+        // Không cần async nữa
+        const rootPath = get().rootPath;
+        if (!rootPath) return;
+        set({ isUpdatingGroupId: groupId });
+
+        // Chỉ "bắn" lệnh đi và không chờ đợi
+        invoke("start_group_update", {
+          groupId,
+          rootPathStr: rootPath,
+          paths,
+        });
+        // Logic sẽ được tiếp tục trong listener sự kiện `group_update_complete`
+      },
+
+      // --- CÁC ACTION MỚI ĐỂ XỬ LÝ SỰ KIỆN TỪ RUST ---
+      _setScanProgress: (file) => {
+        set({ scanProgress: { currentFile: file } });
+      },
+      _setScanComplete: (payload: CachedProjectData) => {
+        set({
+          projectStats: payload.stats,
+          fileTree: payload.file_tree,
+          // --- THAY ĐỔI: Lưu cả file metadata cache ---
+          fileMetadataCache: payload.file_metadata_cache,
+          groups: (payload.groups || []).map((g) => ({
+            ...g,
+            paths: g.paths || [],
+            stats: g.stats || defaultGroupStats(),
+            crossSyncEnabled: (g as any).cross_sync_enabled ?? false, // <-- XỬ LÝ DỮ LIỆU MỚI
+          })),
+          isScanning: false,
+          // Cập nhật cài đặt đồng bộ từ file đã tải
+          syncEnabled: payload.sync_enabled ?? false,
+          syncPath: payload.sync_path ?? null,
+          // file_metadata_cache được backend quản lý, frontend không cần lưu
+        });
+      },
+      _setScanError: (error) => {
+        console.error("Scan error from Rust:", error);
+        alert(`Đã xảy ra lỗi khi quét dự án: ${error}`);
+        set({ isScanning: false });
+      },
+      // --- ACTIONS MỚI ---
+      _setGroupUpdateComplete: ({ groupId, stats, paths }) => {
+        set((state) => ({
+          groups: state.groups.map((g) =>
+            g.id === groupId
+              ? // --- THAY ĐỔI: Sử dụng `paths` trực tiếp từ payload ---
+                { ...g, paths: paths, stats: stats }
+              : g
+          ),
+          isUpdatingGroupId: null, // Tắt loading
+        }));
+        // --- THAY ĐỔI: Gọi cancelEditingGroup để dọn dẹp và navigate ---
+        get().actions.cancelEditingGroup();
+        // Backend đã lưu trong start_group_update, không cần lưu lại
+      },
+      // --- LOGIC CHỈNH SỬA NHÓM ĐƯỢC TẬP TRUNG TẠI ĐÂY ---
+
+      startEditingGroup: (groupId: string) => {
+        const { groups, fileTree } = get();
+        const group = groups.find((g) => g.id === groupId);
+        if (group && fileTree) {
+          // Khởi tạo state tạm thời bằng cách EXPAND các path đã lưu
+          const expanded = expandPaths(fileTree, new Set(group.paths));
+          set({ tempSelectedPaths: expanded });
+        }
+      },
+
+      toggleEditingPath: (toggledNode: FileNode, isSelected: boolean) => {
+        const { isCrossLinkingEnabled, fileMetadataCache, tempSelectedPaths } =
+          get();
+        if (!tempSelectedPaths || !fileMetadataCache) return;
+
+        const newSelectedPaths = new Set(tempSelectedPaths);
+
+        if (isSelected) {
+          // --- LOGIC MỚI CHO VIỆC CHỌN VÀ LIÊN KẾT CHÉO ---
+          const pathsToAdd = new Set<string>();
+          const queue = [toggledNode.path]; // Bắt đầu với node được chọn
+          const visited = new Set<string>();
+
+          // Nếu bật liên kết chéo, duyệt đồ thị phụ thuộc
+          if (isCrossLinkingEnabled) {
+            while (queue.length > 0) {
+              const currentPath = queue.shift()!;
+              if (visited.has(currentPath)) continue;
+
+              visited.add(currentPath);
+              pathsToAdd.add(currentPath);
+
+              const metadata = fileMetadataCache[currentPath];
+              if (metadata && metadata.links) {
+                for (const link of metadata.links) {
+                  if (!visited.has(link)) {
+                    queue.push(link);
+                  }
+                }
+              }
+            }
+          } else {
+            // Nếu không, chỉ thêm node được chọn và các con của nó
+            getDescendantAndSelfPaths(toggledNode).forEach((p) =>
+              pathsToAdd.add(p)
+            );
+          }
+
+          // Thêm tất cả các đường dẫn tìm được vào set chính
+          pathsToAdd.forEach((p) => newSelectedPaths.add(p));
+
+          // Luôn thêm các thư mục cha để UI hiển thị đúng
+          const allPathsArray = Array.from(newSelectedPaths);
+          for (const path of allPathsArray) {
+            let parentPath = path;
+            while (parentPath.lastIndexOf("/") > -1) {
+              parentPath = parentPath.substring(0, parentPath.lastIndexOf("/"));
+              newSelectedPaths.add(parentPath);
+            }
+          }
+          newSelectedPaths.add("");
+        } else {
+          // Khi bỏ chọn, chỉ bỏ chọn node đó và các con của nó
+          const pathsToRemove = getDescendantAndSelfPaths(toggledNode);
+          pathsToRemove.forEach((p) => newSelectedPaths.delete(p));
+        }
+
+        set({ tempSelectedPaths: newSelectedPaths });
+      },
+
+      cancelEditingGroup: () => {
+        set({
+          activeScene: "dashboard",
+          editingGroupId: null,
+          tempSelectedPaths: null,
+        });
+      },
+
+      saveEditingGroup: async () => {
+        const { editingGroupId, tempSelectedPaths, fileTree } = get();
+
+        if (editingGroupId && tempSelectedPaths && fileTree) {
+          // 1. Prune the expanded UI paths back to a minimal set for saving
+          const pathsToSave = prunePathsForSave(fileTree, tempSelectedPaths);
+
+          // 2. Call the async update action
+          await get().actions.updateGroupPaths(editingGroupId, pathsToSave);
+
+          // 3. Clean up and navigate back - sẽ được xử lý bởi _setGroupUpdateComplete
+        }
+      },
+      setCrossLinkingEnabled: (enabled: boolean) => {
+        set({ isCrossLinkingEnabled: enabled });
+      },
+
+      // --- THÊM 2 ACTIONS MỚI Ở ĐÂY ---
+      selectAllFiles: () => {
+        const { fileTree } = get();
+        if (!fileTree) return;
+
+        // Lấy tất cả các đường dẫn có thể có từ fileTree
+        const allPaths = getDescendantAndSelfPaths(fileTree);
+        set({ tempSelectedPaths: new Set(allPaths) });
+      },
+
+      deselectAllFiles: () => {
+        // Đơn giản là set thành một Set rỗng, nhưng vẫn giữ lại đường dẫn gốc ""
+        // để cây thư mục không bị lỗi (logic prune/expand dựa vào sự tồn tại của "")
+        set({ tempSelectedPaths: new Set([""]) });
+      },
+
+      // --- ACTION MỚI CHO CÀI ĐẶT ĐỒNG BỘ ---
+      setSyncSettings: async ({ enabled, path }) => {
+        const rootPath = get().rootPath;
+        if (!rootPath) return;
+
+        // Cập nhật state ở frontend ngay lập tức
+        set({ syncEnabled: enabled, syncPath: path });
+
+        // Gọi backend để lưu cài đặt
+        try {
+          await invoke("update_sync_settings", {
+            path: rootPath,
+            enabled,
+            syncPath: path,
+          });
+        } catch (error) {
+          console.error("Lỗi khi lưu cài đặt đồng bộ:", error);
+          alert("Không thể lưu cài đặt đồng bộ.");
+        }
+      },
+
+      // --- ACTION MỚI ĐỂ BẬT/TẮT SWITCH ---
+      setGroupCrossSync: async (groupId, enabled) => {
+        const rootPath = get().rootPath;
+        if (!rootPath) return;
+
+        // Cập nhật UI ngay lập tức
+        set((state) => ({
+          groups: state.groups.map((g) =>
+            g.id === groupId ? { ...g, crossSyncEnabled: enabled } : g
+          ),
+        }));
+
+        // Gọi backend để lưu lại
+        try {
+          await invoke("set_group_cross_sync", {
+            path: rootPath,
+            groupId,
+            enabled,
+          });
+        } catch (error) {
+          console.error("Lỗi khi cập nhật cài đặt đồng bộ chéo:", error);
+          // Optional: revert state nếu có lỗi
+          set((state) => ({
+            groups: state.groups.map((g) =>
+              g.id === groupId ? { ...g, crossSyncEnabled: !enabled } : g
+            ),
+          }));
+        }
+      },
+    },
+  };
+});
+
+export const useAppActions = () => useAppStore((state) => state.actions);
+
+
+================================================
+FILE: src/store/types.ts
+================================================
+// src/store/types.ts
+
+export interface CachedProjectData {
+  stats: ProjectStats | null;
+  file_tree: FileNode | null;
+  groups: Group[];
+  file_metadata_cache: Record<string, FileMetadata>;
+  sync_enabled?: boolean | null;
+  sync_path?: string | null;
+  data_hash?: string | null;
+}
+
+export interface FileNode {
+  name: string;
+  path: string;
+  children?: FileNode[] | null;
+}
+
+export interface GroupStats {
+  total_files: number;
+  total_dirs: number;
+  total_size: number;
+  token_count: number;
+}
+
+export interface FileMetadata {
+  size: number;
+  mtime: number;
+  token_count: number;
+  links: string[];
+}
+
+export interface ProjectStats {
+  total_files: number;
+  total_dirs: number;
+  total_size: number;
+  total_tokens: number;
+}
+
+export interface ScanProgress {
+  currentFile: string | null;
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  description: string;
+  paths: string[];
+  stats: GroupStats;
+  crossSyncEnabled?: boolean;
+}
+
+
+================================================
+FILE: src/vite-env.d.ts
+================================================
+/// <reference types="vite/client" />
 
 
