@@ -1,5 +1,5 @@
 // src/scenes/GroupEditorScene.tsx
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react"; // <-- Thêm useMemo
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { FileTreeView, type FileNode } from "@/components/FileTreeView";
 import { Button } from "@/components/ui/button";
@@ -135,19 +135,24 @@ export function GroupEditorScene() {
 
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
 
-  // --- THAY ĐỔI LỚN: KHÔNG CẦN useEffect ĐỂ TẢI CÂY THƯ MỤC ---
-  useEffect(() => {
-    // Chỉ cần khởi tạo selectedPaths từ group và fileTree đã có
+  // --- THAY ĐỔI LỚN: SỬ DỤNG useMemo ĐỂ TÍNH TOÁN LẠI selectedPaths MỘT CÁCH HIỆU QUẢ ---
+  const initialSelectedPaths = useMemo(() => {
     if (group && fileTree) {
-      const initialPaths = new Set(group.paths);
-      const expanded = expandPaths(fileTree, initialPaths); // expandPaths giữ nguyên
-      setSelectedPaths(expanded);
+      console.log("Recalculating initial paths for group:", group.name);
+      const savedPaths = new Set(group.paths);
+      // expandPaths sẽ tính toán tất cả các node cha và con cần được tick/indeterminate
+      return expandPaths(fileTree, savedPaths);
     }
-  }, [group, fileTree]); // Chạy khi group hoặc fileTree có
+    return new Set<string>();
+  }, [group, fileTree]);
+
+  // Đồng bộ state khi initialSelectedPaths thay đổi (khi mở một group khác)
+  useEffect(() => {
+    setSelectedPaths(initialSelectedPaths);
+  }, [initialSelectedPaths]);
 
   const handleTogglePath = useCallback(
     (toggledNode: FileNode, isSelected: boolean) => {
-      // Logic này đã đúng, không cần thay đổi
       const newSelectedPaths = new Set(selectedPaths);
       const pathsToToggle = getDescendantAndSelfPaths(toggledNode);
 
@@ -156,10 +161,42 @@ export function GroupEditorScene() {
       } else {
         pathsToToggle.forEach((p) => newSelectedPaths.delete(p));
       }
+
+      // Logic cập nhật node cha (để thành indeterminate)
+      let parent = findParent(fileTree, toggledNode);
+      while (parent) {
+        const allChildren = getDescendantAndSelfPaths(parent!).filter(
+          (p) => p !== parent!.path
+        );
+        const selectedChildren = allChildren.filter((p) =>
+          newSelectedPaths.has(p)
+        );
+        if (selectedChildren.length > 0) {
+          newSelectedPaths.add(parent!.path);
+        } else {
+          newSelectedPaths.delete(parent!.path);
+        }
+        parent = findParent(fileTree, parent!);
+      }
+
       setSelectedPaths(newSelectedPaths);
     },
-    [selectedPaths]
+    [selectedPaths, fileTree]
   );
+
+  // Helper function to find parent (cần thiết cho logic indeterminate khi bỏ chọn)
+  function findParent(
+    root: FileNode | null,
+    nodeToFind: FileNode
+  ): FileNode | null {
+    if (!root || !root.children) return null;
+    for (const child of root.children) {
+      if (child.path === nodeToFind.path) return root;
+      const found = findParent(child, nodeToFind);
+      if (found) return found;
+    }
+    return null;
+  }
 
   const handleSave = async () => {
     if (editingGroupId && fileTree) {

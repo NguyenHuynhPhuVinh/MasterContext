@@ -1,9 +1,10 @@
 // src/scenes/DashboardScene.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Thêm useEffect
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event"; // Thêm listen
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { open } from "@tauri-apps/plugin-dialog"; // <-- Thêm import này
@@ -64,6 +65,42 @@ export function DashboardScene() {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
+  // --- LẮNG NGHE SỰ KIỆN EXPORT HOÀN THÀNH ---
+  useEffect(() => {
+    const unlisten = listen<string>(
+      "project_export_complete",
+      async (event) => {
+        try {
+          const filePath = await save({
+            title: "Lưu Ngữ cảnh Dự án",
+            defaultPath: "project_context.txt",
+            filters: [{ name: "Text File", extensions: ["txt"] }],
+          });
+          if (filePath) {
+            await writeTextFile(filePath, event.payload);
+            alert(`Đã lưu file thành công!`);
+          }
+        } catch (error) {
+          console.error("Lỗi khi lưu file ngữ cảnh dự án:", error);
+          alert("Đã xảy ra lỗi khi lưu file.");
+        } finally {
+          setIsExporting(false); // Tắt loading
+        }
+      }
+    );
+
+    const unlistenError = listen<string>("project_export_error", (event) => {
+      console.error("Lỗi khi xuất dự án:", event.payload);
+      alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
+      setIsExporting(false);
+    });
+
+    return () => {
+      unlisten.then((f) => f());
+      unlistenError.then((f) => f());
+    };
+  }, []); // Chỉ chạy một lần
+
   const form = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
     defaultValues: { name: "", description: "" },
@@ -108,27 +145,8 @@ export function DashboardScene() {
   const handleExportProject = async () => {
     if (!rootPath) return;
     setIsExporting(true);
-    try {
-      const context = await invoke<string>("generate_project_context", {
-        path: rootPath,
-      });
-      const filePath = await save({
-        title: "Lưu Ngữ cảnh Dự án",
-        defaultPath: "project_context.txt",
-        filters: [{ name: "Text File", extensions: ["txt"] }],
-      });
-      if (filePath) {
-        await writeTextFile(filePath, context);
-        alert(`Đã lưu file thành công tại:\n${filePath}`);
-      }
-    } catch (error) {
-      console.error("Lỗi khi xuất file:", error);
-      alert(
-        `Đã xảy ra lỗi khi xuất file. Vui lòng kiểm tra console.\n\nLỗi: ${error}`
-      );
-    } finally {
-      setIsExporting(false);
-    }
+    // Gọi command bất đồng bộ mới, không cần await
+    await invoke("start_project_export", { path: rootPath });
   };
 
   // --- XÓA HOÀN TOÀN KHỐI LOGIC NÀY ---

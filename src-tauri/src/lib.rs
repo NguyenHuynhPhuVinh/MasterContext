@@ -306,6 +306,83 @@ fn start_group_export(window: Window, group_id: String, root_path_str: String, p
     });
 }
 
+// --- COMMAND MỚI: TÁI SỬ DỤNG LOGIC QUÉT ĐỂ XUẤT TOÀN BỘ DỰ ÁN ---
+// Hàm này sẽ không gửi sự kiện tiến trình, chỉ trả về context
+fn generate_full_project_context(path: String) -> Result<String, String> {
+    let root_path = Path::new(&path);
+    if !root_path.is_dir() {
+        return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
+    }
+
+    let mut directory_structure = String::new();
+    let mut file_contents_string = String::new();
+    let mut root_tree = BTreeMap::new();
+
+    let override_builder = {
+        let mut builder = OverrideBuilder::new(root_path);
+        builder.add("!package-lock.json").map_err(|e| e.to_string())?;
+        builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
+        builder.add("!yarn.lock").map_err(|e| e.to_string())?;
+        builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
+        builder.build().map_err(|e| e.to_string())?
+    };
+
+    let walker = WalkBuilder::new(root_path)
+        .overrides(override_builder.clone())
+        .sort_by_file_path(|a, b| a.cmp(b))
+        .build();
+
+    for entry in walker.filter_map(Result::ok) {
+        let entry_path = entry.path();
+        if let Ok(relative_path) = entry_path.strip_prefix(root_path) {
+            if relative_path.as_os_str().is_empty() { continue; }
+            
+            let mut current_level = &mut root_tree;
+            for component in relative_path.components().map(|c| c.as_os_str().to_string_lossy().into_owned()) {
+                let entry_type = if entry_path.is_dir() { FsEntry::Directory(BTreeMap::new()) } else { FsEntry::File };
+                current_level = match current_level.entry(component).or_insert(entry_type) {
+                    FsEntry::Directory(children) => children,
+                    FsEntry::File => break,
+                };
+            }
+
+            if entry.file_type().map_or(false, |ft| ft.is_file()) {
+                if let Ok(content) = fs::read_to_string(entry.path()) {
+                    let header = format!("================================================\nFILE: {}\n================================================\n", relative_path.display().to_string().replace("\\", "/"));
+                    file_contents_string.push_str(&header);
+                    file_contents_string.push_str(&content);
+                    file_contents_string.push_str("\n\n");
+                }
+            }
+        }
+    }
+
+    format_tree(&root_tree, "", &mut directory_structure);
+
+    let final_context = format!(
+        "Directory structure:\n└── {}\n{}\n\n{}",
+        root_path.file_name().unwrap_or_default().to_string_lossy(),
+        directory_structure,
+        file_contents_string
+    );
+    
+    Ok(final_context)
+}
+
+#[tauri::command]
+fn start_project_export(window: Window, path: String) {
+    std::thread::spawn(move || {
+        match generate_full_project_context(path) {
+            Ok(context) => {
+                let _ = window.emit("project_export_complete", context);
+            }
+            Err(e) => {
+                let _ = window.emit("project_export_error", e);
+            }
+        }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -319,7 +396,8 @@ pub fn run() {
             generate_context_for_paths,
             start_project_scan,
             start_group_update,
-            start_group_export
+            start_group_export,
+            start_project_export // <-- THÊM COMMAND MỚI
         ]) 
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
