@@ -2,6 +2,21 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+// --- THÊM CÁC STRUCT MỚI Ở ĐẦU FILE ---
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TsConfig {
+    pub compiler_options: Option<CompilerOptions>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CompilerOptions {
+    pub base_url: Option<String>,
+    pub paths: Option<BTreeMap<String, Vec<String>>>,
+}
+// --- KẾT THÚC PHẦN THÊM MỚI ---
+
 #[derive(Serialize, Deserialize, Debug, Default, Clone, Copy)]
 pub struct GroupStats {
     pub total_files: u64,

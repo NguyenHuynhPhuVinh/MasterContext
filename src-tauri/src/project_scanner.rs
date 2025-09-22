@@ -1,5 +1,5 @@
 // src-tauri/src/project_scanner.rs
-use crate::models::{CachedProjectData, FileMetadata, FileNode, GroupStats, ProjectStats};
+use crate::models::{CachedProjectData, FileMetadata, FileNode, GroupStats, ProjectStats, TsConfig};
 use crate::file_cache;
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
@@ -81,32 +81,38 @@ lazy_static! {
     ).unwrap();
 }
 
-// --- THÊM HÀM HELPER NÀY ---
+// --- THAY ĐỔI HÀM NÀY ĐỂ NHẬN VÀO ALIAS MAP ---
 fn resolve_link(
     current_file_path: &Path,
     link_path_str: &str,
-    all_project_files: &HashSet<String>
+    all_project_files: &HashSet<String>,
+    aliases: &BTreeMap<String, String>, // <-- THAM SỐ MỚI
 ) -> Option<String> {
-    let cleaned_path: PathBuf;
+    let mut cleaned_path: Option<PathBuf> = None;
 
-    // --- BẮT ĐẦU LOGIC PHÂN GIẢI MỚI ---
-    if let Some(stripped) = link_path_str.strip_prefix("@/") {
-        // Trường hợp 1: Alias. Đường dẫn là tuyệt đối so với gốc.
-        // Ví dụ: "@/hooks/useDashboard" -> "src/hooks/useDashboard"
-        let path_from_root = format!("src/{}", stripped);
-        cleaned_path = PathBuf::from(path_from_root).clean();
-    } else if link_path_str.starts_with('.') {
-        // Trường hợp 2: Tương đối. Nối với thư mục hiện tại.
-        // Ví dụ: file "src/App.tsx", link "./components/ui"
-        let current_dir = current_file_path.parent().unwrap_or_else(|| Path::new(""));
-        cleaned_path = current_dir.join(link_path_str).clean();
-    } else {
-        // Trường hợp 3: Package từ node_modules hoặc các trường hợp khác, bỏ qua.
-        return None;
+    // --- BẮT ĐẦU LOGIC PHÂN GIẢI MỚI, LINH HOẠT HƠN ---
+    // Trường hợp 1: Kiểm tra xem đường dẫn có khớp với alias nào không
+    for (alias, base_path) in aliases {
+        if let Some(stripped) = link_path_str.strip_prefix(alias) {
+            let full_path = Path::new(base_path).join(stripped);
+            cleaned_path = Some(full_path.clean());
+            break; // Tìm thấy alias đầu tiên khớp, thoát khỏi vòng lặp
+        }
+    }
+
+    if cleaned_path.is_none() {
+        if link_path_str.starts_with('.') {
+            // Trường hợp 2: Tương đối (nếu không có alias nào khớp)
+            let current_dir = current_file_path.parent().unwrap_or_else(|| Path::new(""));
+            cleaned_path = Some(current_dir.join(link_path_str).clean());
+        } else {
+            // Trường hợp 3: Package npm hoặc không hợp lệ, bỏ qua
+            return None;
+        }
     }
     // --- KẾT THÚC LOGIC PHÂN GIẢI MỚI ---
 
-    let cleaned_path_str = cleaned_path.to_string_lossy().replace("\\", "/");
+    let cleaned_path_str = cleaned_path.unwrap().to_string_lossy().replace("\\", "/");
 
     // Thử tìm file với các extension phổ biến
     let extensions = ["", ".ts", ".tsx", ".js", ".jsx", ".json"];
@@ -139,6 +145,51 @@ pub fn perform_smart_scan_and_rebuild(window: &Window, path: &str) -> Result<(),
     let mut new_project_stats = ProjectStats::default();
     let mut new_metadata_cache = BTreeMap::new();
     let mut path_map = BTreeMap::new(); // Dùng để xây dựng cây thư mục
+
+    // --- BƯỚC MỚI: ĐỌC VÀ PHÂN TÍCH ALIAS ---
+    let mut aliases = BTreeMap::new();
+    let tsconfig_path = root_path.join("tsconfig.json");
+    let jsconfig_path = root_path.join("jsconfig.json");
+
+    let config_path = if tsconfig_path.exists() {
+        Some(tsconfig_path)
+    } else if jsconfig_path.exists() {
+        Some(jsconfig_path)
+    } else {
+        None
+    };
+
+    if let Some(path) = config_path {
+        if let Ok(content) = fs::read_to_string(path) {
+            if let Ok(tsconfig) = serde_json::from_str::<TsConfig>(&content) {
+                if let Some(options) = tsconfig.compiler_options {
+                    let base_url = options.base_url.unwrap_or_else(|| ".".to_string());
+                    if let Some(paths) = options.paths {
+                        for (alias, replacements) in paths {
+                            // Chỉ lấy replacement đầu tiên và đơn giản hóa nó
+                            if let Some(first_replacement) = replacements.get(0) {
+                                // Bỏ "/*" ở cuối alias và replacement
+                                let clean_alias = alias.strip_suffix("/*").unwrap_or(&alias);
+                                let clean_replacement = first_replacement.strip_suffix("/*").unwrap_or(first_replacement);
+                                
+                                // Tạo đường dẫn đầy đủ từ baseUrl
+                                let full_base_path = Path::new(&base_url).join(clean_replacement).clean();
+                                aliases.insert(
+                                    clean_alias.to_string(), 
+                                    full_base_path.to_string_lossy().to_string()
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // Hard-code alias mặc định nếu không tìm thấy trong tsconfig
+    // Điều này giúp tương thích ngược với các dự án không có cấu hình rõ ràng
+    aliases.entry("@/".to_string()).or_insert_with(|| "src/".to_string());
+    println!("[INFO] Aliases đã phát hiện: {:?}", aliases);
+    // --- KẾT THÚC PHẦN PHÂN TÍCH ALIAS ---
 
     let override_builder = {
         let mut builder = OverrideBuilder::new(root_path);
@@ -217,7 +268,7 @@ pub fn perform_smart_scan_and_rebuild(window: &Window, path: &str) -> Result<(),
                         let link_path = link_path_match.as_str();
                         println!("[DEBUG]   => Regex khớp: '{}'", link_path);
                         
-                        if let Some(resolved) = resolve_link(&file_info.relative_path, link_path, &all_valid_files) {
+                        if let Some(resolved) = resolve_link(&file_info.relative_path, link_path, &all_valid_files, &aliases) {
                             println!("[DEBUG]     => Phân giải thành công: '{}'", resolved);
                             found_links.insert(resolved);
                         } else {
