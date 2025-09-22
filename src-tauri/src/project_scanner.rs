@@ -1,6 +1,6 @@
 // src-tauri/src/project_scanner.rs
 use crate::context_generator; // <-- THÊM USE STATEMENT NÀY
-use crate::file_cache;
+// use crate::file_cache; // <-- XÓA DÒNG NÀY
 use crate::models::{
     CachedProjectData, FileMetadata, FileNode, GroupStats, ProjectStats, TsConfig,
 };
@@ -141,11 +141,11 @@ fn resolve_link(
     None
 }
 
-pub fn perform_smart_scan_and_rebuild(path: &str, profile_name: &str) -> Result<CachedProjectData, String> {
+pub fn perform_smart_scan_and_rebuild(path: &str, old_data: CachedProjectData) -> Result<CachedProjectData, String> {
     let root_path = Path::new(path);
     let bpe = cl100k_base().map_err(|e| e.to_string())?;
 
-    let old_data = file_cache::load_project_data(path, profile_name).unwrap_or_default();
+    // Dữ liệu cũ giờ được truyền vào trực tiếp, không cần đọc từ file ở đây
     let old_metadata_cache = old_data.file_metadata_cache;
 
     let mut new_project_stats = ProjectStats::default();

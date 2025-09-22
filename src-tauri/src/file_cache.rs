@@ -2,29 +2,40 @@
 use crate::models::CachedProjectData;
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+use sha2::{Digest, Sha256}; // <-- THÊM IMPORT
+use tauri::{AppHandle, Manager}; // <-- THÊM IMPORT
 
 // --- HÀM MỚI: TÁCH RIÊNG LOGIC LẤY THƯ MỤC CẤU HÌNH ---
-pub fn get_project_config_dir(project_path_str: &str) -> Result<PathBuf, String> {
-    let project_path = Path::new(project_path_str);
-    if !project_path.is_dir() {
-        return Err(format!(
-            "'{}' không phải là một thư mục hợp lệ.",
-            project_path_str
-        ));
-    }
-    let config_dir = project_path.join(".mastercontext");
+pub fn get_project_config_dir(app: &AppHandle, project_path_str: &str) -> Result<PathBuf, String> {
+    // 1. Lấy thư mục cấu hình chung của ứng dụng
+    let app_config_dir = app.path()
+        .app_config_dir()
+        .map_err(|e| format!("Không thể xác định thư mục cấu hình ứng dụng: {}", e))?;
+
+    // 2. Băm (hash) đường dẫn dự án để tạo ID duy nhất
+    let mut hasher = Sha256::new();
+    hasher.update(project_path_str.as_bytes());
+    let project_hash = hasher.finalize();
+    let project_id = format!("{:x}", project_hash);
+
+    // 3. Tạo đường dẫn cuối cùng: <app_config_dir>/projects/<project_id>
+    let config_dir = app_config_dir.join("projects").join(project_id);
+
+    // 4. Đảm bảo thư mục tồn tại
     fs::create_dir_all(&config_dir)
-        .map_err(|e| format!("Không thể tạo thư mục cấu hình '.mastercontext': {}", e))?;
+        .map_err(|e| format!("Không thể tạo thư mục cấu hình cho dự án: {}", e))?;
+    
     Ok(config_dir)
 }
 
-// --- CẬP NHẬT: Nhận thêm `profile_name` ---
+// --- CẬP NHẬT: Nhận thêm `app` và `profile_name` ---
 pub fn get_project_config_path(
+    app: &AppHandle,
     project_path_str: &str,
     profile_name: &str,
 ) -> Result<PathBuf, String> {
-    let config_dir = get_project_config_dir(project_path_str)?;
+    let config_dir = get_project_config_dir(app, project_path_str)?;
     // Sanitize profile name to prevent path traversal issues.
     let sanitized_name: String = profile_name
         .chars()
@@ -36,9 +47,9 @@ pub fn get_project_config_path(
     Ok(config_dir.join(format!("data_{}.json", sanitized_name)))
 }
 
-// --- CẬP NHẬT: Nhận thêm `profile_name` ---
-pub fn load_project_data(path: &str, profile_name: &str) -> Result<CachedProjectData, String> {
-    let config_path = get_project_config_path(path, profile_name)?;
+// --- CẬP NHẬT: Nhận thêm `app` và `profile_name` ---
+pub fn load_project_data(app: &AppHandle, path: &str, profile_name: &str) -> Result<CachedProjectData, String> {
+    let config_path = get_project_config_path(app, path, profile_name)?;
     if !config_path.exists() {
         // If file doesn't exist, return a default empty structure
         // This is important for creating a new profile.
@@ -55,13 +66,14 @@ pub fn load_project_data(path: &str, profile_name: &str) -> Result<CachedProject
     serde_json::from_str(&contents).map_err(|e| format!("Lỗi phân tích cú pháp JSON: {}", e))
 }
 
-// --- CẬP NHẬT: Nhận thêm `profile_name` ---
+// --- CẬP NHẬT: Nhận thêm `app` và `profile_name` ---
 pub fn save_project_data(
+    app: &AppHandle,
     path: &str,
     profile_name: &str,
     data: &CachedProjectData,
 ) -> Result<(), String> {
-    let config_path = get_project_config_path(path, profile_name)?;
+    let config_path = get_project_config_path(app, path, profile_name)?;
     let json_string = serde_json::to_string_pretty(data)
         .map_err(|e| format!("Không thể serialize dữ liệu dự án: {}", e))?;
     let mut file = File::create(config_path)

@@ -7,7 +7,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex; // <-- THÊM IMPORT
 use std::time::{Duration, Instant}; // <-- THÊM IMPORT
-use tauri::{command, Emitter, Window};
+use tauri::{command, Emitter, Window, AppHandle, Manager}; // <-- THÊM AppHandle và Manager
+use sha2::{Digest, Sha256}; // <-- THÊM IMPORT
 
 // --- BẮT ĐẦU KHỐI MÃ MỚI: QUẢN LÝ TRẠNG THÁI WATCHER ---
 lazy_static! {
@@ -29,23 +30,21 @@ fn sanitize_group_name(name: &str) -> String {
 pub fn open_project(window: Window, path: String, profile_name: String) {
     let window_clone = window.clone(); // Clone window để dùng trong thread
     let path_clone = path.clone(); // Clone path để dùng trong thread
+    let app = window.app_handle().clone(); // <-- Lấy AppHandle
 
     std::thread::spawn(move || {
-        let old_data_result = file_cache::load_project_data(&path, &profile_name);
-        let old_hash = old_data_result
-            .as_ref()
-            .ok()
-            .and_then(|d| d.data_hash.clone());
+        // --- CẬP NHẬT: Truyền app handle vào hàm load ---
+        let old_data = file_cache::load_project_data(&app, &path, &profile_name).unwrap_or_default();
+        let old_hash = old_data.data_hash.clone();
         
         // --- LOGIC MỚI: Đọc cài đặt watcher từ file trước khi quét ---
-        let should_start_watching = old_data_result
-            .ok()
-            .and_then(|d| d.is_watching_files)
-            .unwrap_or(false);
+        let should_start_watching = old_data.is_watching_files.unwrap_or(false);
 
-        match project_scanner::perform_smart_scan_and_rebuild(&path, &profile_name) {
+        // --- CẬP NHẬT: Truyền old_data vào hàm quét ---
+        match project_scanner::perform_smart_scan_and_rebuild(&path, old_data) {
             Ok(new_data) => {
-                if let Err(e) = file_cache::save_project_data(&path, &profile_name, &new_data) {
+                // --- CẬP NHẬT: Truyền app handle vào hàm save ---
+                if let Err(e) = file_cache::save_project_data(&app, &path, &profile_name, &new_data) {
                     let _ = window.emit("scan_error", e);
                     return;
                 }
@@ -76,11 +75,12 @@ pub fn open_project(window: Window, path: String, profile_name: String) {
 #[command]
 pub fn update_groups_in_project_data(
     window: Window,
+    app: AppHandle, // <-- Thêm app
     path: String,
     profile_name: String,
     groups: Vec<models::Group>,
 ) -> Result<(), String> {
-    let mut project_data = file_cache::load_project_data(&path, &profile_name)?;
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
     let old_groups = project_data.groups.clone();
 
     if project_data.sync_enabled.unwrap_or(false) {
@@ -128,16 +128,17 @@ pub fn update_groups_in_project_data(
         let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
     }
 
-    file_cache::save_project_data(&path, &profile_name, &project_data)
+    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
 }
 
 #[command]
 pub fn calculate_group_stats_from_cache(
+    app: AppHandle, // <-- Thêm app
     root_path_str: String,
     profile_name: String,
     paths: Vec<String>,
 ) -> Result<models::GroupStats, String> {
-    let project_data = file_cache::load_project_data(&root_path_str, &profile_name)?;
+    let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
     let root_path = Path::new(&root_path_str);
     Ok(project_scanner::recalculate_stats_for_paths(
         &paths,
@@ -149,18 +150,20 @@ pub fn calculate_group_stats_from_cache(
 #[command]
 pub fn start_group_update(
     window: Window,
+    app: AppHandle, // <-- Thêm app
     group_id: String,
     root_path_str: String,
     profile_name: String,
     paths: Vec<String>,
 ) {
+    let app_clone = app.clone(); // Clone để dùng trong thread
     std::thread::spawn(move || {
         let result =
-            calculate_group_stats_from_cache(root_path_str.clone(), profile_name.clone(), paths.clone());
+            calculate_group_stats_from_cache(app_clone, root_path_str.clone(), profile_name.clone(), paths.clone());
         match result {
             Ok(new_stats) => {
                 if let Ok(mut project_data) =
-                    file_cache::load_project_data(&root_path_str, &profile_name)
+                    file_cache::load_project_data(&app, &root_path_str, &profile_name)
                 {
                     if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
                         group.paths = paths.clone();
@@ -175,7 +178,7 @@ pub fn start_group_update(
                             let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
                         }
                     }
-                    let _ = file_cache::save_project_data(&root_path_str, &profile_name, &project_data);
+                    let _ = file_cache::save_project_data(&app, &root_path_str, &profile_name, &project_data);
                 }
                 let _ = window.emit(
                     "group_update_complete",
@@ -192,6 +195,7 @@ pub fn start_group_update(
 #[command]
 pub fn start_group_export(
     window: Window,
+    app: AppHandle, // <-- Thêm app
     group_id: String,
     root_path_str: String,
     profile_name: String,
@@ -199,7 +203,7 @@ pub fn start_group_export(
 ) {
     std::thread::spawn(move || {
         let result: Result<String, String> = (|| {
-            let project_data = file_cache::load_project_data(&root_path_str, &profile_name)?;
+            let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
             let root_path = Path::new(&root_path_str);
             let group = project_data
                 .groups
@@ -238,10 +242,10 @@ pub fn start_group_export(
 }
 
 #[command]
-pub fn start_project_export(window: Window, path: String, profile_name: String) {
+pub fn start_project_export(window: Window, app: AppHandle, path: String, profile_name: String) {
     std::thread::spawn(move || {
         let result: Result<String, String> = (|| {
-            let project_data = file_cache::load_project_data(&path, &profile_name)?;
+            let project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
             let all_files: Vec<String> = project_data.file_metadata_cache.keys().cloned().collect();
             if all_files.is_empty() {
                 return Err("Dự án không có file nào để xuất.".to_string());
@@ -266,12 +270,13 @@ pub fn start_project_export(window: Window, path: String, profile_name: String) 
 
 #[command]
 pub fn generate_group_context(
+    app: AppHandle, // <-- Thêm app
     group_id: String,
     root_path_str: String,
     profile_name: String,
     use_full_tree: bool,
 ) -> Result<String, String> {
-    let project_data = file_cache::load_project_data(&root_path_str, &profile_name)?;
+    let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
     let root_path = Path::new(&root_path_str);
     let group = project_data
         .groups
@@ -295,8 +300,8 @@ pub fn generate_group_context(
 }
 
 #[command]
-pub fn generate_project_context(path: String, profile_name: String) -> Result<String, String> {
-    let project_data = file_cache::load_project_data(&path, &profile_name)?;
+pub fn generate_project_context(app: AppHandle, path: String, profile_name: String) -> Result<String, String> {
+    let project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
     let all_files: Vec<String> = project_data.file_metadata_cache.keys().cloned().collect();
     if all_files.is_empty() {
         return Err("Dự án không có file nào để tạo ngữ cảnh.".to_string());
@@ -313,12 +318,13 @@ pub fn generate_project_context(path: String, profile_name: String) -> Result<St
 #[command]
 pub fn update_sync_settings(
     window: Window, // <-- THÊM THAM SỐ window
+    app: AppHandle, // <-- Thêm app
     path: String,
     profile_name: String,
     enabled: bool,
     sync_path: Option<String>,
 ) -> Result<(), String> {
-    let mut project_data = file_cache::load_project_data(&path, &profile_name)?;
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
     project_data.sync_enabled = Some(enabled);
     project_data.sync_path = sync_path;
 
@@ -335,35 +341,37 @@ pub fn update_sync_settings(
     // --- KẾT THÚC LOGIC MỚI ---
 
     // Lưu lại cài đặt vào file
-    file_cache::save_project_data(&path, &profile_name, &project_data)
+    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
 }
 // --- KẾT THÚC SỬA ĐỔI ---
 
 #[command]
 pub fn set_group_cross_sync(
+    app: AppHandle, // <-- Thêm app
     path: String,
     profile_name: String,
     group_id: String,
     enabled: bool,
 ) -> Result<(), String> {
-    let mut project_data = file_cache::load_project_data(&path, &profile_name)?;
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
     if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
         group.cross_sync_enabled = Some(enabled);
     } else {
         return Err(format!("Không tìm thấy nhóm với ID: {}", group_id));
     }
-    file_cache::save_project_data(&path, &profile_name, &project_data)
+    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
 }
 
 #[command]
 pub fn update_custom_ignore_patterns(
+    app: AppHandle, // <-- Thêm app
     path: String,
     profile_name: String,
     patterns: Vec<String>,
 ) -> Result<(), String> {
-    let mut project_data = file_cache::load_project_data(&path, &profile_name)?;
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
     project_data.custom_ignore_patterns = Some(patterns);
-    file_cache::save_project_data(&path, &profile_name, &project_data)
+    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
 }
 
 fn save_context_to_path_internal(path: String, content: String) -> Result<(), String> {
@@ -414,8 +422,20 @@ fn perform_auto_export(project_path: &str, _profile_name: &str, data: &models::C
 // --- COMMANDS MỚI ĐỂ QUẢN LÝ HỒ SƠ ---
 
 #[command]
-pub fn list_profiles(project_path: String) -> Result<Vec<String>, String> {
-    let config_dir = file_cache::get_project_config_dir(&project_path)?;
+pub fn list_profiles(app: AppHandle, project_path: String) -> Result<Vec<String>, String> {
+    // Không cần get_project_config_dir nữa vì nó không trả về đường dẫn đúng
+    // Logic sẽ dựa vào việc đọc thư mục do Tauri quản lý
+    let app_config_dir = app.path()
+        .app_config_dir()
+        .map_err(|e| format!("Không thể xác định thư mục cấu hình ứng dụng: {}", e))?;
+
+    let mut hasher = Sha256::new();
+    hasher.update(project_path.as_bytes());
+    let project_hash = hasher.finalize();
+    let project_id = format!("{:x}", project_hash);
+
+    let config_dir = app_config_dir.join("projects").join(project_id);
+
     let mut profiles = Vec::new();
     if config_dir.exists() {
         for entry in fs::read_dir(config_dir).map_err(|e| e.to_string())? {
@@ -438,17 +458,17 @@ pub fn list_profiles(project_path: String) -> Result<Vec<String>, String> {
 }
 
 #[command]
-pub fn create_profile(project_path: String, profile_name: String) -> Result<(), String> {
+pub fn create_profile(app: AppHandle, project_path: String, profile_name: String) -> Result<(), String> {
     let data = models::CachedProjectData::default();
-    file_cache::save_project_data(&project_path, &profile_name, &data)
+    file_cache::save_project_data(&app, &project_path, &profile_name, &data)
 }
 
 #[command]
-pub fn delete_profile(project_path: String, profile_name: String) -> Result<(), String> {
+pub fn delete_profile(app: AppHandle, project_path: String, profile_name: String) -> Result<(), String> {
     if profile_name == "default" {
         return Err("Không thể xóa hồ sơ 'default'.".to_string());
     }
-    let config_path = file_cache::get_project_config_path(&project_path, &profile_name)?;
+    let config_path = file_cache::get_project_config_path(&app, &project_path, &profile_name)?;
     if config_path.exists() {
         fs::remove_file(config_path).map_err(|e| e.to_string())
     } else {
@@ -458,6 +478,7 @@ pub fn delete_profile(project_path: String, profile_name: String) -> Result<(), 
 
 #[command]
 pub fn rename_profile(
+    app: AppHandle,
     project_path: String,
     old_name: String,
     new_name: String,
@@ -465,8 +486,8 @@ pub fn rename_profile(
     if old_name == "default" {
         return Err("Không thể đổi tên hồ sơ 'default'.".to_string());
     }
-    let old_path = file_cache::get_project_config_path(&project_path, &old_name)?;
-    let new_path = file_cache::get_project_config_path(&project_path, &new_name)?;
+    let old_path = file_cache::get_project_config_path(&app, &project_path, &old_name)?;
+    let new_path = file_cache::get_project_config_path(&app, &project_path, &new_name)?;
     if !old_path.exists() {
         return Err("Hồ sơ cũ không tồn tại.".to_string());
     }
@@ -478,10 +499,10 @@ pub fn rename_profile(
 
 // --- COMMAND MỚI: Lưu cài đặt theo dõi file ---
 #[command]
-pub fn set_file_watching_setting(path: String, profile_name: String, enabled: bool) -> Result<(), String> {
-    let mut project_data = file_cache::load_project_data(&path, &profile_name)?;
+pub fn set_file_watching_setting(app: AppHandle, path: String, profile_name: String, enabled: bool) -> Result<(), String> {
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
     project_data.is_watching_files = Some(enabled);
-    file_cache::save_project_data(&path, &profile_name, &project_data)
+    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
 }
 
 // --- COMMAND MỚI: Bắt đầu theo dõi file ---
