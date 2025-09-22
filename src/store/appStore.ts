@@ -243,22 +243,27 @@ export const useAppStore = create<AppState>((set, get) => {
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
+        // BƯỚC 1: CẬP NHẬT STATE BAN ĐẦU
+        // Set isScanning VÀ quan trọng nhất là set rootPath/selectedPath ngay lập tức.
         set({
           isScanning: true,
+          rootPath: path, // <-- SỬA LỖI: Thêm dòng này
+          selectedPath: path, // <-- SỬA LỖI: Thêm dòng này
           projectStats: null,
           fileTree: null,
           groups: [],
+          activeScene: "dashboard", // Đặt sẵn scene, vì chúng ta biết sẽ vào đây
         });
+
+        // BƯỚC 2: KIỂM TRA CACHE
         try {
-          // Tải dữ liệu cache
           const data = await invoke<CachedProjectData>("load_project_data", {
             path,
           });
+
+          // Nếu có cache, cập nhật dữ liệu và tắt scanning ngay
           if (data && data.stats && data.file_tree) {
-            // Nếu có cache, dùng ngay
             set({
-              rootPath: path,
-              selectedPath: path,
               projectStats: data.stats,
               fileTree: data.file_tree,
               groups: (data.groups || []).map((g) => ({
@@ -266,16 +271,17 @@ export const useAppStore = create<AppState>((set, get) => {
                 paths: g.paths || [],
                 stats: g.stats || defaultGroupStats(),
               })),
-              isScanning: false,
-              activeScene: "dashboard",
+              isScanning: false, // Tắt scanning vì đã có cache
             });
           } else {
-            // Nếu không có cache, bắt đầu quét
+            // Nếu không có cache, bắt đầu quá trình quét.
+            // isScanning vẫn là true.
+            // Listener sự kiện "scan_complete" sẽ xử lý việc tắt scanning.
             await invoke("start_project_scan", { path });
           }
         } catch (error) {
-          console.error("Lỗi khi tải dự án:", error);
-          // Nếu lỗi, vẫn bắt đầu quét mới
+          console.error("Lỗi khi tải dữ liệu dự án, bắt đầu quét mới:", error);
+          // Nếu có lỗi khi đọc cache, cũng tiến hành quét mới.
           await invoke("start_project_scan", { path });
         }
       },

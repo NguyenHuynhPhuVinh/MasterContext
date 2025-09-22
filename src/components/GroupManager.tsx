@@ -1,7 +1,10 @@
 // src/components/GroupManager.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Thêm useEffect
+import { listen } from "@tauri-apps/api/event"; // Thêm listen
 import { useAppStore, useAppActions, type Group } from "@/store/appStore";
 import { invoke } from "@tauri-apps/api/core";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { formatBytes } from "@/lib/utils"; // <-- Import hàm tiện ích
 
 import { Button } from "@/components/ui/button";
@@ -56,6 +59,53 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
   // State loading cục bộ
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
 
+  // --- LOGIC MỚI: Lắng nghe sự kiện để xử lý hộp thoại save ---
+  useEffect(() => {
+    const unlisten = listen<{ groupId: string; context: string }>(
+      "group_export_complete",
+      async (event) => {
+        // Chỉ xử lý nếu đúng là group đang chờ export
+        if (event.payload.groupId === exportingGroupId) {
+          const group = groups.find((g) => g.id === event.payload.groupId);
+          const defaultName = group
+            ? `${group.name.replace(/\s+/g, "_")}_context.txt`
+            : "context.txt";
+
+          try {
+            // Hiển thị hộp thoại lưu file
+            const filePath = await save({
+              title: `Lưu Ngữ cảnh cho nhóm "${group?.name}"`,
+              defaultPath: defaultName,
+              filters: [{ name: "Text File", extensions: ["txt"] }],
+            });
+            // Nếu người dùng chọn một file (không bấm Hủy)
+            if (filePath) {
+              await writeTextFile(filePath, event.payload.context);
+              alert(`Đã lưu file thành công!`);
+            }
+          } catch (error) {
+            console.error("Lỗi khi lưu file ngữ cảnh:", error);
+            alert("Đã xảy ra lỗi khi lưu file.");
+          } finally {
+            // TẮT LOADING sau khi hộp thoại đã được xử lý
+            setExportingGroupId(null);
+          }
+        }
+      }
+    );
+
+    const unlistenError = listen<string>("group_export_error", (event) => {
+      console.error("Lỗi khi xuất nhóm từ backend:", event.payload);
+      alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
+      setExportingGroupId(null); // Tắt loading nếu có lỗi
+    });
+
+    return () => {
+      unlisten.then((f) => f());
+      unlistenError.then((f) => f());
+    };
+  }, [exportingGroupId, groups]); // Chạy lại effect khi exportingGroupId thay đổi
+
   const handleExportGroup = async (group: Group) => {
     if (!rootPath || group.paths.length === 0) {
       alert("Nhóm này chưa có tệp/thư mục nào được chọn.");
@@ -63,20 +113,18 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
     }
     setExportingGroupId(group.id); // Bật loading
     try {
-      // Gọi command bất đồng bộ
       await invoke("start_group_export", {
         groupId: group.id,
         rootPathStr: rootPath,
         paths: group.paths,
       });
-      // Listener trong App.tsx sẽ xử lý kết quả
+      // Không làm gì ở đây, để useEffect xử lý
     } catch (error) {
-      console.error("Lỗi khi bắt đầu xuất nhóm:", error);
+      console.error("Lỗi khi gọi command start_group_export:", error);
       alert("Không thể bắt đầu quá trình xuất file.");
-    } finally {
-      // Tắt loading sau một khoảng trễ ngắn để người dùng thấy phản hồi
-      setTimeout(() => setExportingGroupId(null), 3000);
+      setExportingGroupId(null); // Tắt loading nếu gọi command thất bại
     }
+    // Bỏ setTimeout
   };
 
   return (

@@ -6,7 +6,7 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::fmt::Write as FmtWrite;
-use tauri::{Manager, Window, Emitter};
+use tauri::{Window, Emitter};
 use ignore::{WalkBuilder, overrides::OverrideBuilder};
 use tiktoken_rs::cl100k_base;
 
@@ -64,12 +64,20 @@ struct CachedProjectData {
 
 // --- CÁC HÀM HELPER VÀ COMMAND ---
 
-// Giữ nguyên các hàm: get_data_file_path, FsEntry, format_tree
+// Giữ nguyên các hàm: get_project_config_path, FsEntry, format_tree
 
-fn get_data_file_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let app_data_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
-    fs::create_dir_all(&app_data_dir).map_err(|e| format!("Không thể tạo thư mục dữ liệu: {}", e))?;
-    Ok(app_data_dir.join("data.json"))
+fn get_project_config_path(project_path_str: &str) -> Result<PathBuf, String> {
+    let project_path = Path::new(project_path_str);
+    if !project_path.is_dir() {
+        return Err(format!("'{}' không phải là một thư mục hợp lệ.", project_path_str));
+    }
+    // Tạo thư mục ẩn `.mastercontext` trong thư mục dự án
+    let config_dir = project_path.join(".mastercontext");
+    fs::create_dir_all(&config_dir)
+        .map_err(|e| format!("Không thể tạo thư mục cấu hình '.mastercontext': {}", e))?;
+    
+    // Trả về đường dẫn tới file `data.json` bên trong thư mục đó
+    Ok(config_dir.join("data.json"))
 }
 
 #[derive(Debug, Clone)]
@@ -98,31 +106,41 @@ fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut Stri
 
 #[tauri::command]
 fn load_project_data(app_handle: tauri::AppHandle, path: String) -> Result<CachedProjectData, String> {
-    let data_file_path = get_data_file_path(&app_handle)?;
-    if !data_file_path.exists() { return Ok(CachedProjectData::default()); }
-    let mut file = File::open(data_file_path).map_err(|e| format!("Không thể mở file dữ liệu: {}", e))?;
+    // app_handle không còn cần thiết nhưng vẫn giữ để không thay đổi signature
+    let _ = app_handle; // Đánh dấu là không sử dụng
+    let config_path = get_project_config_path(&path)?;
+
+    if !config_path.exists() {
+        return Ok(CachedProjectData::default());
+    }
+
+    let mut file = File::open(config_path).map_err(|e| format!("Không thể mở file dữ liệu dự án: {}", e))?;
     let mut contents = String::new();
-    file.read_to_string(&mut contents).map_err(|e| format!("Không thể đọc file dữ liệu: {}", e))?;
-    if contents.is_empty() { return Ok(CachedProjectData::default()); }
-    let all_data: std::collections::HashMap<String, CachedProjectData> = serde_json::from_str(&contents)
-        .map_err(|e| format!("Lỗi phân tích cú pháp JSON: {}", e))?;
-    Ok(all_data.get(&path).cloned().unwrap_or_default())
+    file.read_to_string(&mut contents).map_err(|e| format!("Không thể đọc file dữ liệu dự án: {}", e))?;
+    
+    if contents.is_empty() {
+        return Ok(CachedProjectData::default());
+    }
+    
+    // File này giờ chỉ chứa dữ liệu của một dự án, không cần HashMap
+    serde_json::from_str(&contents).map_err(|e| format!("Lỗi phân tích cú pháp JSON: {}", e))
 }
 
 #[tauri::command]
 fn save_project_data(app_handle: tauri::AppHandle, path: String, data: CachedProjectData) -> Result<(), String> {
-    let data_file_path = get_data_file_path(&app_handle)?;
-    let mut all_data: std::collections::HashMap<String, CachedProjectData> = if data_file_path.exists() {
-        let mut file = File::open(&data_file_path).map_err(|e| format!("Không thể mở file: {}", e))?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).map_err(|e| format!("Không thể đọc file: {}", e))?;
-        if contents.is_empty() { std::collections::HashMap::new() } 
-        else { serde_json::from_str(&contents).map_err(|e| format!("Lỗi phân tích cú pháp: {}", e))? }
-    } else { std::collections::HashMap::new() };
-    all_data.insert(path, data);
-    let json_string = serde_json::to_string(&all_data).map_err(|e| format!("Không thể serialize dữ liệu: {}", e))?;
-    let mut file = File::create(data_file_path).map_err(|e| format!("Không thể tạo/ghi file dữ liệu: {}", e))?;
-    file.write_all(json_string.as_bytes()).map_err(|e| format!("Lỗi khi ghi file: {}", e))?;
+    let _ = app_handle;
+    let config_path = get_project_config_path(&path)?;
+    
+    // Serialize trực tiếp đối tượng data, không cần HashMap
+    let json_string = serde_json::to_string_pretty(&data)
+        .map_err(|e| format!("Không thể serialize dữ liệu dự án: {}", e))?;
+        
+    let mut file = File::create(config_path)
+        .map_err(|e| format!("Không thể tạo/ghi file dữ liệu dự án: {}", e))?;
+        
+    file.write_all(json_string.as_bytes())
+        .map_err(|e| format!("Lỗi khi ghi file dữ liệu dự án: {}", e))?;
+        
     Ok(())
 }
 

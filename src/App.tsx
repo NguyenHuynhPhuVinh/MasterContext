@@ -1,8 +1,6 @@
 // src/App.tsx
 import { useEffect, useMemo } from "react"; // <-- Thêm useMemo
 import { listen } from "@tauri-apps/api/event";
-import { save } from "@tauri-apps/plugin-dialog"; // Thêm import
-import { writeTextFile } from "@tauri-apps/plugin-fs"; // Thêm import
 import {
   useAppStore,
   useAppActions,
@@ -74,7 +72,8 @@ function App() {
       )
     );
 
-    // --- THÊM LISTENER CHO EXPORT NHÓM ---
+    // --- XÓA LISTENER CHO EXPORT NHÓM Ở ĐÂY ---
+    /*
     unlistenFuncs.push(
       listen<{ groupId: string; context: string }>(
         "group_export_complete",
@@ -106,6 +105,7 @@ function App() {
         }
       )
     );
+    */
 
     // Dọn dẹp listener khi component unmount
     return () => {
