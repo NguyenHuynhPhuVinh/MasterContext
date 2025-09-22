@@ -356,51 +356,15 @@ fn get_project_file_tree(path: String) -> Result<FileNode, String> {
 fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Result<GroupContextResult, String> {
     let root_path = Path::new(&root_path_str);
     let mut all_files_to_include = HashSet::new();
-    let mut all_dirs_to_include = HashSet::new(); // <-- Để đếm thư mục duy nhất
+    let mut all_dirs_to_include = HashSet::new();
     let mut file_contents_string = String::new();
     let mut stats = GroupStats::default();
 
-    // --- PHẦN MỚI: Xây dựng cây thư mục từ các đường dẫn đã chọn ---
-    let mut selected_tree_root = BTreeMap::new();
-    for relative_path_str in &paths {
-        let path = Path::new(relative_path_str);
-        let mut current_level = &mut selected_tree_root;
-        
-        let full_path = root_path.join(path);
-        let entry_type = if full_path.is_dir() { 
-            FsEntry::Directory(BTreeMap::new()) 
-        } else { 
-            FsEntry::File 
-        };
-
-        for component in path.components() {
-            let component_str = component.as_os_str().to_string_lossy().into_owned();
-            
-            // Nếu component này là cuối cùng trong path, dùng entry_type đã xác định
-            if path.ends_with(component.as_os_str()) {
-                 current_level.entry(component_str).or_insert(entry_type.clone());
-                 break; // Đã chèn xong, thoát vòng lặp components
-            } else {
-                // Nếu không, nó phải là một thư mục trung gian
-                let dir_entry = FsEntry::Directory(BTreeMap::new());
-                current_level = match current_level.entry(component_str).or_insert(dir_entry) {
-                    FsEntry::Directory(children) => children,
-                    _ => break, // Lỗi logic, không nên xảy ra
-                };
-            }
-        }
-    }
-
-    // "Vẽ" cây thư mục đã chọn
-    let mut directory_structure = String::new();
-    format_tree(&selected_tree_root, "", &mut directory_structure);
-    // --- KẾT THÚC PHẦN MỚI ---
-
-
+    // BƯỚC 1: Thu thập TẤT CẢ các file và thư mục con cháu sẽ được đưa vào ngữ cảnh.
+    // Logic này vốn đã đúng, chúng ta chỉ cần chạy nó trước.
     for relative_path_str in paths {
         let full_path = root_path.join(&relative_path_str);
         if full_path.is_dir() {
-            // Thêm thư mục gốc vào danh sách đếm
             all_dirs_to_include.insert(full_path.clone());
             let walker = WalkBuilder::new(full_path).build();
             for entry in walker.filter_map(Result::ok) {
@@ -408,7 +372,6 @@ fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Resu
                 if let Ok(metadata) = entry.metadata() {
                     if metadata.is_file() {
                         if all_files_to_include.insert(entry_path.to_path_buf()) {
-                            // Chỉ cộng dồn nếu file này chưa được thêm trước đó
                             stats.total_size += metadata.len();
                         }
                     } else if metadata.is_dir() {
@@ -429,6 +392,49 @@ fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Resu
     stats.total_files = all_files_to_include.len() as u64;
     stats.total_dirs = all_dirs_to_include.len() as u64;
 
+    // BƯỚC 2: Xây dựng cây thư mục từ danh sách ĐẦY ĐỦ đã thu thập được.
+    let mut selected_tree_root = BTreeMap::new();
+    
+    // Kết hợp cả file và thư mục vào một danh sách để xây cây
+    let all_paths_to_render: HashSet<PathBuf> = all_dirs_to_include
+        .union(&all_files_to_include)
+        .cloned()
+        .collect();
+
+    for full_path in all_paths_to_render {
+        // Chỉ xử lý các đường dẫn nằm trong thư mục gốc
+        if let Ok(relative_path) = full_path.strip_prefix(root_path) {
+            // Bỏ qua chính thư mục gốc nếu nó có trong danh sách
+            if relative_path.as_os_str().is_empty() {
+                continue;
+            }
+            
+            let mut current_level = &mut selected_tree_root;
+            for component in relative_path.components() {
+                let component_str = component.as_os_str().to_string_lossy().into_owned();
+                
+                // Xác định xem đường dẫn đầy đủ của component này là file hay thư mục
+                let component_full_path = root_path.join(relative_path.ancestors().find(|a| a.ends_with(component.as_os_str())).unwrap_or(relative_path));
+
+                let entry_type = if component_full_path.is_dir() {
+                    FsEntry::Directory(BTreeMap::new())
+                } else {
+                    FsEntry::File
+                };
+                
+                current_level = match current_level.entry(component_str).or_insert(entry_type) {
+                    FsEntry::Directory(children) => children,
+                    FsEntry::File => break, // Nếu là file, không thể đi sâu hơn
+                };
+            }
+        }
+    }
+
+    // "Vẽ" cây thư mục đã chọn
+    let mut directory_structure = String::new();
+    format_tree(&selected_tree_root, "", &mut directory_structure);
+    
+    // BƯỚC 3: Thu thập nội dung file (logic này giữ nguyên)
     let mut sorted_files: Vec<PathBuf> = all_files_to_include.into_iter().collect();
     sorted_files.sort();
 
@@ -443,7 +449,7 @@ fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Resu
         }
     }
     
-    // --- CẬP NHẬT: Ghép cây thư mục và nội dung file ---
+    // Ghép cây thư mục và nội dung file
     let final_context = format!(
         "Selected directory structure:\n{}\n\n{}",
         directory_structure,
@@ -455,7 +461,7 @@ fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Resu
 
     Ok(GroupContextResult {
         context: final_context,
-        stats, // <-- Trả về đối tượng stats
+        stats,
     })
 }
 
