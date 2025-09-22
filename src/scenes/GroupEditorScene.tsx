@@ -1,10 +1,9 @@
 // src/scenes/GroupEditorScene.tsx
 import { useEffect, useState, useCallback } from "react";
 import { useAppStore, useAppActions } from "@/store/appStore";
-import { invoke } from "@tauri-apps/api/core";
 import { FileTreeView, type FileNode } from "@/components/FileTreeView";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Loader2 } from "lucide-react"; // Thêm Loader2
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const getDescendantAndSelfPaths = (node: FileNode): string[] => {
@@ -126,33 +125,25 @@ const prunePathsForSave = (
 export function GroupEditorScene() {
   const { showDashboard, updateGroupPaths } = useAppActions();
   const editingGroupId = useAppStore((state) => state.editingGroupId);
-  const rootPath = useAppStore((state) => state.rootPath);
   const group = useAppStore((state) =>
     state.groups.find((g) => g.id === state.editingGroupId)
   );
+  const fileTree = useAppStore((state) => state.fileTree); // <-- LẤY TỪ STORE
+  const isSaving = useAppStore(
+    (state) => state.isUpdatingGroupId === state.editingGroupId
+  ); // <-- KIỂM TRA LOADING
 
-  const [fileTree, setFileTree] = useState<FileNode | null>(null);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(true);
 
+  // --- THAY ĐỔI LỚN: KHÔNG CẦN useEffect ĐỂ TẢI CÂY THƯ MỤC ---
   useEffect(() => {
-    // Logic này đã đúng, không cần thay đổi
-    if (rootPath) {
-      setIsLoading(true);
-      invoke<FileNode>("get_project_file_tree", { path: rootPath })
-        .then((tree) => {
-          setFileTree(tree);
-          // Sau khi có cây thư mục, mở rộng các đường dẫn đã lưu để hiển thị UI
-          if (group && tree) {
-            const initialPaths = new Set(group.paths);
-            const expanded = expandPaths(tree, initialPaths);
-            setSelectedPaths(expanded);
-          }
-        })
-        .catch(console.error)
-        .finally(() => setIsLoading(false));
+    // Chỉ cần khởi tạo selectedPaths từ group và fileTree đã có
+    if (group && fileTree) {
+      const initialPaths = new Set(group.paths);
+      const expanded = expandPaths(fileTree, initialPaths); // expandPaths giữ nguyên
+      setSelectedPaths(expanded);
     }
-  }, [rootPath, editingGroupId]);
+  }, [group, fileTree]); // Chạy khi group hoặc fileTree có
 
   const handleTogglePath = useCallback(
     (toggledNode: FileNode, isSelected: boolean) => {
@@ -170,13 +161,12 @@ export function GroupEditorScene() {
     [selectedPaths]
   );
 
-  // --- CẬP NHẬT handleSave ĐỂ SỬ DỤNG LOGIC PRUNE MỚI ---
   const handleSave = async () => {
     if (editingGroupId && fileTree) {
-      // Sử dụng hàm prune mới thay vì .filter() đơn giản
       const pathsToSave = prunePathsForSave(fileTree, selectedPaths);
-
-      await updateGroupPaths(editingGroupId, pathsToSave);
+      // Gọi action bất đồng bộ, không cần await
+      updateGroupPaths(editingGroupId, pathsToSave);
+      // Chuyển về dashboard ngay lập tức
       showDashboard();
     }
   };
@@ -202,26 +192,30 @@ export function GroupEditorScene() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={showDashboard}>
+          <Button variant="outline" onClick={showDashboard} disabled={isSaving}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
           </Button>
-          <Button onClick={handleSave}>
-            <Save className="mr-2 h-4 w-4" /> Lưu thay đổi
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
           </Button>
         </div>
       </header>
       <main className="flex-1 overflow-hidden">
         <ScrollArea className="h-full p-4">
-          {isLoading ? (
-            <p>Đang tải cây thư mục...</p>
-          ) : fileTree ? (
+          {/* --- THAY ĐỔI: Bỏ isLoading, kiểm tra trực tiếp fileTree --- */}
+          {fileTree ? (
             <FileTreeView
               node={fileTree}
               selectedPaths={selectedPaths}
               onToggle={handleTogglePath}
             />
           ) : (
-            <p>Không thể tải cây thư mục.</p>
+            <p>Đang tải cây thư mục...</p> // Hoặc một spinner
           )}
         </ScrollArea>
       </main>

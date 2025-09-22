@@ -1,6 +1,8 @@
 // src/components/GroupManager.tsx
+import { useState, useEffect } from "react"; // Thêm useState, useEffect
 import { useAppStore, useAppActions, type Group } from "@/store/appStore";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event"; // Thêm listen
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { formatBytes } from "@/lib/utils"; // <-- Import hàm tiện ích
@@ -24,6 +26,7 @@ import {
   File, // <-- Thêm icon
   Folder, // <-- Thêm icon
   HardDrive, // <-- Thêm icon
+  Loader2, // Thêm Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -53,32 +56,56 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
   const rootPath = useAppStore((state) => state.rootPath);
   const { deleteGroup, editGroupContent } = useAppActions();
 
+  // ...
+  const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
+
+  // Lắng nghe sự kiện export hoàn thành
+  useEffect(() => {
+    const unlisten = listen<{ groupId: string; context: string }>(
+      "group_export_complete",
+      async (event) => {
+        // Chỉ xử lý nếu đúng là group đang chờ export
+        if (event.payload.groupId === exportingGroupId) {
+          const group = groups.find((g) => g.id === event.payload.groupId);
+          const defaultName = group
+            ? `${group.name.replace(/\s+/g, "_")}_context.txt`
+            : "context.txt";
+
+          try {
+            const filePath = await save({
+              title: `Lưu Ngữ cảnh cho nhóm "${group?.name}"`,
+              defaultPath: defaultName,
+              filters: [{ name: "Text File", extensions: ["txt"] }],
+            });
+            if (filePath) {
+              await writeTextFile(filePath, event.payload.context);
+              alert(`Đã lưu file thành công!`);
+            }
+          } catch (error) {
+            console.error("Lỗi khi lưu file ngữ cảnh:", error);
+            alert("Đã xảy ra lỗi khi lưu file.");
+          } finally {
+            setExportingGroupId(null); // Tắt loading
+          }
+        }
+      }
+    );
+
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, [exportingGroupId, groups]); // Chạy lại nếu exportingGroupId thay đổi
+
   const handleExportGroup = async (group: Group) => {
     if (!rootPath || group.paths.length === 0) {
-      alert("Nhóm này chưa có tệp/thư mục nào được chọn.");
-      return;
+      /* ... */ return;
     }
-    try {
-      const result = await invoke<{ context: string }>(
-        "generate_context_for_paths",
-        {
-          rootPathStr: rootPath,
-          paths: group.paths,
-        }
-      );
-      const filePath = await save({
-        title: `Lưu Ngữ cảnh cho nhóm "${group.name}"`,
-        defaultPath: `${group.name.replace(/\s+/g, "_")}_context.txt`,
-        filters: [{ name: "Text File", extensions: ["txt"] }],
-      });
-      if (filePath) {
-        await writeTextFile(filePath, result.context);
-        alert(`Đã lưu file thành công!`);
-      }
-    } catch (error) {
-      console.error("Lỗi khi xuất ngữ cảnh nhóm:", error);
-      alert("Đã xảy ra lỗi khi xuất file.");
-    }
+    setExportingGroupId(group.id); // Bật loading
+    await invoke("start_group_export", {
+      groupId: group.id,
+      rootPathStr: rootPath,
+      paths: group.paths,
+    });
   };
 
   return (
@@ -183,8 +210,14 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => handleExportGroup(group)}
+                  disabled={!!exportingGroupId} // Vô hiệu hóa tất cả nút khi đang export
                 >
-                  <Download className="mr-2 h-4 w-4" /> Xuất
+                  {exportingGroupId === group.id ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  {exportingGroupId === group.id ? "Đang xuất..." : "Xuất"}
                 </Button>
                 <Button size="sm" onClick={() => editGroupContent(group.id)}>
                   <ListChecks className="mr-2 h-4 w-4" /> Quản lý nội dung

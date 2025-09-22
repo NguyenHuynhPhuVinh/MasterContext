@@ -1,7 +1,13 @@
 // src/App.tsx
 import { useEffect, useMemo } from "react"; // <-- Thêm useMemo
 import { listen } from "@tauri-apps/api/event";
-import { useAppStore, useAppActions, ProjectStats } from "./store/appStore";
+import {
+  useAppStore,
+  useAppActions,
+  ProjectStats,
+  FileNode,
+  GroupStats,
+} from "./store/appStore";
 import { WelcomeScene } from "./scenes/WelcomeScene";
 import { DashboardScene } from "./scenes/DashboardScene";
 import { GroupEditorScene } from "./scenes/GroupEditorScene";
@@ -13,7 +19,18 @@ function App() {
   const selectedPath = useAppStore((state) => state.selectedPath);
   const activeScene = useAppStore((state) => state.activeScene);
   const isScanning = useAppStore((state) => state.isScanning); // <-- Lấy state isScanning
-  const { _setScanProgress, _setScanComplete, _setScanError } = useAppActions();
+  const {
+    _setScanProgress,
+    _setScanComplete,
+    _setScanError,
+    _setGroupUpdateComplete,
+  } = useAppActions();
+
+  // --- ĐỊNH NGHĨA PAYLOAD ĐÚNG ---
+  interface ScanCompletePayload {
+    stats: ProjectStats;
+    fileTree: FileNode;
+  }
 
   // --- THAY ĐỔI: Tạo một phiên bản throttled của hàm cập nhật ---
   const throttledSetScanProgress = useMemo(
@@ -33,7 +50,8 @@ function App() {
     );
 
     unlistenFuncs.push(
-      listen<ProjectStats>("scan_complete", (event) => {
+      // --- SỬA LỖI: SỬA KIỂU DỮ LIỆU TỪ ProjectStats THÀNH ScanCompletePayload ---
+      listen<ScanCompletePayload>("scan_complete", (event) => {
         _setScanComplete(event.payload);
       })
     );
@@ -42,6 +60,16 @@ function App() {
       listen<string>("scan_error", (event) => {
         _setScanError(event.payload);
       })
+    );
+
+    // Thêm listener cho group_update_complete
+    unlistenFuncs.push(
+      listen<{ groupId: string; stats: GroupStats; paths: string[] }>(
+        "group_update_complete",
+        (event) => {
+          _setGroupUpdateComplete(event.payload);
+        }
+      )
     );
 
     // Dọn dẹp listener khi component unmount
@@ -55,6 +83,7 @@ function App() {
     _setScanComplete,
     _setScanError,
     throttledSetScanProgress,
+    _setGroupUpdateComplete,
   ]); // <-- Thêm dependency
 
   const renderContent = () => {

@@ -4,8 +4,18 @@ import { invoke } from "@tauri-apps/api/core";
 import { join, dirname } from "@tauri-apps/api/path";
 
 // --- PHẦN MỚI: Định nghĩa kiểu dữ liệu ProjectData khớp với Rust ---
-interface ProjectData {
+// Thay thế bằng CachedProjectData
+interface CachedProjectData {
+  stats: ProjectStats | null;
+  file_tree: FileNode | null;
   groups: Group[];
+}
+
+// Thêm FileNode interface
+export interface FileNode {
+  name: string;
+  path: string;
+  children?: FileNode[] | null;
 }
 
 // --- INTERFACE MỚI CHO THỐNG KÊ NHÓM ---
@@ -46,9 +56,17 @@ export interface Group {
 }
 
 // --- INTERFACE MỚI TỪ RUST ---
+/*
 interface GroupContextResult {
   context: string;
   stats: GroupStats; // <-- Nhận về stats
+}
+*/
+
+// Payload từ sự kiện scan_complete
+interface ScanCompletePayload {
+  stats: ProjectStats;
+  fileTree: FileNode;
 }
 
 interface AppState {
@@ -62,6 +80,8 @@ interface AppState {
   projectStats: ProjectStats | null;
   isScanning: boolean;
   scanProgress: ScanProgress; // <-- THÊM STATE MỚI
+  fileTree: FileNode | null; // <-- THÊM STATE MỚI
+  isUpdatingGroupId: string | null; // <-- State loading khi lưu nhóm
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
     navigateTo: (dirName: string) => Promise<void>;
@@ -76,18 +96,28 @@ interface AppState {
     updateGroupPaths: (groupId: string, paths: string[]) => Promise<void>;
     // --- THÊM CÁC ACTION "NỘI BỘ" ĐỂ XỬ LÝ SỰ KIỆN ---
     _setScanProgress: (file: string) => void;
-    _setScanComplete: (stats: ProjectStats) => void;
+    _setScanComplete: (payload: ScanCompletePayload) => void;
     _setScanError: (error: string) => void;
+    // --- ACTIONS MỚI ---
+    _setGroupUpdateComplete: (payload: {
+      groupId: string;
+      stats: GroupStats;
+      paths: string[];
+    }) => void;
   };
 }
 
 export const useAppStore = create<AppState>((set, get) => {
   // --- PHẦN MỚI: Hàm trợ giúp để lưu dữ liệu hiện tại ---
   const saveCurrentProjectData = async () => {
-    const { rootPath, groups } = get();
+    const { rootPath, groups, projectStats, fileTree } = get();
     if (rootPath) {
       try {
-        const dataToSave: ProjectData = { groups };
+        const dataToSave: CachedProjectData = {
+          stats: projectStats,
+          file_tree: fileTree,
+          groups,
+        };
         await invoke("save_project_data", { path: rootPath, data: dataToSave });
       } catch (error) {
         console.error("Lỗi khi lưu dữ liệu dự án:", error);
@@ -105,40 +135,45 @@ export const useAppStore = create<AppState>((set, get) => {
     projectStats: null,
     isScanning: false,
     scanProgress: { currentFile: null }, // <-- GIÁ TRỊ MẶC ĐỊNH
+    fileTree: null,
+    isUpdatingGroupId: null,
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
-        // 1. Reset state và bắt đầu chế độ scanning
         set({
           isScanning: true,
           projectStats: null,
-          scanProgress: { currentFile: null },
-          groups: [], // Reset groups
+          fileTree: null,
+          groups: [],
         });
-
         try {
-          // 2. Tải dữ liệu project đã có (việc này nhanh)
-          const projectData = await invoke<ProjectData>("load_project_data", {
+          // Tải dữ liệu cache
+          const data = await invoke<CachedProjectData>("load_project_data", {
             path,
           });
-          set({
-            rootPath: path,
-            selectedPath: path,
-            groups: (projectData.groups || []).map((g) => ({
-              ...g,
-              paths: g.paths || [],
-              stats: g.stats || defaultGroupStats(),
-            })),
-            activeScene: "dashboard",
-          });
-
-          // 3. Gọi command để BẮT ĐẦU quét, không cần await
-          await invoke("start_project_scan", { path });
+          if (data && data.stats && data.file_tree) {
+            // Nếu có cache, dùng ngay
+            set({
+              rootPath: path,
+              selectedPath: path,
+              projectStats: data.stats,
+              fileTree: data.file_tree,
+              groups: (data.groups || []).map((g) => ({
+                ...g,
+                paths: g.paths || [],
+                stats: g.stats || defaultGroupStats(),
+              })),
+              isScanning: false,
+              activeScene: "dashboard",
+            });
+          } else {
+            // Nếu không có cache, bắt đầu quét
+            await invoke("start_project_scan", { path });
+          }
         } catch (error) {
-          console.error("Lỗi khi tải dữ liệu dự án:", error);
-          get().actions._setScanError(
-            typeof error === "string" ? error : "Lỗi không xác định"
-          );
+          console.error("Lỗi khi tải dự án:", error);
+          // Nếu lỗi, vẫn bắt đầu quét mới
+          await invoke("start_project_scan", { path });
         }
       },
       navigateTo: async (dirName) => {
@@ -201,44 +236,41 @@ export const useAppStore = create<AppState>((set, get) => {
       updateGroupPaths: async (groupId, paths) => {
         const rootPath = get().rootPath;
         if (!rootPath) return;
-
-        try {
-          // Gọi backend để tính toán
-          const result = await invoke<GroupContextResult>(
-            "generate_context_for_paths",
-            {
-              rootPathStr: rootPath,
-              paths,
-            }
-          );
-
-          // Cập nhật state
-          set((state) => ({
-            groups: state.groups.map((g) =>
-              g.id === groupId
-                ? { ...g, paths, stats: result.stats } // <-- Cập nhật cả stats
-                : g
-            ),
-          }));
-
-          // Lưu lại
-          saveCurrentProjectData();
-        } catch (error) {
-          console.error("Lỗi khi cập nhật paths của nhóm:", error);
-        }
+        set({ isUpdatingGroupId: groupId }); // Bật loading
+        await invoke("start_group_update", {
+          groupId,
+          rootPathStr: rootPath,
+          paths,
+        });
       },
 
       // --- CÁC ACTION MỚI ĐỂ XỬ LÝ SỰ KIỆN TỪ RUST ---
       _setScanProgress: (file) => {
         set({ scanProgress: { currentFile: file } });
       },
-      _setScanComplete: (stats) => {
-        set({ projectStats: stats, isScanning: false });
+      _setScanComplete: (payload: ScanCompletePayload) => {
+        set({
+          projectStats: payload.stats,
+          fileTree: payload.fileTree,
+          isScanning: false,
+        });
       },
       _setScanError: (error) => {
         console.error("Scan error from Rust:", error);
         alert(`Đã xảy ra lỗi khi quét dự án: ${error}`);
         set({ isScanning: false });
+      },
+      // --- ACTIONS MỚI ---
+      _setGroupUpdateComplete: ({ groupId, stats, paths }) => {
+        set((state) => ({
+          groups: state.groups.map((g) =>
+            g.id === groupId
+              ? // Sửa lại logic cập nhật: paths được truyền từ backend (dù rỗng), stats được cập nhật
+                { ...g, paths: paths, stats: stats }
+              : g
+          ),
+          isUpdatingGroupId: null, // Tắt loading
+        }));
       },
     },
   };
