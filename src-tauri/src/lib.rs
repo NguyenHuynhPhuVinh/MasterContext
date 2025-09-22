@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::fmt::Write as FmtWrite;
 // --- THÊM MỚI: Cần SystemTime và UNIX_EPOCH để lấy timestamp ---
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::UNIX_EPOCH;
 use tauri::{Window, Emitter};
 use ignore::{WalkBuilder, overrides::OverrideBuilder};
 use tiktoken_rs::cl100k_base;
@@ -49,6 +49,7 @@ struct Group {
     stats: GroupStats,
 }
 
+#[allow(dead_code)]
 #[derive(Serialize, Deserialize, Debug)]
 struct GroupContextResult {
     context: String,
@@ -112,6 +113,122 @@ fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut Stri
             }
         }
     }
+}
+
+// --- HÀM HELPER MỚI: Mở rộng đường dẫn tối thiểu của nhóm thành danh sách file đầy đủ ---
+
+/// Mở rộng các đường dẫn tối thiểu của một nhóm thành danh sách file đầy đủ dựa vào cache.
+fn expand_group_paths_to_files(
+    group_paths: &[String],
+    metadata_cache: &BTreeMap<String, FileMetadata>,
+    root_path: &Path,
+) -> Vec<String> {
+    let mut all_files_in_group: HashSet<String> = HashSet::new();
+
+    for path_str in group_paths {
+        let full_path = root_path.join(path_str);
+        if full_path.is_dir() {
+            // Duyệt qua cache để tìm các file con
+            for cached_path in metadata_cache.keys() {
+                if cached_path.starts_with(path_str) {
+                    // Đảm bảo nó là file trong thư mục đó, không phải chính thư mục
+                    let cached_full_path = root_path.join(cached_path);
+                    if cached_full_path.is_file() {
+                        all_files_in_group.insert(cached_path.clone());
+                    }
+                }
+            }
+        } else {
+            // Nếu là file thì thêm trực tiếp
+            all_files_in_group.insert(path_str.clone());
+        }
+    }
+    all_files_in_group.into_iter().collect()
+}
+
+// --- HÀM HELPER MỚI: Tạo context từ danh sách file đã mở rộng ---
+
+/// Tạo context từ một danh sách file đã được mở rộng.
+fn generate_context_for_export(root_path_str: String, expanded_files: Vec<String>) -> Result<String, String> {
+    let root_path = Path::new(&root_path_str);
+    let mut file_contents_string = String::new();
+    let mut selected_tree_root = BTreeMap::new();
+    
+    // Xây dựng cây thư mục từ danh sách file
+    let mut all_paths_to_render: HashSet<PathBuf> = HashSet::new();
+    for file_rel_path in &expanded_files {
+        let file_abs_path = root_path.join(file_rel_path);
+        // Thêm chính file đó vào set
+        all_paths_to_render.insert(file_abs_path.clone());
+        // Thêm tất cả các thư mục cha của file đó vào set
+        let mut current = file_abs_path.as_path();
+        while let Some(parent) = current.parent() {
+            // Dừng lại khi đến thư mục gốc của dự án
+            if parent == root_path { break; }
+            if all_paths_to_render.insert(parent.to_path_buf()) {
+                current = parent;
+            } else {
+                // Nếu không insert được nghĩa là đã có trong set, có thể dừng lại
+                break;
+            }
+        }
+    }
+
+    // --- SỬA LỖI: Chuyển HashSet thành Vec và sắp xếp để đảm bảo các thư mục cha được xử lý trước file con. ---
+    let mut sorted_paths: Vec<PathBuf> = all_paths_to_render.into_iter().collect();
+    sorted_paths.sort();
+
+    for full_path in sorted_paths {
+        if let Ok(relative_path) = full_path.strip_prefix(root_path) {
+            if relative_path.as_os_str().is_empty() { continue; }
+            
+            let mut current_level = &mut selected_tree_root;
+            
+            // --- LOGIC SỬA LỖI CỐT LÕI ---
+            // Chúng ta sẽ kiểm tra từng thành phần của đường dẫn một cách độc lập.
+            let mut path_so_far = PathBuf::new(); // Để theo dõi đường dẫn tương đối đang xây dựng
+
+            for component in relative_path.components() {
+                path_so_far.push(component);
+                let component_full_path = root_path.join(&path_so_far);
+                
+                let component_str = component.as_os_str().to_string_lossy().into_owned();
+
+                // `entry_type` được xác định chính xác cho từng thành phần
+                let entry_type = if component_full_path.is_dir() {
+                    FsEntry::Directory(BTreeMap::new())
+                } else {
+                    FsEntry::File
+                };
+
+                current_level = match current_level.entry(component_str).or_insert(entry_type) {
+                    FsEntry::Directory(children) => children,
+                    // Nếu nó là file, chúng ta không thể đi sâu hơn, nên dừng vòng lặp component này
+                    FsEntry::File => break,
+                };
+            }
+        }
+    }
+
+    let mut directory_structure = String::new();
+    format_tree(&selected_tree_root, "", &mut directory_structure);
+    
+    // Đọc nội dung file
+    let mut sorted_files_for_content = expanded_files;
+    sorted_files_for_content.sort();
+
+    for file_rel_path in sorted_files_for_content {
+        let file_path = root_path.join(&file_rel_path);
+        if let Ok(content) = fs::read_to_string(&file_path) {
+            let header = format!("================================================\nFILE: {}\n================================================\n", file_rel_path.replace("\\", "/"));
+            file_contents_string.push_str(&header);
+            file_contents_string.push_str(&content);
+            file_contents_string.push_str("\n\n");
+        }
+    }
+
+    let final_context = format!("Selected directory structure:\n{}\n\n{}", directory_structure, file_contents_string);
+    Ok(final_context)
 }
 
 // --- CÁC COMMAND ĐÃ SỬA ---
@@ -321,6 +438,7 @@ fn perform_smart_scan_and_rebuild(window: &Window, app_handle: &tauri::AppHandle
     Ok(())
 }
 
+#[allow(dead_code)]
 #[tauri::command]
 fn start_project_scan(window: Window, app_handle: tauri::AppHandle, path: String) {
     std::thread::spawn(move || {
@@ -343,6 +461,7 @@ fn open_project(window: Window, app_handle: tauri::AppHandle, path: String) {
 }
 
 // Giữ lại hàm này vì nó là logic lõi, không phải là command
+#[allow(dead_code)]
 #[tauri::command]
 fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Result<GroupContextResult, String> {
     // ... (logic của hàm này giữ nguyên như phiên bản đã sửa lỗi ở lần trước)
@@ -525,14 +644,37 @@ fn start_group_update(window: Window, app_handle: tauri::AppHandle, group_id: St
 }
 
 #[tauri::command]
-fn start_group_export(window: Window, group_id: String, root_path_str: String, paths: Vec<String>) {
+fn start_group_export(window: Window, app_handle: tauri::AppHandle, group_id: String, root_path_str: String) {
     std::thread::spawn(move || {
-        let result = generate_context_for_paths(root_path_str, paths);
-        match result {
-            Ok(context_result) => {
-                let _ = window.emit("group_export_complete", serde_json::json!({ "groupId": group_id, "context": context_result.context }));
+        let result: Result<String, String> = (|| {
+            // 1. Tải dữ liệu dự án để lấy cache và thông tin nhóm
+            let project_data = load_project_data(app_handle.clone(), root_path_str.clone())?;
+            let root_path = Path::new(&root_path_str);
+
+            // 2. Tìm nhóm cần xuất
+            let group = project_data.groups.iter()
+                .find(|g| g.id == group_id)
+                .ok_or_else(|| format!("Không tìm thấy nhóm với ID: {}", group_id))?;
+
+            // 3. Mở rộng đường dẫn thành danh sách file (cực nhanh, từ cache)
+            let expanded_files = expand_group_paths_to_files(&group.paths, &project_data.file_metadata_cache, root_path);
+
+            if expanded_files.is_empty() {
+                return Err("Nhóm này không chứa file nào để xuất.".to_string());
             }
-            Err(e) => { let _ = window.emit("group_export_error", e); }
+
+            // 4. Tạo context từ danh sách file đã mở rộng (chỉ đọc file ở bước này)
+            generate_context_for_export(root_path_str.clone(), expanded_files)
+        })();
+
+        match result {
+            Ok(context) => {
+                // `generate_context_for_export` không tính token, nên chúng ta bỏ stats khỏi payload
+                let _ = window.emit("group_export_complete", serde_json::json!({ "groupId": group_id, "context": context }));
+            }
+            Err(e) => { 
+                let _ = window.emit("group_export_error", e); 
+            }
         }
     });
 }
@@ -623,7 +765,6 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             // --- SỬA LỖI: XÓA CÁC COMMAND CŨ, CHỈ GIỮ LẠI CÁC COMMAND CẦN THIẾT ---
             save_project_data,
-            generate_context_for_paths,
             open_project,
             start_group_update,
             start_group_export,

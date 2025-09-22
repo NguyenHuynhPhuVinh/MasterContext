@@ -107,24 +107,26 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
   }, [exportingGroupId, groups]); // Chạy lại effect khi exportingGroupId thay đổi
 
   const handleExportGroup = async (group: Group) => {
-    if (!rootPath || group.paths.length === 0) {
-      alert("Nhóm này chưa có tệp/thư mục nào được chọn.");
+    if (!rootPath) {
+      alert("Lỗi: Không tìm thấy đường dẫn gốc của dự án.");
       return;
     }
+    // Không cần kiểm tra group.paths.length nữa vì backend sẽ xử lý
+
     setExportingGroupId(group.id); // Bật loading
     try {
+      // Gọi command mới: chỉ cần groupId và rootPathStr
+      // Không cần gửi 'paths' nữa, giúp giảm lượng dữ liệu truyền đi
       await invoke("start_group_export", {
         groupId: group.id,
         rootPathStr: rootPath,
-        paths: group.paths,
       });
-      // Không làm gì ở đây, để useEffect xử lý
+      // Logic còn lại sẽ được xử lý bởi listener trong useEffect
     } catch (error) {
       console.error("Lỗi khi gọi command start_group_export:", error);
       alert("Không thể bắt đầu quá trình xuất file.");
       setExportingGroupId(null); // Tắt loading nếu gọi command thất bại
     }
-    // Bỏ setTimeout
   };
 
   return (
