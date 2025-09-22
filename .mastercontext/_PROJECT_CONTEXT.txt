@@ -358,6 +358,16 @@ pub fn start_group_update(window: Window, group_id: String, root_path_str: Strin
                     if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
                         group.paths = paths.clone();
                         group.stats = new_stats;
+
+                        // --- LOGIC MỚI: KIỂM TRA VÀ KÍCH HOẠT ĐỒNG BỘ SAU KHI CẬP NHẬT NHÓM ---
+                        let sync_enabled = project_data.sync_enabled.unwrap_or(false);
+                        if sync_enabled && project_data.sync_path.is_some() {
+                            let _ = window.emit("auto_sync_started", "Phát hiện thay đổi nhóm, bắt đầu đồng bộ...");
+                            perform_auto_export(&root_path_str, &project_data);
+                            let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
+                        }
+                        // --- KẾT THÚC LOGIC MỚI ---
+
                     }
                     let _ = file_cache::save_project_data(&root_path_str, &project_data);
                 }

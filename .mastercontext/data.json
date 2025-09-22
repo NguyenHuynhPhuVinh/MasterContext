@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 66,
     "total_dirs": 14,
-    "total_size": 403098,
-    "total_tokens": 39369
+    "total_size": 403790,
+    "total_tokens": 39534
   },
   "file_tree": {
     "name": "MasterContext",
@@ -428,19 +428,13 @@
       "name": "TESt",
       "description": "TEST",
       "paths": [
-        "src/components",
-        "src/hooks",
-        "src/lib",
-        "src/scenes",
-        "src/store",
-        "src/App.css",
-        "src/App.tsx"
+        "src-tauri"
       ],
       "stats": {
-        "total_files": 29,
-        "total_dirs": 9,
-        "total_size": 112884,
-        "token_count": 28252
+        "total_files": 27,
+        "total_dirs": 4,
+        "total_size": 284930,
+        "token_count": 9551
       }
     }
   ],
@@ -590,9 +584,9 @@
       "links": []
     },
     "src-tauri/src/commands.rs": {
-      "size": 9526,
-      "mtime": 1758531269,
-      "token_count": 2270,
+      "size": 10218,
+      "mtime": 1758531494,
+      "token_count": 2435,
       "links": []
     },
     "src-tauri/src/context_generator.rs": {
@@ -944,5 +938,5 @@
   },
   "sync_enabled": true,
   "sync_path": "C:\\Users\\tomis\\Documents\\MasterContext\\.mastercontext",
-  "data_hash": "2806c761df5e89f6d54749b5a2d1203060a124f9e65b0d18904f58545662229f"
+  "data_hash": "bf14de60bd8e596d8ab274edbe562098a5c81550b7c932f263bb612fba6d3f6a"
 }
