@@ -1,17 +1,7 @@
 // src/scenes/DashboardScene.tsx
-import { useState, useEffect } from "react"; // Thêm useEffect
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event"; // Thêm listen
-import { save } from "@tauri-apps/plugin-dialog";
-import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { open } from "@tauri-apps/plugin-dialog"; // <-- Thêm import này
-import { useAppStore, useAppActions } from "@/store/appStore";
-import { type Group } from "@/store/types";
+import { useDashboard } from "@/hooks/useDashboard";
 
-// Import UI components
+// Import các component UI cần thiết
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -29,7 +19,6 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-// --- THAY ĐỔI: Import thêm các component của AlertDialog ---
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,118 +44,26 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"; // <-- Thêm import Tooltip
-import { PlusCircle, FolderSync, RotateCw } from "lucide-react"; // <-- Thêm icon FolderSync
+} from "@/components/ui/tooltip";
+import { PlusCircle, FolderSync, RotateCw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Schema validation cho form
-const groupSchema = z.object({
-  name: z.string().min(1, "Tên nhóm không được để trống"),
-  description: z.string().optional(),
-});
-type GroupFormValues = z.infer<typeof groupSchema>;
-
 export function DashboardScene() {
-  const selectedPath = useAppStore((state) => state.selectedPath);
-  const rootPath = useAppStore((state) => state.rootPath);
-  const projectStats = useAppStore((state) => state.projectStats);
-  // const isScanning = useAppStore((state) => state.isScanning); // <-- XÓA DÒNG NÀY
-
-  const { addGroup, updateGroup, selectRootPath, rescanProject } =
-    useAppActions(); // <-- Thêm selectRootPath
-
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
-
-  // --- LẮNG NGHE SỰ KIỆN EXPORT HOÀN THÀNH ---
-  useEffect(() => {
-    const unlisten = listen<string>(
-      "project_export_complete",
-      async (event) => {
-        try {
-          const filePath = await save({
-            title: "Lưu Ngữ cảnh Dự án",
-            defaultPath: "project_context.txt",
-            filters: [{ name: "Text File", extensions: ["txt"] }],
-          });
-          if (filePath) {
-            await writeTextFile(filePath, event.payload);
-            alert(`Đã lưu file thành công!`);
-          }
-        } catch (error) {
-          console.error("Lỗi khi lưu file ngữ cảnh dự án:", error);
-          alert("Đã xảy ra lỗi khi lưu file.");
-        } finally {
-          setIsExporting(false); // Tắt loading
-        }
-      }
-    );
-
-    const unlistenError = listen<string>("project_export_error", (event) => {
-      console.error("Lỗi khi xuất dự án:", event.payload);
-      alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
-      setIsExporting(false);
-    });
-
-    return () => {
-      unlisten.then((f) => f());
-      unlistenError.then((f) => f());
-    };
-  }, []); // Chỉ chạy một lần
-
-  const form = useForm<GroupFormValues>({
-    resolver: zodResolver(groupSchema),
-    defaultValues: { name: "", description: "" },
-  });
-
-  const handleOpenDialog = (group: Group | null = null) => {
-    setEditingGroup(group);
-    form.reset(
-      group
-        ? { name: group.name, description: group.description }
-        : { name: "", description: "" }
-    );
-    setIsDialogOpen(true);
-  };
-
-  const onSubmit = (data: GroupFormValues) => {
-    if (editingGroup) {
-      updateGroup({ ...editingGroup, ...data });
-    } else {
-      addGroup({ name: data.name, description: data.description || "" });
-    }
-    setIsDialogOpen(false);
-  };
-
-  // --- HÀM MỚI: Tái sử dụng logic từ WelcomeScene ---
-  const handleOpenAnotherFolder = async () => {
-    try {
-      const result = await open({
-        directory: true,
-        multiple: false,
-        title: "Chọn một thư mục dự án khác",
-      });
-      if (typeof result === "string") {
-        // Gọi action này sẽ tự động reset và quét dự án mới
-        selectRootPath(result);
-      }
-    } catch (error) {
-      console.error("Lỗi khi chọn thư mục khác:", error);
-    }
-  };
-
-  const handleExportProject = async () => {
-    if (!rootPath) return;
-    setIsExporting(true);
-    // Gọi command bất đồng bộ mới, không cần await
-    await invoke("start_project_export", { path: rootPath });
-  };
-
-  // --- THAY ĐỔI: Hàm này giờ chỉ gọi action, không cần confirm ---
-  const handleConfirmRescan = async () => {
-    await rescanProject();
-  };
+  // --- COMPONENT CHỈ CÒN LẠI VIỆC GỌI HOOK VÀ RENDER UI ---
+  const {
+    selectedPath,
+    projectStats,
+    isDialogOpen,
+    isExporting,
+    editingGroup,
+    form,
+    setIsDialogOpen,
+    handleOpenDialog,
+    onSubmit,
+    handleOpenAnotherFolder,
+    handleExportProject,
+    handleConfirmRescan,
+  } = useDashboard();
 
   return (
     <>
@@ -174,12 +71,9 @@ export function DashboardScene() {
         {/* === SIDEBAR === */}
         <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
           <div className="flex h-full flex-col gap-4 p-4">
-            {/* --- CẬP NHẬT: Thêm nút vào header của sidebar --- */}
             <div className="flex items-center justify-between px-2">
               <h2 className="text-xl font-bold">Thông tin Dự án</h2>
-              {/* --- THAY ĐỔI: Thêm nhóm nút --- */}
               <div className="flex items-center">
-                {/* --- THAY ĐỔI: Bọc nút Rescan trong AlertDialog --- */}
                 <AlertDialog>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -265,6 +159,7 @@ export function DashboardScene() {
         </ResizablePanel>
       </ResizablePanelGroup>
 
+      {/* === DIALOG TẠO/SỬA NHÓM === */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
