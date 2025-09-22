@@ -331,6 +331,17 @@ fn start_project_scan(window: Window, app_handle: tauri::AppHandle, path: String
     });
 }
 
+#[tauri::command]
+fn open_project(window: Window, app_handle: tauri::AppHandle, path: String) {
+    // Luôn chạy hàm quét thông minh trong một thread nền khi mở dự án
+    std::thread::spawn(move || {
+        if let Err(e) = perform_smart_scan_and_rebuild(&window, &app_handle, &path) {
+            // Gửi lỗi nếu quá trình quét gặp sự cố
+            let _ = window.emit("scan_error", e);
+        }
+    });
+}
+
 // Giữ lại hàm này vì nó là logic lõi, không phải là command
 #[tauri::command]
 fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Result<GroupContextResult, String> {
@@ -611,10 +622,9 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             // --- SỬA LỖI: XÓA CÁC COMMAND CŨ, CHỈ GIỮ LẠI CÁC COMMAND CẦN THIẾT ---
-            load_project_data,
             save_project_data,
             generate_context_for_paths,
-            start_project_scan,
+            open_project,
             start_group_update,
             start_group_export,
             start_project_export, // <-- THÊM COMMAND MỚI

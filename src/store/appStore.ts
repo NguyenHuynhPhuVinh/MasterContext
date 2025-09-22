@@ -253,46 +253,26 @@ export const useAppStore = create<AppState>((set, get) => {
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
-        // BƯỚC 1: CẬP NHẬT STATE BAN ĐẦU
-        // Set isScanning VÀ quan trọng nhất là set rootPath/selectedPath ngay lập tức.
+        // 1. Cập nhật state UI ngay lập tức để hiển thị màn hình Scanning
         set({
           isScanning: true,
-          rootPath: path, // <-- SỬA LỖI: Thêm dòng này
-          selectedPath: path, // <-- SỬA LỖI: Thêm dòng này
+          rootPath: path,
+          selectedPath: path,
           projectStats: null,
           fileTree: null,
           groups: [],
-          activeScene: "dashboard", // Đặt sẵn scene, vì chúng ta biết sẽ vào đây
+          activeScene: "dashboard", // Vẫn giữ để sau khi quét xong sẽ vào dashboard
+          scanProgress: { currentFile: "Đang khởi tạo quá trình quét..." },
         });
 
-        // BƯỚC 2: KIỂM TRA CACHE
+        // 2. Kích hoạt quá trình quét ở backend
         try {
-          const data = await invoke<CachedProjectData>("load_project_data", {
-            path,
-          });
-
-          // Nếu có cache, cập nhật dữ liệu và tắt scanning ngay
-          if (data && data.stats && data.file_tree) {
-            set({
-              projectStats: data.stats,
-              fileTree: data.file_tree,
-              groups: (data.groups || []).map((g) => ({
-                ...g,
-                paths: g.paths || [],
-                stats: g.stats || defaultGroupStats(),
-              })),
-              isScanning: false, // Tắt scanning vì đã có cache
-            });
-          } else {
-            // Nếu không có cache, bắt đầu quá trình quét.
-            // isScanning vẫn là true.
-            // Listener sự kiện "scan_complete" sẽ xử lý việc tắt scanning.
-            await invoke("start_project_scan", { path });
-          }
+          // Frontend không cần chờ, backend sẽ gửi sự kiện 'scan_complete' hoặc 'scan_error'
+          await invoke("open_project", { path });
         } catch (error) {
-          console.error("Lỗi khi tải dữ liệu dự án, bắt đầu quét mới:", error);
-          // Nếu có lỗi khi đọc cache, cũng tiến hành quét mới.
-          await invoke("start_project_scan", { path });
+          console.error("Lỗi khi gọi command open_project:", error);
+          set({ isScanning: false }); // Tắt scanning nếu gọi command bị lỗi
+          alert("Không thể bắt đầu phân tích dự án.");
         }
       },
       // --- THÊM MỚI: Logic cho action rescanProject ---
@@ -302,14 +282,14 @@ export const useAppStore = create<AppState>((set, get) => {
           console.warn("Không thể quét lại vì chưa có dự án nào được chọn.");
           return;
         }
-        // Đặt trạng thái đang quét. Giao diện sẽ tự động chuyển sang ScanningScene
+        // 1. Đặt trạng thái đang quét
         set({
           isScanning: true,
           scanProgress: { currentFile: "Bắt đầu quét lại dự án..." },
         });
-        // Gọi lại command quét dự án
+        // 2. Gọi lại command 'open_project' với đường dẫn hiện tại
         try {
-          await invoke("start_project_scan", { path: rootPath });
+          await invoke("open_project", { path: rootPath });
         } catch (error) {
           console.error("Lỗi khi bắt đầu quét lại dự án:", error);
           set({
