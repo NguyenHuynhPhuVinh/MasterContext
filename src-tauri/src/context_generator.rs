@@ -1,9 +1,9 @@
 // src-tauri/src/context_generator.rs
-use crate::models::{FsEntry, FileNode}; // <-- Thêm FileNode
+use crate::models::{FileNode, FsEntry}; // <-- Thêm FileNode
 use std::collections::{BTreeMap, HashSet};
+use std::fmt::Write as FmtWrite;
 use std::fs;
 use std::path::Path;
-use std::fmt::Write as FmtWrite;
 
 fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut String) {
     let mut entries = tree.iter().peekable();
@@ -11,7 +11,9 @@ fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut Stri
         let is_last = entries.peek().is_none();
         let connector = if is_last { "└── " } else { "├── " };
         match entry {
-            FsEntry::File => { let _ = writeln!(output, "{}{}{}", prefix, connector, name); }
+            FsEntry::File => {
+                let _ = writeln!(output, "{}{}{}", prefix, connector, name);
+            }
             FsEntry::Directory(children) => {
                 let _ = writeln!(output, "{}{}{}/", prefix, connector, name);
                 let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
@@ -33,7 +35,6 @@ fn convert_file_node_to_fs_entry(node: &FileNode) -> FsEntry {
         FsEntry::File
     }
 }
-
 
 // === BẮT ĐẦU PHẦN SỬA LỖI DỨT ĐIỂM ===
 pub fn expand_group_paths_to_files(
@@ -61,7 +62,7 @@ pub fn expand_group_paths_to_files(
             // và cached_file cũng sẽ bắt đầu bằng "/", điều này không đúng.
             // Do đó, cần xử lý trường hợp thư mục gốc một cách đặc biệt.
             if path_str.is_empty() {
-                 all_files_in_group.insert(cached_file.clone());
+                all_files_in_group.insert(cached_file.clone());
             } else if cached_file.starts_with(&dir_prefix) {
                 all_files_in_group.insert(cached_file.clone());
             }
@@ -72,10 +73,9 @@ pub fn expand_group_paths_to_files(
 }
 // === KẾT THÚC PHẦN SỬA LỖI DỨT ĐIỂM ===
 
-
 // --- CẬP NHẬT CHỮ KÝ VÀ LOGIC CỦA HÀM NÀY ---
 pub fn generate_context_from_files(
-    root_path_str: &str, 
+    root_path_str: &str,
     file_paths: &[String],
     use_full_tree: bool,
     full_project_tree: &Option<FileNode>,
@@ -86,7 +86,7 @@ pub fn generate_context_from_files(
     // --- LOGIC IF/ELSE MỚI ĐỂ XÂY DỰNG CÂY THƯ MỤC ---
     if use_full_tree {
         if let Some(tree_node) = full_project_tree {
-             if let FsEntry::Directory(root_children) = convert_file_node_to_fs_entry(tree_node) {
+            if let FsEntry::Directory(root_children) = convert_file_node_to_fs_entry(tree_node) {
                 tree_builder_root = root_children;
             }
         } else {
@@ -100,7 +100,10 @@ pub fn generate_context_from_files(
             if let Some(components) = rel_path.parent() {
                 for component in components.components() {
                     let component_str = component.as_os_str().to_string_lossy().into_owned();
-                    current_level = match current_level.entry(component_str).or_insert(FsEntry::Directory(BTreeMap::new())) {
+                    current_level = match current_level
+                        .entry(component_str)
+                        .or_insert(FsEntry::Directory(BTreeMap::new()))
+                    {
                         FsEntry::Directory(children) => children,
                         _ => unreachable!(),
                     };
@@ -115,7 +118,7 @@ pub fn generate_context_from_files(
 
     let mut directory_structure = String::new();
     format_tree(&tree_builder_root, "", &mut directory_structure);
-    
+
     // Phần xử lý nội dung file giữ nguyên, không thay đổi
     let mut file_contents_string = String::new();
     let mut sorted_files = file_paths.to_vec();
@@ -129,6 +132,9 @@ pub fn generate_context_from_files(
             file_contents_string.push_str("\n\n");
         }
     }
-    let final_context = format!("Directory structure:\n{}\n\n{}", directory_structure, file_contents_string);
+    let final_context = format!(
+        "Directory structure:\n{}\n\n{}",
+        directory_structure, file_contents_string
+    );
     Ok(final_context)
 }

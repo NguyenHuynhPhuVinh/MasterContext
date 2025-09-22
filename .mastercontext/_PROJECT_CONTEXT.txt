@@ -191,6 +191,7 @@ FILE: package.json
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tailwindcss/vite": "^4.1.13",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.0",
     "@tauri-apps/plugin-dialog": "^2.4.0",
     "@tauri-apps/plugin-fs": "^2.4.2",
     "@tauri-apps/plugin-opener": "^2",
@@ -255,6 +256,7 @@ regex = "1"
 lazy_static = "1.5.0"
 path-clean = "1.0"
 sha2 = "0.10"
+tauri-plugin-clipboard-manager = "2"
 
 
 
@@ -273,24 +275,26 @@ FILE: src-tauri/capabilities/default.json
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "opener:default",
     "dialog:default",
-    "fs:write-all"
+    "fs:write-all",
+    "clipboard-manager:default"
   ]
 }
-
 
 ================================================
 FILE: src-tauri/src/commands.rs
 ================================================
 // src-tauri/src/commands.rs
-use crate::{models, file_cache, project_scanner, context_generator};
+use crate::{context_generator, file_cache, models, project_scanner};
 use std::fs;
-use tauri::{command, Window, Emitter}; // Bỏ AppHandle khỏi use list vì không cần nữa
 use std::path::{Path, PathBuf};
+use tauri::{command, Emitter, Window}; // Bỏ AppHandle khỏi use list vì không cần nữa
 
 #[command]
 pub fn open_project(window: Window, path: String) {
@@ -299,7 +303,10 @@ pub fn open_project(window: Window, path: String) {
 
         // 1. Tải dữ liệu cũ để so sánh hash sau này
         let old_data_result = file_cache::load_project_data(&path);
-        let old_hash = old_data_result.as_ref().ok().and_then(|d| d.data_hash.clone());
+        let old_hash = old_data_result
+            .as_ref()
+            .ok()
+            .and_then(|d| d.data_hash.clone());
 
         // 2. Thực hiện quét (hàm này giờ chỉ trả về dữ liệu, không ghi file)
         match project_scanner::perform_smart_scan_and_rebuild(&path) {
@@ -318,7 +325,10 @@ pub fn open_project(window: Window, path: String) {
                 let has_changed = old_hash != new_data.data_hash;
 
                 if sync_enabled && has_changed && new_data.sync_path.is_some() {
-                    let _ = window.emit("auto_sync_started", "Phát hiện thay đổi, bắt đầu đồng bộ...");
+                    let _ = window.emit(
+                        "auto_sync_started",
+                        "Phát hiện thay đổi, bắt đầu đồng bộ...",
+                    );
                     perform_auto_export(&path, &new_data);
                     let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
                 }
@@ -332,7 +342,10 @@ pub fn open_project(window: Window, path: String) {
 
 #[command]
 // Bỏ _app_handle không cần thiết
-pub fn update_groups_in_project_data(path: String, groups: Vec<models::Group>) -> Result<(), String> {
+pub fn update_groups_in_project_data(
+    path: String,
+    groups: Vec<models::Group>,
+) -> Result<(), String> {
     let mut project_data = file_cache::load_project_data(&path)?;
     project_data.groups = groups;
     file_cache::save_project_data(&path, &project_data)
@@ -340,15 +353,27 @@ pub fn update_groups_in_project_data(path: String, groups: Vec<models::Group>) -
 
 #[command]
 // Bỏ _app_handle không cần thiết
-pub fn calculate_group_stats_from_cache(root_path_str: String, paths: Vec<String>) -> Result<models::GroupStats, String> {
+pub fn calculate_group_stats_from_cache(
+    root_path_str: String,
+    paths: Vec<String>,
+) -> Result<models::GroupStats, String> {
     let project_data = file_cache::load_project_data(&root_path_str)?;
     let root_path = Path::new(&root_path_str);
-    Ok(project_scanner::recalculate_stats_for_paths(&paths, &project_data.file_metadata_cache, root_path))
+    Ok(project_scanner::recalculate_stats_for_paths(
+        &paths,
+        &project_data.file_metadata_cache,
+        root_path,
+    ))
 }
 
 #[command]
 // Bỏ app_handle không cần thiết
-pub fn start_group_update(window: Window, group_id: String, root_path_str: String, paths: Vec<String>) {
+pub fn start_group_update(
+    window: Window,
+    group_id: String,
+    root_path_str: String,
+    paths: Vec<String>,
+) {
     std::thread::spawn(move || {
         // Gọi hàm không cần app_handle
         let result = calculate_group_stats_from_cache(root_path_str.clone(), paths.clone());
@@ -362,20 +387,25 @@ pub fn start_group_update(window: Window, group_id: String, root_path_str: Strin
                         // --- LOGIC MỚI: KIỂM TRA VÀ KÍCH HOẠT ĐỒNG BỘ SAU KHI CẬP NHẬT NHÓM ---
                         let sync_enabled = project_data.sync_enabled.unwrap_or(false);
                         if sync_enabled && project_data.sync_path.is_some() {
-                            let _ = window.emit("auto_sync_started", "Phát hiện thay đổi nhóm, bắt đầu đồng bộ...");
+                            let _ = window.emit(
+                                "auto_sync_started",
+                                "Phát hiện thay đổi nhóm, bắt đầu đồng bộ...",
+                            );
                             perform_auto_export(&root_path_str, &project_data);
                             let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
                         }
                         // --- KẾT THÚC LOGIC MỚI ---
-
                     }
                     let _ = file_cache::save_project_data(&root_path_str, &project_data);
                 }
-                let _ = window.emit("group_update_complete", serde_json::json!({
-                    "groupId": group_id,
-                    "paths": paths,
-                    "stats": new_stats
-                }));
+                let _ = window.emit(
+                    "group_update_complete",
+                    serde_json::json!({
+                        "groupId": group_id,
+                        "paths": paths,
+                        "stats": new_stats
+                    }),
+                );
             }
             Err(e) => {
                 let _ = window.emit("group_update_error", e);
@@ -386,37 +416,65 @@ pub fn start_group_update(window: Window, group_id: String, root_path_str: Strin
 
 #[command]
 // Chữ ký đã đúng, giữ nguyên
-pub fn start_group_export(window: Window, group_id: String, root_path_str: String, use_full_tree: bool) { // <-- THÊM use_full_tree
-    println!("[RUST] EXPORT: Nhận yêu cầu cho nhóm ID: {}, use_full_tree: {}", group_id, use_full_tree);
+pub fn start_group_export(
+    window: Window,
+    group_id: String,
+    root_path_str: String,
+    use_full_tree: bool,
+) {
+    // <-- THÊM use_full_tree
+    println!(
+        "[RUST] EXPORT: Nhận yêu cầu cho nhóm ID: {}, use_full_tree: {}",
+        group_id, use_full_tree
+    );
     std::thread::spawn(move || {
         let result: Result<String, String> = (|| {
             let project_data = file_cache::load_project_data(&root_path_str)?;
             let root_path = Path::new(&root_path_str);
-            let group = project_data.groups.iter()
+            let group = project_data
+                .groups
+                .iter()
                 .find(|g| g.id == group_id)
                 .ok_or_else(|| format!("Không tìm thấy nhóm với ID: {}", group_id))?;
-            
-            println!("[RUST] EXPORT: Đã tìm thấy nhóm '{}'. Paths được lưu: {:?}", group.name, group.paths);
-            let expanded_files = context_generator::expand_group_paths_to_files(&group.paths, &project_data.file_metadata_cache, root_path);
-            
-            println!("[RUST] EXPORT: Sau khi mở rộng, có {} files: {:?}", expanded_files.len(), expanded_files);
+
+            println!(
+                "[RUST] EXPORT: Đã tìm thấy nhóm '{}'. Paths được lưu: {:?}",
+                group.name, group.paths
+            );
+            let expanded_files = context_generator::expand_group_paths_to_files(
+                &group.paths,
+                &project_data.file_metadata_cache,
+                root_path,
+            );
+
+            println!(
+                "[RUST] EXPORT: Sau khi mở rộng, có {} files: {:?}",
+                expanded_files.len(),
+                expanded_files
+            );
             if expanded_files.is_empty() {
                 return Err("Nhóm này không chứa file nào để xuất.".to_string());
             }
             context_generator::generate_context_from_files(
-                &root_path_str, 
+                &root_path_str,
                 &expanded_files,
-                use_full_tree, // <-- Truyền tham số
+                use_full_tree,           // <-- Truyền tham số
                 &project_data.file_tree, // <-- Truyền cả cây thư mục đầy đủ
             )
         })();
         match result {
             Ok(context) => {
                 println!("[RUST] EXPORT: Thành công! Đang gửi sự kiện group_export_complete.");
-                let _ = window.emit("group_export_complete", serde_json::json!({ "groupId": group_id, "context": context }));
+                let _ = window.emit(
+                    "group_export_complete",
+                    serde_json::json!({ "groupId": group_id, "context": context }),
+                );
             }
             Err(e) => {
-                println!("[RUST] EXPORT: Lỗi! Đang gửi sự kiện group_export_error: {}", e);
+                println!(
+                    "[RUST] EXPORT: Lỗi! Đang gửi sự kiện group_export_error: {}",
+                    e
+                );
                 let _ = window.emit("group_export_error", e);
             }
         }
@@ -436,10 +494,10 @@ pub fn start_project_export(window: Window, path: String) {
             // --- SỬA LỖI Ở ĐÂY ---
             // Cung cấp 2 tham số còn thiếu
             context_generator::generate_context_from_files(
-                &path, 
+                &path,
                 &all_files,
-                true, // Luôn dùng cây thư mục đầy đủ khi xuất toàn bộ dự án
-                &project_data.file_tree // Cung cấp cây thư mục đầy đủ
+                true,                    // Luôn dùng cây thư mục đầy đủ khi xuất toàn bộ dự án
+                &project_data.file_tree, // Cung cấp cây thư mục đầy đủ
             )
             // --- KẾT THÚC SỬA LỖI ---
         })();
@@ -454,9 +512,53 @@ pub fn start_project_export(window: Window, path: String) {
     });
 }
 
+// --- COMMAND MỚI: Chỉ tạo và trả về context cho một nhóm ---
+#[command]
+pub fn generate_group_context(group_id: String, root_path_str: String, use_full_tree: bool) -> Result<String, String> {
+    let project_data = file_cache::load_project_data(&root_path_str)?;
+    let root_path = Path::new(&root_path_str);
+    let group = project_data.groups.iter()
+        .find(|g| g.id == group_id)
+        .ok_or_else(|| format!("Không tìm thấy nhóm với ID: {}", group_id))?;
+    
+    let expanded_files = context_generator::expand_group_paths_to_files(&group.paths, &project_data.file_metadata_cache, root_path);
+    
+    if expanded_files.is_empty() {
+        return Err("Nhóm này không chứa file nào để tạo ngữ cảnh.".to_string());
+    }
+
+    context_generator::generate_context_from_files(
+        &root_path_str, 
+        &expanded_files,
+        use_full_tree,
+        &project_data.file_tree,
+    )
+}
+
+// --- COMMAND MỚI: Chỉ tạo và trả về context cho toàn bộ dự án ---
+#[command]
+pub fn generate_project_context(path: String) -> Result<String, String> {
+    let project_data = file_cache::load_project_data(&path)?;
+    let all_files: Vec<String> = project_data.file_metadata_cache.keys().cloned().collect();
+    if all_files.is_empty() {
+        return Err("Dự án không có file nào để tạo ngữ cảnh.".to_string());
+    }
+
+    context_generator::generate_context_from_files(
+        &path, 
+        &all_files,
+        true, // Luôn dùng cây thư mục đầy đủ
+        &project_data.file_tree
+    )
+}
+
 // --- COMMAND MỚI: Cập nhật cài đặt đồng bộ ---
 #[command]
-pub fn update_sync_settings(path: String, enabled: bool, sync_path: Option<String>) -> Result<(), String> {
+pub fn update_sync_settings(
+    path: String,
+    enabled: bool,
+    sync_path: Option<String>,
+) -> Result<(), String> {
     let mut project_data = file_cache::load_project_data(&path)?;
     project_data.sync_enabled = Some(enabled);
     project_data.sync_path = sync_path;
@@ -466,13 +568,13 @@ pub fn update_sync_settings(path: String, enabled: bool, sync_path: Option<Strin
 #[command]
 pub fn set_group_cross_sync(path: String, group_id: String, enabled: bool) -> Result<(), String> {
     let mut project_data = file_cache::load_project_data(&path)?;
-    
+
     if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
         group.cross_sync_enabled = Some(enabled);
     } else {
         return Err(format!("Không tìm thấy nhóm với ID: {}", group_id));
     }
-    
+
     file_cache::save_project_data(&path, &project_data)
 }
 
@@ -480,46 +582,63 @@ pub fn set_group_cross_sync(path: String, group_id: String, enabled: bool) -> Re
 fn save_context_to_path_internal(path: String, content: String) -> Result<(), String> {
     let file_path = Path::new(&path);
     if let Some(parent) = file_path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Không thể tạo thư mục cha: {}", e))?;
+        fs::create_dir_all(parent).map_err(|e| format!("Không thể tạo thư mục cha: {}", e))?;
     }
-    fs::write(file_path, content)
-        .map_err(|e| format!("Không thể ghi vào file: {}", e))
+    fs::write(file_path, content).map_err(|e| format!("Không thể ghi vào file: {}", e))
 }
 
 // --- HÀM HELPER MỚI: Logic xuất tự động ---
 fn perform_auto_export(project_path: &str, data: &models::CachedProjectData) {
     let sync_path_base = PathBuf::from(data.sync_path.as_ref().unwrap());
-    
+
     // 1. Xuất toàn bộ dự án
     let all_files: Vec<String> = data.file_metadata_cache.keys().cloned().collect();
-    if let Ok(proj_context) = context_generator::generate_context_from_files(project_path, &all_files, true, &data.file_tree) {
+    if let Ok(proj_context) = context_generator::generate_context_from_files(
+        project_path,
+        &all_files,
+        true,
+        &data.file_tree,
+    ) {
         let file_name = sync_path_base.join("_PROJECT_CONTEXT.txt");
-        let _ = save_context_to_path_internal(file_name.to_string_lossy().to_string(), proj_context);
+        let _ =
+            save_context_to_path_internal(file_name.to_string_lossy().to_string(), proj_context);
     }
 
     // 2. Xuất từng nhóm
     for group in &data.groups {
-        let expanded_files = context_generator::expand_group_paths_to_files(&group.paths, &data.file_metadata_cache, Path::new(project_path));
+        let expanded_files = context_generator::expand_group_paths_to_files(
+            &group.paths,
+            &data.file_metadata_cache,
+            Path::new(project_path),
+        );
         if !expanded_files.is_empty() {
-            if let Ok(group_context) = context_generator::generate_context_from_files(project_path, &expanded_files, true, &data.file_tree) {
+            if let Ok(group_context) = context_generator::generate_context_from_files(
+                project_path,
+                &expanded_files,
+                true,
+                &data.file_tree,
+            ) {
                 let safe_name = group.name.replace(|c: char| !c.is_alphanumeric(), "_");
                 let file_name = sync_path_base.join(format!("{}_context.txt", safe_name));
-                let _ = save_context_to_path_internal(file_name.to_string_lossy().to_string(), group_context);
+                let _ = save_context_to_path_internal(
+                    file_name.to_string_lossy().to_string(),
+                    group_context,
+                );
             }
         }
     }
 }
 
+
 ================================================
 FILE: src-tauri/src/context_generator.rs
 ================================================
 // src-tauri/src/context_generator.rs
-use crate::models::{FsEntry, FileNode}; // <-- Thêm FileNode
+use crate::models::{FileNode, FsEntry}; // <-- Thêm FileNode
 use std::collections::{BTreeMap, HashSet};
+use std::fmt::Write as FmtWrite;
 use std::fs;
 use std::path::Path;
-use std::fmt::Write as FmtWrite;
 
 fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut String) {
     let mut entries = tree.iter().peekable();
@@ -527,7 +646,9 @@ fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut Stri
         let is_last = entries.peek().is_none();
         let connector = if is_last { "└── " } else { "├── " };
         match entry {
-            FsEntry::File => { let _ = writeln!(output, "{}{}{}", prefix, connector, name); }
+            FsEntry::File => {
+                let _ = writeln!(output, "{}{}{}", prefix, connector, name);
+            }
             FsEntry::Directory(children) => {
                 let _ = writeln!(output, "{}{}{}/", prefix, connector, name);
                 let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
@@ -549,7 +670,6 @@ fn convert_file_node_to_fs_entry(node: &FileNode) -> FsEntry {
         FsEntry::File
     }
 }
-
 
 // === BẮT ĐẦU PHẦN SỬA LỖI DỨT ĐIỂM ===
 pub fn expand_group_paths_to_files(
@@ -577,7 +697,7 @@ pub fn expand_group_paths_to_files(
             // và cached_file cũng sẽ bắt đầu bằng "/", điều này không đúng.
             // Do đó, cần xử lý trường hợp thư mục gốc một cách đặc biệt.
             if path_str.is_empty() {
-                 all_files_in_group.insert(cached_file.clone());
+                all_files_in_group.insert(cached_file.clone());
             } else if cached_file.starts_with(&dir_prefix) {
                 all_files_in_group.insert(cached_file.clone());
             }
@@ -588,10 +708,9 @@ pub fn expand_group_paths_to_files(
 }
 // === KẾT THÚC PHẦN SỬA LỖI DỨT ĐIỂM ===
 
-
 // --- CẬP NHẬT CHỮ KÝ VÀ LOGIC CỦA HÀM NÀY ---
 pub fn generate_context_from_files(
-    root_path_str: &str, 
+    root_path_str: &str,
     file_paths: &[String],
     use_full_tree: bool,
     full_project_tree: &Option<FileNode>,
@@ -602,7 +721,7 @@ pub fn generate_context_from_files(
     // --- LOGIC IF/ELSE MỚI ĐỂ XÂY DỰNG CÂY THƯ MỤC ---
     if use_full_tree {
         if let Some(tree_node) = full_project_tree {
-             if let FsEntry::Directory(root_children) = convert_file_node_to_fs_entry(tree_node) {
+            if let FsEntry::Directory(root_children) = convert_file_node_to_fs_entry(tree_node) {
                 tree_builder_root = root_children;
             }
         } else {
@@ -616,7 +735,10 @@ pub fn generate_context_from_files(
             if let Some(components) = rel_path.parent() {
                 for component in components.components() {
                     let component_str = component.as_os_str().to_string_lossy().into_owned();
-                    current_level = match current_level.entry(component_str).or_insert(FsEntry::Directory(BTreeMap::new())) {
+                    current_level = match current_level
+                        .entry(component_str)
+                        .or_insert(FsEntry::Directory(BTreeMap::new()))
+                    {
                         FsEntry::Directory(children) => children,
                         _ => unreachable!(),
                     };
@@ -631,7 +753,7 @@ pub fn generate_context_from_files(
 
     let mut directory_structure = String::new();
     format_tree(&tree_builder_root, "", &mut directory_structure);
-    
+
     // Phần xử lý nội dung file giữ nguyên, không thay đổi
     let mut file_contents_string = String::new();
     let mut sorted_files = file_paths.to_vec();
@@ -645,9 +767,13 @@ pub fn generate_context_from_files(
             file_contents_string.push_str("\n\n");
         }
     }
-    let final_context = format!("Directory structure:\n{}\n\n{}", directory_structure, file_contents_string);
+    let final_context = format!(
+        "Directory structure:\n{}\n\n{}",
+        directory_structure, file_contents_string
+    );
     Ok(final_context)
 }
+
 
 ================================================
 FILE: src-tauri/src/file_cache.rs
@@ -661,7 +787,10 @@ use std::path::{Path, PathBuf};
 pub fn get_project_config_path(project_path_str: &str) -> Result<PathBuf, String> {
     let project_path = Path::new(project_path_str);
     if !project_path.is_dir() {
-        return Err(format!("'{}' không phải là một thư mục hợp lệ.", project_path_str));
+        return Err(format!(
+            "'{}' không phải là một thư mục hợp lệ.",
+            project_path_str
+        ));
     }
     let config_dir = project_path.join(".mastercontext");
     fs::create_dir_all(&config_dir)
@@ -674,9 +803,11 @@ pub fn load_project_data(path: &str) -> Result<CachedProjectData, String> {
     if !config_path.exists() {
         return Ok(CachedProjectData::default());
     }
-    let mut file = File::open(config_path).map_err(|e| format!("Không thể mở file dữ liệu dự án: {}", e))?;
+    let mut file =
+        File::open(config_path).map_err(|e| format!("Không thể mở file dữ liệu dự án: {}", e))?;
     let mut contents = String::new();
-    file.read_to_string(&mut contents).map_err(|e| format!("Không thể đọc file dữ liệu dự án: {}", e))?;
+    file.read_to_string(&mut contents)
+        .map_err(|e| format!("Không thể đọc file dữ liệu dự án: {}", e))?;
     if contents.is_empty() {
         return Ok(CachedProjectData::default());
     }
@@ -694,21 +825,23 @@ pub fn save_project_data(path: &str, data: &CachedProjectData) -> Result<(), Str
     Ok(())
 }
 
+
 ================================================
 FILE: src-tauri/src/lib.rs
 ================================================
 // src-tauri/src/lib.rs
 
 // Khai báo các module mới
-mod models;
-mod file_cache;
-mod context_generator;
-mod project_scanner;
 mod commands;
+mod context_generator;
+mod file_cache;
+mod models;
+mod project_scanner;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
@@ -720,11 +853,14 @@ pub fn run() {
             commands::start_project_export,
             commands::calculate_group_stats_from_cache,
             commands::update_sync_settings,
-            commands::set_group_cross_sync
+            commands::set_group_cross_sync,
+            commands::generate_group_context,
+            commands::generate_project_context
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
 
 ================================================
 FILE: src-tauri/src/main.rs
@@ -817,24 +953,27 @@ pub enum FsEntry {
     Directory(BTreeMap<String, FsEntry>),
 }
 
+
 ================================================
 FILE: src-tauri/src/project_scanner.rs
 ================================================
 // src-tauri/src/project_scanner.rs
-use crate::models::{CachedProjectData, FileMetadata, FileNode, GroupStats, ProjectStats, TsConfig};
-use crate::file_cache;
 use crate::context_generator; // <-- THÊM USE STATEMENT NÀY
+use crate::file_cache;
+use crate::models::{
+    CachedProjectData, FileMetadata, FileNode, GroupStats, ProjectStats, TsConfig,
+};
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 // use tauri::{Emitter, Window}; // Không còn cần vì hàm không emit nữa
-use ignore::{WalkBuilder, overrides::OverrideBuilder};
-use tiktoken_rs::cl100k_base;
-use regex::Regex;
+use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use lazy_static::lazy_static;
 use path_clean::PathClean;
-use sha2::{Sha256, Digest};
+use regex::Regex;
+use sha2::{Digest, Sha256};
+use tiktoken_rs::cl100k_base;
 
 pub fn recalculate_stats_for_paths(
     paths: &[String],
@@ -857,7 +996,7 @@ pub fn recalculate_stats_for_paths(
         // Xử lý trường hợp đường dẫn là MỘT THƯ MỤC
         let dir_prefix = format!("{}/", path_str);
         if !path_str.is_empty() {
-             all_dirs_in_group.insert(path_str.clone());
+            all_dirs_in_group.insert(path_str.clone());
         }
 
         for &cached_file in &all_cached_files {
@@ -874,7 +1013,9 @@ pub fn recalculate_stats_for_paths(
     for file_path in &all_files_in_group {
         let mut current = Path::new(file_path);
         while let Some(parent) = current.parent() {
-            if parent.as_os_str().is_empty() { break; }
+            if parent.as_os_str().is_empty() {
+                break;
+            }
             let parent_str = parent.to_string_lossy().replace("\\", "/");
             subdirs_from_files.insert(parent_str);
             current = parent;
@@ -994,13 +1135,16 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
                             if let Some(first_replacement) = replacements.get(0) {
                                 // Bỏ "/*" ở cuối alias và replacement
                                 let clean_alias = alias.strip_suffix("/*").unwrap_or(&alias);
-                                let clean_replacement = first_replacement.strip_suffix("/*").unwrap_or(first_replacement);
-                                
+                                let clean_replacement = first_replacement
+                                    .strip_suffix("/*")
+                                    .unwrap_or(first_replacement);
+
                                 // Tạo đường dẫn đầy đủ từ baseUrl
-                                let full_base_path = Path::new(&base_url).join(clean_replacement).clean();
+                                let full_base_path =
+                                    Path::new(&base_url).join(clean_replacement).clean();
                                 aliases.insert(
-                                    clean_alias.to_string(), 
-                                    full_base_path.to_string_lossy().to_string()
+                                    clean_alias.to_string(),
+                                    full_base_path.to_string_lossy().to_string(),
                                 );
                             }
                         }
@@ -1011,13 +1155,17 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
     }
     // Hard-code alias mặc định nếu không tìm thấy trong tsconfig
     // Điều này giúp tương thích ngược với các dự án không có cấu hình rõ ràng
-    aliases.entry("@/".to_string()).or_insert_with(|| "src/".to_string());
+    aliases
+        .entry("@/".to_string())
+        .or_insert_with(|| "src/".to_string());
     println!("[INFO] Aliases đã phát hiện: {:?}", aliases);
     // --- KẾT THÚC PHẦN PHÂN TÍCH ALIAS ---
 
     let override_builder = {
         let mut builder = OverrideBuilder::new(root_path);
-        builder.add("!package-lock.json").map_err(|e| e.to_string())?;
+        builder
+            .add("!package-lock.json")
+            .map_err(|e| e.to_string())?;
         builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
         builder.add("!yarn.lock").map_err(|e| e.to_string())?;
         builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
@@ -1033,11 +1181,19 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
     let mut raw_files: Vec<RawFileInfo> = Vec::new();
     let mut all_valid_files = HashSet::new();
 
-    for entry in WalkBuilder::new(root_path).overrides(override_builder.clone()).build().filter_map(Result::ok) {
+    for entry in WalkBuilder::new(root_path)
+        .overrides(override_builder.clone())
+        .build()
+        .filter_map(Result::ok)
+    {
         let entry_path = entry.path();
-        if let (Ok(relative_path), Ok(metadata)) = (entry_path.strip_prefix(root_path), entry.metadata()) {
-            if relative_path.as_os_str().is_empty() { continue; }
-            
+        if let (Ok(relative_path), Ok(metadata)) =
+            (entry_path.strip_prefix(root_path), entry.metadata())
+        {
+            if relative_path.as_os_str().is_empty() {
+                continue;
+            }
+
             // Bỏ qua việc gửi progress trong lần refactor này để đơn giản hóa
             path_map.insert(entry_path.to_path_buf(), metadata.is_dir());
 
@@ -1046,7 +1202,7 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
             } else if metadata.is_file() {
                 new_project_stats.total_files += 1;
                 new_project_stats.total_size += metadata.len();
-                
+
                 let content = fs::read_to_string(entry_path).ok();
                 raw_files.push(RawFileInfo {
                     relative_path: relative_path.to_path_buf(),
@@ -1061,10 +1217,12 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
     // --- BƯỚC 2: Xử lý thông tin thô để xây dựng metadata cache ---
     for file_info in raw_files {
         let relative_path_str = file_info.relative_path.to_string_lossy().replace("\\", "/");
-        let current_mtime = file_info.metadata.modified()
+        let current_mtime = file_info
+            .metadata
+            .modified()
             .map(|t| t.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs())
             .unwrap_or(0);
-        
+
         let mut token_count = 0;
         let mut links = Vec::new();
 
@@ -1075,24 +1233,31 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
             }
         }
 
-        if token_count == 0 { // Nếu file mới/thay đổi, xử lý lại
-            if let Some(content) = &file_info.content { // <-- Thêm & để borrow
+        if token_count == 0 {
+            // Nếu file mới/thay đổi, xử lý lại
+            if let Some(content) = &file_info.content {
+                // <-- Thêm & để borrow
                 token_count = bpe.encode_with_special_tokens(content).len();
-                
+
                 let mut found_links = HashSet::new();
-                
+
                 // --- BẮT ĐẦU VÙNG DEBUG SÂU ---
                 println!("\n[DEBUG] Đang phân tích file: {}", relative_path_str);
-                
+
                 for cap in IMPORT_EXPORT_REGEX.captures_iter(content) {
                     // Lấy group có tên "path" hoặc "path2"
                     let link_path_opt = cap.name("path");
-                    
+
                     if let Some(link_path_match) = link_path_opt {
                         let link_path = link_path_match.as_str();
                         println!("[DEBUG]   => Regex khớp: '{}'", link_path);
-                        
-                        if let Some(resolved) = resolve_link(&file_info.relative_path, link_path, &all_valid_files, &aliases) {
+
+                        if let Some(resolved) = resolve_link(
+                            &file_info.relative_path,
+                            link_path,
+                            &all_valid_files,
+                            &aliases,
+                        ) {
                             println!("[DEBUG]     => Phân giải thành công: '{}'", resolved);
                             found_links.insert(resolved);
                         } else {
@@ -1104,43 +1269,71 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
                     }
                 }
                 // --- KẾT THÚC VÙNG DEBUG SÂU ---
-                
+
                 links = found_links.into_iter().collect();
             }
         }
 
         new_project_stats.total_tokens += token_count;
-        new_metadata_cache.insert(relative_path_str, FileMetadata {
-            size: file_info.metadata.len(),
-            mtime: current_mtime,
-            token_count,
-            links,
-        });
+        new_metadata_cache.insert(
+            relative_path_str,
+            FileMetadata {
+                size: file_info.metadata.len(),
+                mtime: current_mtime,
+                token_count,
+                links,
+            },
+        );
     }
 
     // --- BƯỚC 3: Xây dựng cây thư mục và cập nhật nhóm (giữ nguyên) ---
-    fn build_tree_from_map(parent: &Path, path_map: &BTreeMap<PathBuf, bool>, root_path: &Path) -> Vec<FileNode> {
+    fn build_tree_from_map(
+        parent: &Path,
+        path_map: &BTreeMap<PathBuf, bool>,
+        root_path: &Path,
+    ) -> Vec<FileNode> {
         let mut children = Vec::new();
         for (path, is_dir) in path_map.range(parent.join("")..) {
             if path.parent() == Some(parent) {
-                let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-                let relative_path_str = path.strip_prefix(root_path).unwrap().to_string_lossy().replace("\\", "/");
+                let name = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                let relative_path_str = path
+                    .strip_prefix(root_path)
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace("\\", "/");
                 children.push(FileNode {
                     name,
                     path: relative_path_str,
-                    children: if *is_dir { Some(build_tree_from_map(path, path_map, root_path)) } else { None },
+                    children: if *is_dir {
+                        Some(build_tree_from_map(path, path_map, root_path))
+                    } else {
+                        None
+                    },
                 });
             }
         }
         children.sort_by(|a, b| {
-            let a_is_dir = a.children.is_some(); let b_is_dir = b.children.is_some();
-            if a_is_dir != b_is_dir { b_is_dir.cmp(&a_is_dir) } else { a.name.cmp(&b.name) }
+            let a_is_dir = a.children.is_some();
+            let b_is_dir = b.children.is_some();
+            if a_is_dir != b_is_dir {
+                b_is_dir.cmp(&a_is_dir)
+            } else {
+                a.name.cmp(&b.name)
+            }
         });
         children
     }
     let root_children = build_tree_from_map(root_path, &path_map, root_path);
     let file_tree = FileNode {
-        name: root_path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+        name: root_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
         path: "".to_string(),
         children: Some(root_children),
     };
@@ -1148,8 +1341,13 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
     let mut updated_groups = old_data.groups;
     for group in &mut updated_groups {
         // 1. Giữ lại logic cũ: Xóa các file/thư mục không còn tồn tại
-        group.paths.retain(|p| new_metadata_cache.contains_key(p) || path_map.get(&root_path.join(p)).map_or(false, |is_dir| *is_dir));
-        
+        group.paths.retain(|p| {
+            new_metadata_cache.contains_key(p)
+                || path_map
+                    .get(&root_path.join(p))
+                    .map_or(false, |is_dir| *is_dir)
+        });
+
         // --- LOGIC MỚI: TỰ ĐỘNG ĐỒNG BỘ CHÉO ---
         // Kiểm tra xem tính năng có được bật cho nhóm này không (mặc định là false nếu không có)
         if group.cross_sync_enabled.unwrap_or(false) {
@@ -1178,7 +1376,7 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
                     }
                 }
             }
-            
+
             // c. Tối ưu hóa lại danh sách file đã mở rộng này thành một danh sách `paths` mới.
             //    Đây là một bước phức tạp, chúng ta cần một hàm `prune_paths` ở Rust.
             //    Để đơn giản hóa, ta có thể chỉ thêm các file mới tìm thấy.
@@ -1187,8 +1385,10 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
             //    Lưu ý: Cách tiếp cận này có thể không "tối ưu" danh sách paths.
             let mut new_paths_set: HashSet<String> = group.paths.iter().cloned().collect();
             for file in all_related_files {
-                 // Chỉ thêm nếu nó chưa được bao hàm bởi một thư mục cha đã có
-                let is_covered = new_paths_set.iter().any(|p| file.starts_with(&format!("{}/", p)));
+                // Chỉ thêm nếu nó chưa được bao hàm bởi một thư mục cha đã có
+                let is_covered = new_paths_set
+                    .iter()
+                    .any(|p| file.starts_with(&format!("{}/", p)));
                 if !is_covered {
                     new_paths_set.insert(file);
                 }
@@ -1196,7 +1396,7 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
             group.paths = new_paths_set.into_iter().collect();
         }
         // --- KẾT THÚC LOGIC MỚI ---
-        
+
         // 2. Luôn tính toán lại stats sau khi đã cập nhật `paths`
         group.stats = recalculate_stats_for_paths(&group.paths, &new_metadata_cache, root_path);
     }
@@ -1221,6 +1421,7 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
     // --- THAY ĐỔI: Trả về dữ liệu thay vì lưu và emit ---
     Ok(final_data)
 }
+
 
 ================================================
 FILE: src-tauri/tauri.conf.json
@@ -1683,6 +1884,7 @@ import { type Group } from "@/store/types";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager"; // <-- THÊM IMPORT
 import { formatBytes } from "@/lib/utils"; // <-- Import hàm tiện ích
 import { Label } from "@/components/ui/label"; // <-- THÊM IMPORT
 import { Switch } from "@/components/ui/switch"; // <-- THÊM IMPORT
@@ -1707,6 +1909,8 @@ import {
   HardDrive, // <-- Thêm icon
   Loader2, // Thêm Loader2
   Link, // <-- THÊM ICON LINK
+  ClipboardCopy, // <-- THÊM ICON
+  Check, // <-- THÊM ICON
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1740,6 +1944,8 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
 
   // State quản lý nhóm nào đang trong quá trình xuất
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
+  const [copyingGroupId, setCopyingGroupId] = useState<string | null>(null); // <-- STATE MỚI
+  const [copiedGroupId, setCopiedGroupId] = useState<string | null>(null); // <-- STATE MỚI
 
   // State quản lý dialog tùy chọn
   const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
@@ -1859,6 +2065,28 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
     // Chỉ cho phép đóng khi không đang loading
     if (!isConfirmingExport) {
       setExportOptionsOpen(false);
+    }
+  };
+
+  // --- HÀM MỚI ---
+  const handleCopyContext = async (group: Group) => {
+    if (!rootPath) return;
+    setCopyingGroupId(group.id);
+    setCopiedGroupId(null);
+    try {
+      const context = await invoke<string>("generate_group_context", {
+        groupId: group.id,
+        rootPathStr: rootPath,
+        useFullTree: true, // Mặc định dùng cây đầy đủ cho tiện lợi
+      });
+      await writeText(context);
+      setCopiedGroupId(group.id);
+      setTimeout(() => setCopiedGroupId(null), 2000);
+    } catch (error) {
+      console.error(`Lỗi khi sao chép ngữ cảnh nhóm ${group.name}:`, error);
+      alert(`Không thể sao chép: ${error}`);
+    } finally {
+      setCopyingGroupId(null);
     }
   };
 
@@ -1985,13 +2213,27 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                 {/* --- KẾT THÚC PHẦN UI MỚI --- */}
               </CardContent>
               <CardFooter className="flex justify-end gap-2">
-                {/* --- THAY ĐỔI DUY NHẤT Ở ĐÂY --- */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopyContext(group)}
+                  disabled={!!exportingGroupId || !!copyingGroupId}
+                >
+                  {copyingGroupId === group.id ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : copiedGroupId === group.id ? (
+                    <Check className="mr-2 h-4 w-4 text-green-500" />
+                  ) : (
+                    <ClipboardCopy className="mr-2 h-4 w-4" />
+                  )}
+                  {copiedGroupId === group.id ? "Đã chép!" : "Sao chép"}
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleOpenExportOptions(group)}
                   // Vô hiệu hóa TẤT CẢ các nút Xuất khác khi MỘT nhóm đang được xử lý
-                  disabled={!!exportingGroupId}
+                  disabled={!!exportingGroupId || !!copyingGroupId}
                 >
                   {/* Gỡ bỏ hoàn toàn logic hiển thị icon loading và thay đổi text */}
                   <Download className="mr-2 h-4 w-4" />
@@ -2079,6 +2321,8 @@ import {
   BrainCircuit,
   Download,
   Loader2,
+  ClipboardCopy, // <-- THÊM ICON MỚI
+  Check, // <-- THÊM ICON MỚI
 } from "lucide-react"; // <-- Thêm icon
 import { type ProjectStats as ProjectStatsData } from "@/store/types"; // <-- Sửa đường dẫn import
 import { formatBytes } from "@/lib/utils";
@@ -2088,12 +2332,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// --- CẬP NHẬT: Thêm props cho chức năng export ---
+// --- CẬP NHẬT: Thêm props cho chức năng sao chép ---
 interface ProjectStatsProps {
   path: string | null;
   stats: ProjectStatsData | null;
   onExportProject: () => void;
   isExporting: boolean;
+  onCopyProject: () => void; // <-- Prop mới
+  isCopying: boolean; // <-- Prop mới
+  wasCopied: boolean; // <-- Prop mới
 }
 
 export function ProjectStats({
@@ -2101,6 +2348,9 @@ export function ProjectStats({
   stats,
   onExportProject,
   isExporting,
+  onCopyProject,
+  isCopying,
+  wasCopied,
 }: ProjectStatsProps) {
   return (
     <Card className="flex flex-col h-fit">
@@ -2153,13 +2403,29 @@ export function ProjectStats({
           )}
         </div>
       </CardContent>
-      {/* --- PHẦN MỚI: Thêm footer với nút export --- */}
-      <CardFooter>
+      {/* --- PHẦN MỚI: Thêm footer với các nút --- */}
+      <CardFooter className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onCopyProject}
+          disabled={isCopying || isExporting}
+          className="w-full"
+        >
+          {isCopying ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : wasCopied ? (
+            <Check className="mr-2 h-4 w-4 text-green-500" />
+          ) : (
+            <ClipboardCopy className="mr-2 h-4 w-4" />
+          )}
+          {isCopying ? "Đang xử lý..." : wasCopied ? "Đã chép!" : "Sao chép"}
+        </Button>
         <Button
           variant="outline"
           size="sm"
           onClick={onExportProject}
-          disabled={isExporting}
+          disabled={isExporting || isCopying}
           className="w-full"
         >
           {isExporting ? (
@@ -2167,7 +2433,7 @@ export function ProjectStats({
           ) : (
             <Download className="mr-2 h-4 w-4" />
           )}
-          {isExporting ? "Đang xuất..." : "Xuất toàn bộ dự án"}
+          {isExporting ? "Đang xuất..." : "Xuất file"}
         </Button>
       </CardFooter>
     </Card>
@@ -3541,6 +3807,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager"; // <-- THÊM IMPORT
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
 import { useShallow } from "zustand/react/shallow"; // <-- BƯỚC 1: IMPORT useShallow
@@ -3569,6 +3836,8 @@ export function useDashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isCopying, setIsCopying] = useState(false); // <-- STATE MỚI
+  const [wasCopied, setWasCopied] = useState(false); // <-- STATE MỚI
 
   // --- QUẢN LÝ FORM ---
   const form = useForm<GroupFormValues>({
@@ -3656,6 +3925,26 @@ export function useDashboard() {
     // Logic sẽ được tiếp tục trong listener sự kiện `project_export_complete`
   };
 
+  // --- HÀM MỚI ---
+  const handleCopyProject = async () => {
+    if (!rootPath) return;
+    setIsCopying(true);
+    setWasCopied(false);
+    try {
+      const context = await invoke<string>("generate_project_context", {
+        path: rootPath,
+      });
+      await writeText(context);
+      setWasCopied(true);
+      setTimeout(() => setWasCopied(false), 2000); // Hiển thị trạng thái "Đã chép" trong 2 giây
+    } catch (error) {
+      console.error("Lỗi khi sao chép ngữ cảnh dự án:", error);
+      alert(`Không thể sao chép: ${error}`);
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   const handleConfirmRescan = async () => {
     await rescanProject();
   };
@@ -3668,6 +3957,8 @@ export function useDashboard() {
     // Trạng thái UI
     isDialogOpen,
     isExporting,
+    isCopying, // <-- Trả về state mới
+    wasCopied, // <-- Trả về state mới
     editingGroup,
     // Form
     form,
@@ -3677,6 +3968,7 @@ export function useDashboard() {
     onSubmit,
     handleOpenAnotherFolder,
     handleExportProject,
+    handleCopyProject, // <-- Trả về handler mới
     handleConfirmRescan,
   };
 }
@@ -3950,6 +4242,8 @@ export function DashboardScene() {
     projectStats,
     isDialogOpen,
     isExporting,
+    isCopying,
+    wasCopied,
     editingGroup,
     form,
     setIsDialogOpen,
@@ -3957,6 +4251,7 @@ export function DashboardScene() {
     onSubmit,
     handleOpenAnotherFolder,
     handleExportProject,
+    handleCopyProject,
     handleConfirmRescan,
   } = useDashboard();
 
@@ -4025,6 +4320,9 @@ export function DashboardScene() {
               stats={projectStats}
               onExportProject={handleExportProject}
               isExporting={isExporting}
+              onCopyProject={handleCopyProject}
+              isCopying={isCopying}
+              wasCopied={wasCopied}
             />
           </div>
         </ResizablePanel>

@@ -6,6 +6,7 @@ import { type Group } from "@/store/types";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager"; // <-- THÊM IMPORT
 import { formatBytes } from "@/lib/utils"; // <-- Import hàm tiện ích
 import { Label } from "@/components/ui/label"; // <-- THÊM IMPORT
 import { Switch } from "@/components/ui/switch"; // <-- THÊM IMPORT
@@ -30,6 +31,8 @@ import {
   HardDrive, // <-- Thêm icon
   Loader2, // Thêm Loader2
   Link, // <-- THÊM ICON LINK
+  ClipboardCopy, // <-- THÊM ICON
+  Check, // <-- THÊM ICON
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -63,6 +66,8 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
 
   // State quản lý nhóm nào đang trong quá trình xuất
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
+  const [copyingGroupId, setCopyingGroupId] = useState<string | null>(null); // <-- STATE MỚI
+  const [copiedGroupId, setCopiedGroupId] = useState<string | null>(null); // <-- STATE MỚI
 
   // State quản lý dialog tùy chọn
   const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
@@ -182,6 +187,28 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
     // Chỉ cho phép đóng khi không đang loading
     if (!isConfirmingExport) {
       setExportOptionsOpen(false);
+    }
+  };
+
+  // --- HÀM MỚI ---
+  const handleCopyContext = async (group: Group) => {
+    if (!rootPath) return;
+    setCopyingGroupId(group.id);
+    setCopiedGroupId(null);
+    try {
+      const context = await invoke<string>("generate_group_context", {
+        groupId: group.id,
+        rootPathStr: rootPath,
+        useFullTree: true, // Mặc định dùng cây đầy đủ cho tiện lợi
+      });
+      await writeText(context);
+      setCopiedGroupId(group.id);
+      setTimeout(() => setCopiedGroupId(null), 2000);
+    } catch (error) {
+      console.error(`Lỗi khi sao chép ngữ cảnh nhóm ${group.name}:`, error);
+      alert(`Không thể sao chép: ${error}`);
+    } finally {
+      setCopyingGroupId(null);
     }
   };
 
@@ -308,13 +335,27 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                 {/* --- KẾT THÚC PHẦN UI MỚI --- */}
               </CardContent>
               <CardFooter className="flex justify-end gap-2">
-                {/* --- THAY ĐỔI DUY NHẤT Ở ĐÂY --- */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopyContext(group)}
+                  disabled={!!exportingGroupId || !!copyingGroupId}
+                >
+                  {copyingGroupId === group.id ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : copiedGroupId === group.id ? (
+                    <Check className="mr-2 h-4 w-4 text-green-500" />
+                  ) : (
+                    <ClipboardCopy className="mr-2 h-4 w-4" />
+                  )}
+                  {copiedGroupId === group.id ? "Đã chép!" : "Sao chép"}
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleOpenExportOptions(group)}
                   // Vô hiệu hóa TẤT CẢ các nút Xuất khác khi MỘT nhóm đang được xử lý
-                  disabled={!!exportingGroupId}
+                  disabled={!!exportingGroupId || !!copyingGroupId}
                 >
                   {/* Gỡ bỏ hoàn toàn logic hiển thị icon loading và thay đổi text */}
                   <Download className="mr-2 h-4 w-4" />

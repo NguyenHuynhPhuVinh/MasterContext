@@ -15,6 +15,8 @@ import {
   BrainCircuit,
   Download,
   Loader2,
+  ClipboardCopy, // <-- THÊM ICON MỚI
+  Check, // <-- THÊM ICON MỚI
 } from "lucide-react"; // <-- Thêm icon
 import { type ProjectStats as ProjectStatsData } from "@/store/types"; // <-- Sửa đường dẫn import
 import { formatBytes } from "@/lib/utils";
@@ -24,12 +26,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// --- CẬP NHẬT: Thêm props cho chức năng export ---
+// --- CẬP NHẬT: Thêm props cho chức năng sao chép ---
 interface ProjectStatsProps {
   path: string | null;
   stats: ProjectStatsData | null;
   onExportProject: () => void;
   isExporting: boolean;
+  onCopyProject: () => void; // <-- Prop mới
+  isCopying: boolean; // <-- Prop mới
+  wasCopied: boolean; // <-- Prop mới
 }
 
 export function ProjectStats({
@@ -37,6 +42,9 @@ export function ProjectStats({
   stats,
   onExportProject,
   isExporting,
+  onCopyProject,
+  isCopying,
+  wasCopied,
 }: ProjectStatsProps) {
   return (
     <Card className="flex flex-col h-fit">
@@ -89,13 +97,29 @@ export function ProjectStats({
           )}
         </div>
       </CardContent>
-      {/* --- PHẦN MỚI: Thêm footer với nút export --- */}
-      <CardFooter>
+      {/* --- PHẦN MỚI: Thêm footer với các nút --- */}
+      <CardFooter className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onCopyProject}
+          disabled={isCopying || isExporting}
+          className="w-full"
+        >
+          {isCopying ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : wasCopied ? (
+            <Check className="mr-2 h-4 w-4 text-green-500" />
+          ) : (
+            <ClipboardCopy className="mr-2 h-4 w-4" />
+          )}
+          {isCopying ? "Đang xử lý..." : wasCopied ? "Đã chép!" : "Sao chép"}
+        </Button>
         <Button
           variant="outline"
           size="sm"
           onClick={onExportProject}
-          disabled={isExporting}
+          disabled={isExporting || isCopying}
           className="w-full"
         >
           {isExporting ? (
@@ -103,7 +127,7 @@ export function ProjectStats({
           ) : (
             <Download className="mr-2 h-4 w-4" />
           )}
-          {isExporting ? "Đang xuất..." : "Xuất toàn bộ dự án"}
+          {isExporting ? "Đang xuất..." : "Xuất file"}
         </Button>
       </CardFooter>
     </Card>

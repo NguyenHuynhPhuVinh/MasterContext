@@ -30,4 +30,5 @@ regex = "1"
 lazy_static = "1.5.0"
 path-clean = "1.0"
 sha2 = "0.10"
+tauri-plugin-clipboard-manager = "2"
 

@@ -1,18 +1,20 @@
 // src-tauri/src/project_scanner.rs
-use crate::models::{CachedProjectData, FileMetadata, FileNode, GroupStats, ProjectStats, TsConfig};
-use crate::file_cache;
 use crate::context_generator; // <-- THÊM USE STATEMENT NÀY
+use crate::file_cache;
+use crate::models::{
+    CachedProjectData, FileMetadata, FileNode, GroupStats, ProjectStats, TsConfig,
+};
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 // use tauri::{Emitter, Window}; // Không còn cần vì hàm không emit nữa
-use ignore::{WalkBuilder, overrides::OverrideBuilder};
-use tiktoken_rs::cl100k_base;
-use regex::Regex;
+use ignore::{overrides::OverrideBuilder, WalkBuilder};
 use lazy_static::lazy_static;
 use path_clean::PathClean;
-use sha2::{Sha256, Digest};
+use regex::Regex;
+use sha2::{Digest, Sha256};
+use tiktoken_rs::cl100k_base;
 
 pub fn recalculate_stats_for_paths(
     paths: &[String],
@@ -35,7 +37,7 @@ pub fn recalculate_stats_for_paths(
         // Xử lý trường hợp đường dẫn là MỘT THƯ MỤC
         let dir_prefix = format!("{}/", path_str);
         if !path_str.is_empty() {
-             all_dirs_in_group.insert(path_str.clone());
+            all_dirs_in_group.insert(path_str.clone());
         }
 
         for &cached_file in &all_cached_files {
@@ -52,7 +54,9 @@ pub fn recalculate_stats_for_paths(
     for file_path in &all_files_in_group {
         let mut current = Path::new(file_path);
         while let Some(parent) = current.parent() {
-            if parent.as_os_str().is_empty() { break; }
+            if parent.as_os_str().is_empty() {
+                break;
+            }
             let parent_str = parent.to_string_lossy().replace("\\", "/");
             subdirs_from_files.insert(parent_str);
             current = parent;
@@ -172,13 +176,16 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
                             if let Some(first_replacement) = replacements.get(0) {
                                 // Bỏ "/*" ở cuối alias và replacement
                                 let clean_alias = alias.strip_suffix("/*").unwrap_or(&alias);
-                                let clean_replacement = first_replacement.strip_suffix("/*").unwrap_or(first_replacement);
-                                
+                                let clean_replacement = first_replacement
+                                    .strip_suffix("/*")
+                                    .unwrap_or(first_replacement);
+
                                 // Tạo đường dẫn đầy đủ từ baseUrl
-                                let full_base_path = Path::new(&base_url).join(clean_replacement).clean();
+                                let full_base_path =
+                                    Path::new(&base_url).join(clean_replacement).clean();
                                 aliases.insert(
-                                    clean_alias.to_string(), 
-                                    full_base_path.to_string_lossy().to_string()
+                                    clean_alias.to_string(),
+                                    full_base_path.to_string_lossy().to_string(),
                                 );
                             }
                         }
@@ -189,13 +196,17 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
     }
     // Hard-code alias mặc định nếu không tìm thấy trong tsconfig
     // Điều này giúp tương thích ngược với các dự án không có cấu hình rõ ràng
-    aliases.entry("@/".to_string()).or_insert_with(|| "src/".to_string());
+    aliases
+        .entry("@/".to_string())
+        .or_insert_with(|| "src/".to_string());
     println!("[INFO] Aliases đã phát hiện: {:?}", aliases);
     // --- KẾT THÚC PHẦN PHÂN TÍCH ALIAS ---
 
     let override_builder = {
         let mut builder = OverrideBuilder::new(root_path);
-        builder.add("!package-lock.json").map_err(|e| e.to_string())?;
+        builder
+            .add("!package-lock.json")
+            .map_err(|e| e.to_string())?;
         builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
         builder.add("!yarn.lock").map_err(|e| e.to_string())?;
         builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
@@ -211,11 +222,19 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
     let mut raw_files: Vec<RawFileInfo> = Vec::new();
     let mut all_valid_files = HashSet::new();
 
-    for entry in WalkBuilder::new(root_path).overrides(override_builder.clone()).build().filter_map(Result::ok) {
+    for entry in WalkBuilder::new(root_path)
+        .overrides(override_builder.clone())
+        .build()
+        .filter_map(Result::ok)
+    {
         let entry_path = entry.path();
-        if let (Ok(relative_path), Ok(metadata)) = (entry_path.strip_prefix(root_path), entry.metadata()) {
-            if relative_path.as_os_str().is_empty() { continue; }
-            
+        if let (Ok(relative_path), Ok(metadata)) =
+            (entry_path.strip_prefix(root_path), entry.metadata())
+        {
+            if relative_path.as_os_str().is_empty() {
+                continue;
+            }
+
             // Bỏ qua việc gửi progress trong lần refactor này để đơn giản hóa
             path_map.insert(entry_path.to_path_buf(), metadata.is_dir());
 
@@ -224,7 +243,7 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
             } else if metadata.is_file() {
                 new_project_stats.total_files += 1;
                 new_project_stats.total_size += metadata.len();
-                
+
                 let content = fs::read_to_string(entry_path).ok();
                 raw_files.push(RawFileInfo {
                     relative_path: relative_path.to_path_buf(),
@@ -239,10 +258,12 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
     // --- BƯỚC 2: Xử lý thông tin thô để xây dựng metadata cache ---
     for file_info in raw_files {
         let relative_path_str = file_info.relative_path.to_string_lossy().replace("\\", "/");
-        let current_mtime = file_info.metadata.modified()
+        let current_mtime = file_info
+            .metadata
+            .modified()
             .map(|t| t.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs())
             .unwrap_or(0);
-        
+
         let mut token_count = 0;
         let mut links = Vec::new();
 
@@ -253,24 +274,31 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
             }
         }
 
-        if token_count == 0 { // Nếu file mới/thay đổi, xử lý lại
-            if let Some(content) = &file_info.content { // <-- Thêm & để borrow
+        if token_count == 0 {
+            // Nếu file mới/thay đổi, xử lý lại
+            if let Some(content) = &file_info.content {
+                // <-- Thêm & để borrow
                 token_count = bpe.encode_with_special_tokens(content).len();
-                
+
                 let mut found_links = HashSet::new();
-                
+
                 // --- BẮT ĐẦU VÙNG DEBUG SÂU ---
                 println!("\n[DEBUG] Đang phân tích file: {}", relative_path_str);
-                
+
                 for cap in IMPORT_EXPORT_REGEX.captures_iter(content) {
                     // Lấy group có tên "path" hoặc "path2"
                     let link_path_opt = cap.name("path");
-                    
+
                     if let Some(link_path_match) = link_path_opt {
                         let link_path = link_path_match.as_str();
                         println!("[DEBUG]   => Regex khớp: '{}'", link_path);
-                        
-                        if let Some(resolved) = resolve_link(&file_info.relative_path, link_path, &all_valid_files, &aliases) {
+
+                        if let Some(resolved) = resolve_link(
+                            &file_info.relative_path,
+                            link_path,
+                            &all_valid_files,
+                            &aliases,
+                        ) {
                             println!("[DEBUG]     => Phân giải thành công: '{}'", resolved);
                             found_links.insert(resolved);
                         } else {
@@ -282,43 +310,71 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
                     }
                 }
                 // --- KẾT THÚC VÙNG DEBUG SÂU ---
-                
+
                 links = found_links.into_iter().collect();
             }
         }
 
         new_project_stats.total_tokens += token_count;
-        new_metadata_cache.insert(relative_path_str, FileMetadata {
-            size: file_info.metadata.len(),
-            mtime: current_mtime,
-            token_count,
-            links,
-        });
+        new_metadata_cache.insert(
+            relative_path_str,
+            FileMetadata {
+                size: file_info.metadata.len(),
+                mtime: current_mtime,
+                token_count,
+                links,
+            },
+        );
     }
 
     // --- BƯỚC 3: Xây dựng cây thư mục và cập nhật nhóm (giữ nguyên) ---
-    fn build_tree_from_map(parent: &Path, path_map: &BTreeMap<PathBuf, bool>, root_path: &Path) -> Vec<FileNode> {
+    fn build_tree_from_map(
+        parent: &Path,
+        path_map: &BTreeMap<PathBuf, bool>,
+        root_path: &Path,
+    ) -> Vec<FileNode> {
         let mut children = Vec::new();
         for (path, is_dir) in path_map.range(parent.join("")..) {
             if path.parent() == Some(parent) {
-                let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-                let relative_path_str = path.strip_prefix(root_path).unwrap().to_string_lossy().replace("\\", "/");
+                let name = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                let relative_path_str = path
+                    .strip_prefix(root_path)
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace("\\", "/");
                 children.push(FileNode {
                     name,
                     path: relative_path_str,
-                    children: if *is_dir { Some(build_tree_from_map(path, path_map, root_path)) } else { None },
+                    children: if *is_dir {
+                        Some(build_tree_from_map(path, path_map, root_path))
+                    } else {
+                        None
+                    },
                 });
             }
         }
         children.sort_by(|a, b| {
-            let a_is_dir = a.children.is_some(); let b_is_dir = b.children.is_some();
-            if a_is_dir != b_is_dir { b_is_dir.cmp(&a_is_dir) } else { a.name.cmp(&b.name) }
+            let a_is_dir = a.children.is_some();
+            let b_is_dir = b.children.is_some();
+            if a_is_dir != b_is_dir {
+                b_is_dir.cmp(&a_is_dir)
+            } else {
+                a.name.cmp(&b.name)
+            }
         });
         children
     }
     let root_children = build_tree_from_map(root_path, &path_map, root_path);
     let file_tree = FileNode {
-        name: root_path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+        name: root_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
         path: "".to_string(),
         children: Some(root_children),
     };
@@ -326,8 +382,13 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
     let mut updated_groups = old_data.groups;
     for group in &mut updated_groups {
         // 1. Giữ lại logic cũ: Xóa các file/thư mục không còn tồn tại
-        group.paths.retain(|p| new_metadata_cache.contains_key(p) || path_map.get(&root_path.join(p)).map_or(false, |is_dir| *is_dir));
-        
+        group.paths.retain(|p| {
+            new_metadata_cache.contains_key(p)
+                || path_map
+                    .get(&root_path.join(p))
+                    .map_or(false, |is_dir| *is_dir)
+        });
+
         // --- LOGIC MỚI: TỰ ĐỘNG ĐỒNG BỘ CHÉO ---
         // Kiểm tra xem tính năng có được bật cho nhóm này không (mặc định là false nếu không có)
         if group.cross_sync_enabled.unwrap_or(false) {
@@ -356,7 +417,7 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
                     }
                 }
             }
-            
+
             // c. Tối ưu hóa lại danh sách file đã mở rộng này thành một danh sách `paths` mới.
             //    Đây là một bước phức tạp, chúng ta cần một hàm `prune_paths` ở Rust.
             //    Để đơn giản hóa, ta có thể chỉ thêm các file mới tìm thấy.
@@ -365,8 +426,10 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
             //    Lưu ý: Cách tiếp cận này có thể không "tối ưu" danh sách paths.
             let mut new_paths_set: HashSet<String> = group.paths.iter().cloned().collect();
             for file in all_related_files {
-                 // Chỉ thêm nếu nó chưa được bao hàm bởi một thư mục cha đã có
-                let is_covered = new_paths_set.iter().any(|p| file.starts_with(&format!("{}/", p)));
+                // Chỉ thêm nếu nó chưa được bao hàm bởi một thư mục cha đã có
+                let is_covered = new_paths_set
+                    .iter()
+                    .any(|p| file.starts_with(&format!("{}/", p)));
                 if !is_covered {
                     new_paths_set.insert(file);
                 }
@@ -374,7 +437,7 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
             group.paths = new_paths_set.into_iter().collect();
         }
         // --- KẾT THÚC LOGIC MỚI ---
-        
+
         // 2. Luôn tính toán lại stats sau khi đã cập nhật `paths`
         group.stats = recalculate_stats_for_paths(&group.paths, &new_metadata_cache, root_path);
     }

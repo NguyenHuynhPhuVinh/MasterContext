@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 66,
     "total_dirs": 14,
-    "total_size": 409677,
-    "total_tokens": 40938
+    "total_size": 416387,
+    "total_tokens": 42569
   },
   "file_tree": {
     "name": "MasterContext",
@@ -428,13 +428,13 @@
       "name": "TESt",
       "description": "TEST",
       "paths": [
-        "src"
+        "public"
       ],
       "stats": {
-        "total_files": 31,
-        "total_dirs": 7,
-        "total_size": 115647,
-        "token_count": 28875
+        "total_files": 0,
+        "total_dirs": 1,
+        "total_size": 0,
+        "token_count": 0
       },
       "cross_sync_enabled": true
     }
@@ -465,15 +465,15 @@
       "links": []
     },
     "package.json": {
-      "size": 1483,
-      "mtime": 1758528129,
-      "token_count": 557,
+      "size": 1538,
+      "mtime": 1758533254,
+      "token_count": 575,
       "links": []
     },
     "src-tauri/Cargo.toml": {
-      "size": 890,
-      "mtime": 1758532608,
-      "token_count": 274,
+      "size": 927,
+      "mtime": 1758533241,
+      "token_count": 284,
       "links": []
     },
     "src-tauri/build.rs": {
@@ -483,9 +483,9 @@
       "links": []
     },
     "src-tauri/capabilities/default.json": {
-      "size": 262,
-      "mtime": 1758469129,
-      "token_count": 72,
+      "size": 302,
+      "mtime": 1758533255,
+      "token_count": 83,
       "links": []
     },
     "src-tauri/icons/128x128.png": {
@@ -585,27 +585,27 @@
       "links": []
     },
     "src-tauri/src/commands.rs": {
-      "size": 10710,
-      "mtime": 1758532615,
-      "token_count": 2557,
+      "size": 13005,
+      "mtime": 1758533370,
+      "token_count": 3053,
       "links": []
     },
     "src-tauri/src/context_generator.rs": {
-      "size": 5982,
-      "mtime": 1758530127,
-      "token_count": 1498,
+      "size": 5961,
+      "mtime": 1758533255,
+      "token_count": 1503,
       "links": []
     },
     "src-tauri/src/file_cache.rs": {
-      "size": 1944,
-      "mtime": 1758518698,
-      "token_count": 525,
+      "size": 1956,
+      "mtime": 1758533255,
+      "token_count": 529,
       "links": []
     },
     "src-tauri/src/lib.rs": {
-      "size": 914,
-      "mtime": 1758532615,
-      "token_count": 198,
+      "size": 1038,
+      "mtime": 1758533370,
+      "token_count": 223,
       "links": []
     },
     "src-tauri/src/main.rs": {
@@ -615,15 +615,15 @@
       "links": []
     },
     "src-tauri/src/models.rs": {
-      "size": 2046,
-      "mtime": 1758532615,
-      "token_count": 522,
+      "size": 1972,
+      "mtime": 1758533255,
+      "token_count": 509,
       "links": []
     },
     "src-tauri/src/project_scanner.rs": {
-      "size": 18602,
-      "mtime": 1758532615,
-      "token_count": 4465,
+      "size": 19044,
+      "mtime": 1758533255,
+      "token_count": 4535,
       "links": []
     },
     "src-tauri/tauri.conf.json": {
@@ -662,31 +662,31 @@
       ]
     },
     "src/components/GroupManager.tsx": {
-      "size": 15700,
-      "mtime": 1758532615,
-      "token_count": 3564,
+      "size": 17457,
+      "mtime": 1758533370,
+      "token_count": 3999,
       "links": [
-        "src/components/ui/card.tsx",
-        "src/store/types.ts",
-        "src/lib/utils.ts",
-        "src/components/ui/dropdown-menu.tsx",
-        "src/components/ui/button.tsx",
-        "src/components/ui/label.tsx",
-        "src/components/ui/alert-dialog.tsx",
         "src/store/appStore.ts",
-        "src/components/ui/switch.tsx"
+        "src/components/ui/switch.tsx",
+        "src/components/ui/alert-dialog.tsx",
+        "src/components/ui/button.tsx",
+        "src/components/ui/card.tsx",
+        "src/components/ui/dropdown-menu.tsx",
+        "src/components/ui/label.tsx",
+        "src/lib/utils.ts",
+        "src/store/types.ts"
       ]
     },
     "src/components/ProjectStats.tsx": {
-      "size": 3621,
-      "mtime": 1758528517,
-      "token_count": 888,
+      "size": 4459,
+      "mtime": 1758533370,
+      "token_count": 1130,
       "links": [
-        "src/components/ui/button.tsx",
-        "src/components/ui/tooltip.tsx",
         "src/lib/utils.ts",
+        "src/components/ui/button.tsx",
+        "src/store/types.ts",
         "src/components/ui/card.tsx",
-        "src/store/types.ts"
+        "src/components/ui/tooltip.tsx"
       ]
     },
     "src/components/SettingsDialog.tsx": {
@@ -817,9 +817,9 @@
       ]
     },
     "src/hooks/useDashboard.ts": {
-      "size": 4726,
-      "mtime": 1758527178,
-      "token_count": 1237,
+      "size": 5752,
+      "mtime": 1758533370,
+      "token_count": 1526,
       "links": [
         "src/store/types.ts",
         "src/store/appStore.ts"
@@ -848,23 +848,23 @@
       ]
     },
     "src/scenes/DashboardScene.tsx": {
-      "size": 8670,
-      "mtime": 1758531010,
-      "token_count": 1777,
+      "size": 8849,
+      "mtime": 1758533370,
+      "token_count": 1816,
       "links": [
-        "src/components/ui/form.tsx",
-        "src/components/ui/resizable.tsx",
-        "src/components/ui/button.tsx",
         "src/components/ui/dialog.tsx",
+        "src/components/ProjectStats.tsx",
+        "src/components/GroupManager.tsx",
+        "src/components/ui/form.tsx",
+        "src/components/ui/tooltip.tsx",
+        "src/components/ui/scroll-area.tsx",
+        "src/components/ui/resizable.tsx",
+        "src/components/SettingsDialog.tsx",
+        "src/components/ui/button.tsx",
         "src/components/ui/alert-dialog.tsx",
         "src/components/ui/input.tsx",
-        "src/hooks/useDashboard.ts",
-        "src/components/GroupManager.tsx",
-        "src/components/ui/scroll-area.tsx",
-        "src/components/SettingsDialog.tsx",
-        "src/components/ProjectStats.tsx",
         "src/components/ui/textarea.tsx",
-        "src/components/ui/tooltip.tsx"
+        "src/hooks/useDashboard.ts"
       ]
     },
     "src/scenes/GroupEditorScene.tsx": {
@@ -939,5 +939,5 @@
   },
   "sync_enabled": true,
   "sync_path": "C:\\Users\\tomis\\Documents\\MasterContext\\.mastercontext",
-  "data_hash": "e0c60b858eab092fa4fc45b790805112435a1650042f2b73fd11c177abe8281b"
+  "data_hash": "d917dcf47d94f2e8dd4b582ad818b863f558ede7ce013b21243e7641597b05b3"
 }

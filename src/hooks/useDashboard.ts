@@ -7,6 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager"; // <-- THÊM IMPORT
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
 import { useShallow } from "zustand/react/shallow"; // <-- BƯỚC 1: IMPORT useShallow
@@ -35,6 +36,8 @@ export function useDashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isCopying, setIsCopying] = useState(false); // <-- STATE MỚI
+  const [wasCopied, setWasCopied] = useState(false); // <-- STATE MỚI
 
   // --- QUẢN LÝ FORM ---
   const form = useForm<GroupFormValues>({
@@ -122,6 +125,26 @@ export function useDashboard() {
     // Logic sẽ được tiếp tục trong listener sự kiện `project_export_complete`
   };
 
+  // --- HÀM MỚI ---
+  const handleCopyProject = async () => {
+    if (!rootPath) return;
+    setIsCopying(true);
+    setWasCopied(false);
+    try {
+      const context = await invoke<string>("generate_project_context", {
+        path: rootPath,
+      });
+      await writeText(context);
+      setWasCopied(true);
+      setTimeout(() => setWasCopied(false), 2000); // Hiển thị trạng thái "Đã chép" trong 2 giây
+    } catch (error) {
+      console.error("Lỗi khi sao chép ngữ cảnh dự án:", error);
+      alert(`Không thể sao chép: ${error}`);
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   const handleConfirmRescan = async () => {
     await rescanProject();
   };
@@ -134,6 +157,8 @@ export function useDashboard() {
     // Trạng thái UI
     isDialogOpen,
     isExporting,
+    isCopying, // <-- Trả về state mới
+    wasCopied, // <-- Trả về state mới
     editingGroup,
     // Form
     form,
@@ -143,6 +168,7 @@ export function useDashboard() {
     onSubmit,
     handleOpenAnotherFolder,
     handleExportProject,
+    handleCopyProject, // <-- Trả về handler mới
     handleConfirmRescan,
   };
 }

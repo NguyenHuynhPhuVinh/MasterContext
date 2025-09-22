@@ -58,6 +58,8 @@ export function DashboardScene() {
     projectStats,
     isDialogOpen,
     isExporting,
+    isCopying,
+    wasCopied,
     editingGroup,
     form,
     setIsDialogOpen,
@@ -65,6 +67,7 @@ export function DashboardScene() {
     onSubmit,
     handleOpenAnotherFolder,
     handleExportProject,
+    handleCopyProject,
     handleConfirmRescan,
   } = useDashboard();
 
@@ -133,6 +136,9 @@ export function DashboardScene() {
               stats={projectStats}
               onExportProject={handleExportProject}
               isExporting={isExporting}
+              onCopyProject={handleCopyProject}
+              isCopying={isCopying}
+              wasCopied={wasCopied}
             />
           </div>
         </ResizablePanel>

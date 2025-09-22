@@ -7,7 +7,10 @@ use std::path::{Path, PathBuf};
 pub fn get_project_config_path(project_path_str: &str) -> Result<PathBuf, String> {
     let project_path = Path::new(project_path_str);
     if !project_path.is_dir() {
-        return Err(format!("'{}' không phải là một thư mục hợp lệ.", project_path_str));
+        return Err(format!(
+            "'{}' không phải là một thư mục hợp lệ.",
+            project_path_str
+        ));
     }
     let config_dir = project_path.join(".mastercontext");
     fs::create_dir_all(&config_dir)
@@ -20,9 +23,11 @@ pub fn load_project_data(path: &str) -> Result<CachedProjectData, String> {
     if !config_path.exists() {
         return Ok(CachedProjectData::default());
     }
-    let mut file = File::open(config_path).map_err(|e| format!("Không thể mở file dữ liệu dự án: {}", e))?;
+    let mut file =
+        File::open(config_path).map_err(|e| format!("Không thể mở file dữ liệu dự án: {}", e))?;
     let mut contents = String::new();
-    file.read_to_string(&mut contents).map_err(|e| format!("Không thể đọc file dữ liệu dự án: {}", e))?;
+    file.read_to_string(&mut contents)
+        .map_err(|e| format!("Không thể đọc file dữ liệu dự án: {}", e))?;
     if contents.is_empty() {
         return Ok(CachedProjectData::default());
     }
