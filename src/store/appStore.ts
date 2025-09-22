@@ -103,6 +103,8 @@ export interface CachedProjectData {
   stats: ProjectStats | null;
   file_tree: FileNode | null;
   groups: Group[];
+  // Trường mới để cache metadata file
+  file_metadata_cache: Record<string, FileMetadata>;
 }
 
 // Thêm FileNode interface
@@ -117,6 +119,13 @@ export interface GroupStats {
   total_files: number;
   total_dirs: number;
   total_size: number;
+  token_count: number;
+}
+
+// --- INTERFACE MỚI CHO METADATA FILE ---
+export interface FileMetadata {
+  size: number;
+  mtime: number;
   token_count: number;
 }
 
@@ -221,6 +230,7 @@ export const useAppStore = create<AppState>((set, get) => {
           stats: projectStats,
           file_tree: fileTree,
           groups,
+          file_metadata_cache: {}, // Frontend không quản lý cache này
         };
         await invoke("save_project_data", { path: rootPath, data: dataToSave });
       } catch (error) {
@@ -394,6 +404,7 @@ export const useAppStore = create<AppState>((set, get) => {
             stats: g.stats || defaultGroupStats(),
           })),
           isScanning: false,
+          // file_metadata_cache được backend quản lý, frontend không cần lưu
         });
       },
       _setScanError: (error) => {

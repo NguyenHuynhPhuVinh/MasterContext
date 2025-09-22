@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 55,
     "total_dirs": 14,
-    "total_size": 366719,
-    "total_tokens": 30023
+    "total_size": 371398,
+    "total_tokens": 31107
   },
   "file_tree": {
     "name": "MasterContext",
@@ -366,26 +366,282 @@
       }
     ]
   },
-  "groups": [
-    {
-      "id": "1758509098805",
-      "name": "TEST",
-      "description": "TEST",
-      "paths": [
-        "src/assets",
-        "src/hooks",
-        "src/store",
-        "src/App.css",
-        "src/App.tsx",
-        "src/main.tsx",
-        "src/vite-env.d.ts"
-      ],
-      "stats": {
-        "total_files": 5,
-        "total_dirs": 3,
-        "total_size": 25123,
-        "token_count": 7173
-      }
+  "groups": [],
+  "file_metadata_cache": {
+    "LICENSE": {
+      "size": 1096,
+      "mtime": 1758460456,
+      "token_count": 225
+    },
+    "README.md": {
+      "size": 385,
+      "mtime": 1758460553,
+      "token_count": 99
+    },
+    "components.json": {
+      "size": 444,
+      "mtime": 1758463148,
+      "token_count": 141
+    },
+    "index.html": {
+      "size": 390,
+      "mtime": 1758460553,
+      "token_count": 118
+    },
+    "package.json": {
+      "size": 1445,
+      "mtime": 1758470459,
+      "token_count": 542
+    },
+    "src-tauri/Cargo.toml": {
+      "size": 821,
+      "mtime": 1758471345,
+      "token_count": 241
+    },
+    "src-tauri/build.rs": {
+      "size": 42,
+      "mtime": 1758460553,
+      "token_count": 13
+    },
+    "src-tauri/capabilities/default.json": {
+      "size": 262,
+      "mtime": 1758469129,
+      "token_count": 72
+    },
+    "src-tauri/icons/128x128.png": {
+      "size": 3512,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/128x128@2x.png": {
+      "size": 7012,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/32x32.png": {
+      "size": 974,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/Square107x107Logo.png": {
+      "size": 2863,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/Square142x142Logo.png": {
+      "size": 3858,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/Square150x150Logo.png": {
+      "size": 3966,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/Square284x284Logo.png": {
+      "size": 7737,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/Square30x30Logo.png": {
+      "size": 903,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/Square310x310Logo.png": {
+      "size": 8591,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/Square44x44Logo.png": {
+      "size": 1299,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/Square71x71Logo.png": {
+      "size": 2011,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/Square89x89Logo.png": {
+      "size": 2468,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/StoreLogo.png": {
+      "size": 1523,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/icon.icns": {
+      "size": 98451,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/icon.ico": {
+      "size": 86642,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/icons/icon.png": {
+      "size": 14183,
+      "mtime": 1758460553,
+      "token_count": 0
+    },
+    "src-tauri/src/lib.rs": {
+      "size": 24000,
+      "mtime": 1758509553,
+      "token_count": 5690
+    },
+    "src-tauri/src/main.rs": {
+      "size": 195,
+      "mtime": 1758460553,
+      "token_count": 44
+    },
+    "src-tauri/tauri.conf.json": {
+      "size": 751,
+      "mtime": 1758464081,
+      "token_count": 225
+    },
+    "src/App.css": {
+      "size": 4091,
+      "mtime": 1758463148,
+      "token_count": 1615
+    },
+    "src/App.tsx": {
+      "size": 4769,
+      "mtime": 1758508404,
+      "token_count": 1223
+    },
+    "src/components/FileTreeView.tsx": {
+      "size": 3838,
+      "mtime": 1758473280,
+      "token_count": 912
+    },
+    "src/components/GroupManager.tsx": {
+      "size": 10330,
+      "mtime": 1758508404,
+      "token_count": 2266
+    },
+    "src/components/ProjectStats.tsx": {
+      "size": 3633,
+      "mtime": 1758473908,
+      "token_count": 890
+    },
+    "src/components/ui/alert-dialog.tsx": {
+      "size": 3864,
+      "mtime": 1758466041,
+      "token_count": 866
+    },
+    "src/components/ui/button.tsx": {
+      "size": 2083,
+      "mtime": 1758465398,
+      "token_count": 536
+    },
+    "src/components/ui/card.tsx": {
+      "size": 1989,
+      "mtime": 1758466041,
+      "token_count": 506
+    },
+    "src/components/ui/dialog.tsx": {
+      "size": 3968,
+      "mtime": 1758466040,
+      "token_count": 947
+    },
+    "src/components/ui/dropdown-menu.tsx": {
+      "size": 8270,
+      "mtime": 1758466064,
+      "token_count": 1993
+    },
+    "src/components/ui/form.tsx": {
+      "size": 3745,
+      "mtime": 1758466041,
+      "token_count": 908
+    },
+    "src/components/ui/input.tsx": {
+      "size": 962,
+      "mtime": 1758466040,
+      "token_count": 222
+    },
+    "src/components/ui/label.tsx": {
+      "size": 611,
+      "mtime": 1758466041,
+      "token_count": 139
+    },
+    "src/components/ui/resizable.tsx": {
+      "size": 2028,
+      "mtime": 1758465398,
+      "token_count": 481
+    },
+    "src/components/ui/scroll-area.tsx": {
+      "size": 1631,
+      "mtime": 1758465398,
+      "token_count": 362
+    },
+    "src/components/ui/textarea.tsx": {
+      "size": 759,
+      "mtime": 1758466040,
+      "token_count": 176
+    },
+    "src/components/ui/tooltip.tsx": {
+      "size": 1877,
+      "mtime": 1758465398,
+      "token_count": 445
+    },
+    "src/lib/utils.ts": {
+      "size": 1645,
+      "mtime": 1758505313,
+      "token_count": 472
+    },
+    "src/main.tsx": {
+      "size": 238,
+      "mtime": 1758460553,
+      "token_count": 51
+    },
+    "src/scenes/DashboardScene.tsx": {
+      "size": 12094,
+      "mtime": 1758509224,
+      "token_count": 2660
+    },
+    "src/scenes/GroupEditorScene.tsx": {
+      "size": 2861,
+      "mtime": 1758507756,
+      "token_count": 725
+    },
+    "src/scenes/ScanningScene.tsx": {
+      "size": 668,
+      "mtime": 1758504780,
+      "token_count": 177
+    },
+    "src/scenes/WelcomeScene.tsx": {
+      "size": 1282,
+      "mtime": 1758465507,
+      "token_count": 341
+    },
+    "src/store/appStore.ts": {
+      "size": 16398,
+      "mtime": 1758509480,
+      "token_count": 4244
+    },
+    "src/vite-env.d.ts": {
+      "size": 39,
+      "mtime": 1758460553,
+      "token_count": 10
+    },
+    "tsconfig.json": {
+      "size": 701,
+      "mtime": 1758463105,
+      "token_count": 206
+    },
+    "tsconfig.node.json": {
+      "size": 223,
+      "mtime": 1758460553,
+      "token_count": 61
+    },
+    "vite.config.ts": {
+      "size": 977,
+      "mtime": 1758463137,
+      "token_count": 263
     }
-  ]
+  }
 }

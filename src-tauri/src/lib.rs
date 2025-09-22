@@ -6,6 +6,8 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::fmt::Write as FmtWrite;
+// --- THÊM MỚI: Cần SystemTime và UNIX_EPOCH để lấy timestamp ---
+use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{Window, Emitter};
 use ignore::{WalkBuilder, overrides::OverrideBuilder};
 use tiktoken_rs::cl100k_base;
@@ -53,12 +55,22 @@ struct GroupContextResult {
     stats: GroupStats,
 }
 
+// --- STRUCT MỚI: Lưu metadata và token của từng file ---
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct FileMetadata {
+    size: u64,
+    mtime: u64, // Thời gian sửa đổi, tính bằng giây từ UNIX_EPOCH
+    token_count: usize,
+}
+
 // Cấu trúc dữ liệu cache chính
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 struct CachedProjectData {
     stats: ProjectStats, // Đã có thể Clone
     file_tree: Option<FileNode>,
     groups: Vec<Group>,
+    // Trường mới để cache thông tin từng file
+    file_metadata_cache: BTreeMap<String, FileMetadata>, // Key là đường dẫn tương đối (String)
 }
 
 
@@ -144,9 +156,21 @@ fn save_project_data(app_handle: tauri::AppHandle, path: String, data: CachedPro
     Ok(())
 }
 
-fn perform_full_scan_and_build_tree(window: &Window, app_handle: &tauri::AppHandle, path: &str) -> Result<(), String> {
+fn perform_smart_scan_and_rebuild(window: &Window, app_handle: &tauri::AppHandle, path: &str) -> Result<(), String> {
     let root_path = Path::new(path);
-    let mut stats = ProjectStats::default();
+    let bpe = cl100k_base().map_err(|e| e.to_string())?;
+
+    // 1. Tải dữ liệu cũ để lấy cache metadata
+    let old_data = load_project_data(app_handle.clone(), path.to_string()).unwrap_or_default();
+    let old_metadata_cache = old_data.file_metadata_cache;
+    
+    // 2. Chuẩn bị các biến cho lần quét mới
+    let mut new_project_stats = ProjectStats::default();
+    let mut new_metadata_cache = BTreeMap::new();
+    let mut path_map = BTreeMap::new(); // Để xây dựng cây thư mục
+    // --- THÊM MỚI: Tạo một HashSet để kiểm tra sự tồn tại của file/thư mục một cách hiệu quả ---
+    let mut existing_paths = HashSet::new();
+
     let override_builder = {
         let mut builder = OverrideBuilder::new(root_path);
         builder.add("!package-lock.json").map_err(|e| e.to_string())?;
@@ -155,26 +179,63 @@ fn perform_full_scan_and_build_tree(window: &Window, app_handle: &tauri::AppHand
         builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
         builder.build().map_err(|e| e.to_string())?
     };
-    let bpe = cl100k_base().map_err(|e| e.to_string())?;
-    let mut path_map = BTreeMap::new();
+
+    // 3. Bắt đầu quét hệ thống file
     for entry in WalkBuilder::new(root_path).overrides(override_builder.clone()).build().filter_map(Result::ok) {
         let entry_path = entry.path();
-        if let Ok(relative_path) = entry_path.strip_prefix(root_path) {
+        if let (Ok(relative_path), Ok(metadata)) = (entry_path.strip_prefix(root_path), entry.metadata()) {
             if relative_path.as_os_str().is_empty() { continue; }
-            let _ = window.emit("scan_progress", relative_path.to_string_lossy().to_string());
-            if let Ok(metadata) = entry.metadata() {
-                path_map.insert(entry_path.to_path_buf(), metadata.is_dir());
-                if metadata.is_dir() { stats.total_dirs += 1; } 
-                else if metadata.is_file() {
-                    stats.total_files += 1;
-                    stats.total_size += metadata.len();
-                    if let Ok(content) = fs::read_to_string(entry_path) {
-                        stats.total_tokens += bpe.encode_with_special_tokens(&content).len();
+            let relative_path_str = relative_path.to_string_lossy().replace("\\", "/");
+
+            // --- THÊM MỚI: Thêm tất cả các đường dẫn tìm thấy vào HashSet ---
+            existing_paths.insert(relative_path_str.clone());
+
+            let _ = window.emit("scan_progress", relative_path_str.clone());
+            
+            path_map.insert(entry_path.to_path_buf(), metadata.is_dir());
+
+            if metadata.is_dir() {
+                new_project_stats.total_dirs += 1;
+            } else if metadata.is_file() {
+                new_project_stats.total_files += 1;
+                new_project_stats.total_size += metadata.len();
+                
+                let current_mtime = metadata.modified()
+                    .map(|t| t.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs())
+                    .unwrap_or(0);
+                
+                let mut token_count = 0;
+
+                // --- LOGIC "THÔNG MINH" NẰM Ở ĐÂY ---
+                if let Some(cached_meta) = old_metadata_cache.get(&relative_path_str) {
+                    // So sánh size và mtime để xem file có thay đổi không
+                    if cached_meta.size == metadata.len() && cached_meta.mtime == current_mtime {
+                        // File không đổi -> Lấy token từ cache
+                        token_count = cached_meta.token_count;
                     }
                 }
+                
+                // Nếu token_count vẫn là 0 (vì là file mới, hoặc file đã thay đổi)
+                if token_count == 0 {
+                    if let Ok(content) = fs::read_to_string(entry_path) {
+                        token_count = bpe.encode_with_special_tokens(&content).len();
+                    }
+                }
+                // --- KẾT THÚC LOGIC "THÔNG MINH" ---
+
+                new_project_stats.total_tokens += token_count;
+                
+                // Cập nhật cache mới với thông tin của file này
+                new_metadata_cache.insert(relative_path_str, FileMetadata {
+                    size: metadata.len(),
+                    mtime: current_mtime,
+                    token_count,
+                });
             }
         }
     }
+
+    // 4. Xây dựng lại cây thư mục (logic này giữ nguyên)
     fn build_tree_from_map(parent: &Path, path_map: &BTreeMap<PathBuf, bool>, root_path: &Path) -> Vec<FileNode> {
         let mut children = Vec::new();
         for (path, is_dir) in path_map.range(parent.join("")..) {
@@ -200,40 +261,71 @@ fn perform_full_scan_and_build_tree(window: &Window, app_handle: &tauri::AppHand
         path: "".to_string(),
         children: Some(root_children),
     };
-    let mut cached_data = load_project_data(app_handle.clone(), path.to_string()).unwrap_or_default();
-    
-    // Cập nhật stats và cây thư mục mới
-    cached_data.stats = stats.clone();
-    cached_data.file_tree = Some(file_tree.clone());
-    
-    // --- PHẦN CẬP NHẬT QUAN TRỌNG ---
-    // Duyệt qua các nhóm hiện có và tính toán lại stats của chúng
-    let root_path_string = path.to_string();
-    for group in &mut cached_data.groups {
-        // Tái sử dụng logic tính toán context/stats đã có
-        // Chúng ta chỉ cần `stats`, không cần `context` ở đây
-        if let Ok(result) = generate_context_for_paths(root_path_string.clone(), group.paths.clone()) {
-            group.stats = result.stats;
-        } else {
-            // Nếu có lỗi (ví dụ: các file/thư mục trong nhóm đã bị xóa),
-            // reset stats về 0 để phản ánh đúng thực tế.
-            group.stats = GroupStats::default(); 
+
+    // 5. Dọn dẹp và tính toán lại stats cho các nhóm
+    let mut updated_groups = old_data.groups;
+    for group in &mut updated_groups {
+        // --- ĐÂY LÀ BƯỚC QUAN TRỌNG NHẤT: LOẠI BỎ CÁC ĐƯỜNG DẪN KHÔNG CÒN TỒN TẠI ---
+        // Phương thức `retain` sẽ duyệt qua vector và chỉ giữ lại những phần tử thỏa mãn điều kiện.
+        group.paths.retain(|path| existing_paths.contains(path));
+        
+        // Bây giờ, `group.paths` đã "sạch", chúng ta có thể tính toán lại stats một cách an toàn.
+        let mut new_group_stats = GroupStats::default();
+        let mut all_files_in_group = HashSet::new();
+        let mut all_dirs_in_group = HashSet::new();
+
+        // Mở rộng các đường dẫn trong nhóm (ví dụ: thư mục -> các file con)
+        for relative_path_str in &group.paths {
+            let full_path = root_path.join(relative_path_str);
+            if full_path.is_dir() {
+                // Dùng WalkDir để tìm tất cả file/dir con
+                 for entry in WalkBuilder::new(full_path).build().filter_map(Result::ok) {
+                    if let Ok(rp) = entry.path().strip_prefix(root_path) {
+                        let rp_str = rp.to_string_lossy().replace("\\", "/");
+                        if entry.path().is_dir() {
+                             all_dirs_in_group.insert(rp_str);
+                        } else {
+                             all_files_in_group.insert(rp_str);
+                        }
+                    }
+                 }
+            } else if full_path.is_file() {
+                 all_files_in_group.insert(relative_path_str.clone());
+            }
         }
+
+        // Tính toán stats từ cache
+        for file_path_str in &all_files_in_group {
+            if let Some(meta) = new_metadata_cache.get(file_path_str) {
+                new_group_stats.total_size += meta.size;
+                new_group_stats.token_count += meta.token_count;
+            }
+        }
+        new_group_stats.total_files = all_files_in_group.len() as u64;
+        new_group_stats.total_dirs = all_dirs_in_group.len() as u64;
+        
+        group.stats = new_group_stats;
     }
-    // --- KẾT THÚC PHẦN CẬP NHẬT ---
+
+    // 6. Tập hợp dữ liệu cuối cùng và gửi về frontend
+    let final_data = CachedProjectData {
+        stats: new_project_stats,
+        file_tree: Some(file_tree),
+        groups: updated_groups,
+        file_metadata_cache: new_metadata_cache,
+    };
     
-    // Lưu lại toàn bộ dữ liệu đã được cập nhật
-    save_project_data(app_handle.clone(), path.to_string(), cached_data.clone()).map_err(|e| e.to_string())?;
+    save_project_data(app_handle.clone(), path.to_string(), final_data.clone()).map_err(|e| e.to_string())?;
+    let _ = window.emit("scan_complete", &final_data);
     
-    // Gửi dữ liệu hoàn chỉnh về frontend
-    let _ = window.emit("scan_complete", &cached_data);
     Ok(())
 }
 
 #[tauri::command]
 fn start_project_scan(window: Window, app_handle: tauri::AppHandle, path: String) {
     std::thread::spawn(move || {
-        if let Err(e) = perform_full_scan_and_build_tree(&window, &app_handle, &path) {
+        // Gọi hàm "thông minh" mới
+        if let Err(e) = perform_smart_scan_and_rebuild(&window, &app_handle, &path) {
             let _ = window.emit("scan_error", e);
         }
     });
