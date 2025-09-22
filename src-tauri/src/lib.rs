@@ -96,7 +96,11 @@ fn perform_scan_with_progress(window: &Window, path: &str) -> Result<ProjectStat
         .sort_by_file_path(|a, b| a.cmp(b))
         .build();
 
-    let mut all_content_for_token_count = String::new();
+    // --- THAY ĐỔI: Khởi tạo tokenizer trước vòng lặp ---
+    let bpe = cl100k_base().map_err(|e| e.to_string())?;
+
+    // --- BỎ BIẾN all_content_for_token_count ---
+    // let mut all_content_for_token_count = String::new();
 
     for entry in walker.filter_map(Result::ok) {
         let entry_path = entry.path();
@@ -112,18 +116,19 @@ fn perform_scan_with_progress(window: &Window, path: &str) -> Result<ProjectStat
                 } else if metadata.is_file() {
                     stats.total_files += 1;
                     stats.total_size += metadata.len();
-                    // Chỉ đọc file để đếm token, không cần cho việc khác
+                    
+                    // --- THAY ĐỔI: Đọc file và đếm token ngay lập tức, sau đó cộng dồn ---
                     if let Ok(content) = fs::read_to_string(entry_path) {
-                        all_content_for_token_count.push_str(&content);
+                        stats.total_tokens += bpe.encode_with_special_tokens(&content).len();
                     }
                 }
             }
         }
     }
     
-    // Đếm token sau khi đã thu thập hết
-    let bpe = cl100k_base().map_err(|e| e.to_string())?;
-    stats.total_tokens = bpe.encode_with_special_tokens(&all_content_for_token_count).len();
+    // --- BỎ PHẦN ĐẾM TOKEN Ở CUỐI VÌ ĐÃ LÀM TRONG VÒNG LẶP ---
+    // let bpe = cl100k_base().map_err(|e| e.to_string())?;
+    // stats.total_tokens = bpe.encode_with_special_tokens(&all_content_for_token_count).len();
 
     Ok(stats)
 }

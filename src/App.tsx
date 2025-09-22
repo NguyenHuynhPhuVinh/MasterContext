@@ -1,11 +1,12 @@
 // src/App.tsx
-import { useEffect } from "react"; // <-- Thêm useEffect
-import { listen } from "@tauri-apps/api/event"; // <-- Thêm listen
-import { useAppStore, useAppActions, ProjectStats } from "./store/appStore"; // <-- Thêm ProjectStats
+import { useEffect, useMemo } from "react"; // <-- Thêm useMemo
+import { listen } from "@tauri-apps/api/event";
+import { useAppStore, useAppActions, ProjectStats } from "./store/appStore";
 import { WelcomeScene } from "./scenes/WelcomeScene";
 import { DashboardScene } from "./scenes/DashboardScene";
 import { GroupEditorScene } from "./scenes/GroupEditorScene";
-import { ScanningScene } from "./scenes/ScanningScene"; // <-- Import scene mới
+import { ScanningScene } from "./scenes/ScanningScene";
+import { throttle } from "@/lib/utils"; // <-- Import hàm throttle
 import "./App.css";
 
 function App() {
@@ -14,13 +15,20 @@ function App() {
   const isScanning = useAppStore((state) => state.isScanning); // <-- Lấy state isScanning
   const { _setScanProgress, _setScanComplete, _setScanError } = useAppActions();
 
+  // --- THAY ĐỔI: Tạo một phiên bản throttled của hàm cập nhật ---
+  const throttledSetScanProgress = useMemo(
+    () => throttle((file: string) => _setScanProgress(file), 100), // Cập nhật tối đa 10 lần/giây
+    [_setScanProgress]
+  );
+
   // --- LẮNG NGHE SỰ KIỆN TỪ RUST ---
   useEffect(() => {
     const unlistenFuncs: Promise<() => void>[] = [];
 
+    // --- THAY ĐỔI: Sử dụng hàm đã được throttle ---
     unlistenFuncs.push(
       listen<string>("scan_progress", (event) => {
-        _setScanProgress(event.payload);
+        throttledSetScanProgress(event.payload);
       })
     );
 
@@ -42,7 +50,12 @@ function App() {
         unlisten.then((f) => f());
       });
     };
-  }, [_setScanProgress, _setScanComplete, _setScanError]);
+  }, [
+    _setScanProgress,
+    _setScanComplete,
+    _setScanError,
+    throttledSetScanProgress,
+  ]); // <-- Thêm dependency
 
   const renderContent = () => {
     // Ưu tiên hiển thị màn hình quét

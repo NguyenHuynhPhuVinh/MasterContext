@@ -14,3 +14,39 @@ export function formatBytes(bytes: number, decimals = 2): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }
+
+// --- HÀM MỚI: THROTTLE ---
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function throttle<T extends (...args: any[]) => void>(
+  func: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let inThrottle: boolean;
+  let lastArgs: Parameters<T> | null = null;
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
+    lastArgs = args;
+    if (!inThrottle) {
+      inThrottle = true;
+      func.apply(this, args);
+      setTimeout(() => {
+        inThrottle = false;
+        if (lastArgs) {
+          // Nếu có cuộc gọi nào bị bỏ lỡ, thực hiện cuộc gọi cuối cùng
+          func.apply(this, lastArgs);
+          lastArgs = null;
+        }
+      }, delay);
+    } else if (timeoutId === null) {
+      // Đảm bảo cập nhật cuối cùng sau khi hết throttle
+      timeoutId = setTimeout(() => {
+        if (lastArgs) {
+          func.apply(this, lastArgs);
+          lastArgs = null;
+        }
+        timeoutId = null;
+      }, delay);
+    }
+  };
+}
