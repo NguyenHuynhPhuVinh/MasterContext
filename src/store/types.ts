@@ -48,4 +48,5 @@ export interface Group {
   paths: string[];
   stats: GroupStats;
   crossSyncEnabled?: boolean;
+  tokenLimit?: number; // <-- THÊM TRƯỜNG NÀY
 }

@@ -17,6 +17,14 @@ import { useShallow } from "zustand/react/shallow"; // <-- BƯỚC 1: IMPORT use
 const groupSchema = z.object({
   name: z.string().min(1, "Tên nhóm không được để trống"),
   description: z.string().optional(),
+  tokenLimit: z
+    .union([z.string(), z.number()])
+    .optional()
+    .refine((val) => {
+      if (val === undefined || val === "") return true;
+      const num = typeof val === "string" ? Number(val) : val;
+      return num > 0;
+    }, "Giới hạn token phải là số dương"),
 });
 type GroupFormValues = z.infer<typeof groupSchema>;
 
@@ -42,7 +50,7 @@ export function useDashboard() {
   // --- QUẢN LÝ FORM ---
   const form = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
-    defaultValues: { name: "", description: "" },
+    defaultValues: { name: "", description: "", tokenLimit: undefined },
   });
 
   // --- LOGIC LẮNG NGHE SỰ KIỆN TỪ BACKEND ---
@@ -86,17 +94,32 @@ export function useDashboard() {
     setEditingGroup(group);
     form.reset(
       group
-        ? { name: group.name, description: group.description || "" }
-        : { name: "", description: "" }
+        ? {
+            name: group.name,
+            description: group.description || "",
+            tokenLimit: group.tokenLimit,
+          }
+        : { name: "", description: "", tokenLimit: undefined }
     );
     setIsDialogOpen(true);
   };
 
   const onSubmit = (data: GroupFormValues) => {
+    const groupData = {
+      name: data.name,
+      description: data.description || "",
+      tokenLimit:
+        data.tokenLimit === "" || data.tokenLimit === undefined
+          ? undefined
+          : typeof data.tokenLimit === "string"
+          ? Number(data.tokenLimit)
+          : data.tokenLimit,
+    };
+
     if (editingGroup) {
-      updateGroup({ ...editingGroup, ...data });
+      updateGroup({ ...editingGroup, ...groupData });
     } else {
-      addGroup({ name: data.name, description: data.description || "" });
+      addGroup(groupData);
     }
     // <-- THÊM TOAST PHẢN HỒI NGAY LẬP TỨC -->
     toast.success(

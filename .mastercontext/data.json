@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 66,
     "total_dirs": 14,
-    "total_size": 427923,
-    "total_tokens": 46199
+    "total_size": 430660,
+    "total_tokens": 46743
   },
   "file_tree": {
     "name": "MasterContext",
@@ -422,7 +422,24 @@
       }
     ]
   },
-  "groups": [],
+  "groups": [
+    {
+      "id": "1758537520252",
+      "name": "fhgh",
+      "description": "fghfghf",
+      "paths": [
+        "src"
+      ],
+      "stats": {
+        "total_files": 31,
+        "total_dirs": 7,
+        "total_size": 123356,
+        "token_count": 30746
+      },
+      "crossSyncEnabled": false,
+      "tokenLimit": null
+    }
+  ],
   "file_metadata_cache": {
     "LICENSE": {
       "size": 1096,
@@ -599,9 +616,9 @@
       "links": []
     },
     "src-tauri/src/models.rs": {
-      "size": 1972,
-      "mtime": 1758533255,
-      "token_count": 509,
+      "size": 2071,
+      "mtime": 1758537376,
+      "token_count": 542,
       "links": []
     },
     "src-tauri/src/project_scanner.rs": {
@@ -646,19 +663,19 @@
       ]
     },
     "src/components/GroupManager.tsx": {
-      "size": 17614,
-      "mtime": 1758536451,
-      "token_count": 4018,
+      "size": 18096,
+      "mtime": 1758537376,
+      "token_count": 4097,
       "links": [
-        "src/components/ui/label.tsx",
-        "src/store/types.ts",
         "src/components/ui/dropdown-menu.tsx",
         "src/components/ui/alert-dialog.tsx",
-        "src/lib/utils.ts",
-        "src/store/appStore.ts",
+        "src/components/ui/label.tsx",
         "src/components/ui/switch.tsx",
+        "src/store/types.ts",
         "src/components/ui/card.tsx",
-        "src/components/ui/button.tsx"
+        "src/components/ui/button.tsx",
+        "src/store/appStore.ts",
+        "src/lib/utils.ts"
       ]
     },
     "src/components/ProjectStats.tsx": {
@@ -801,12 +818,12 @@
       ]
     },
     "src/hooks/useDashboard.ts": {
-      "size": 5983,
-      "mtime": 1758536451,
-      "token_count": 1608,
+      "size": 6689,
+      "mtime": 1758537376,
+      "token_count": 1765,
       "links": [
-        "src/store/appStore.ts",
-        "src/store/types.ts"
+        "src/store/types.ts",
+        "src/store/appStore.ts"
       ]
     },
     "src/lib/treeUtils.ts": {
@@ -832,22 +849,22 @@
       ]
     },
     "src/scenes/DashboardScene.tsx": {
-      "size": 8872,
-      "mtime": 1758536451,
-      "token_count": 1828,
+      "size": 10088,
+      "mtime": 1758537376,
+      "token_count": 2027,
       "links": [
-        "src/components/ui/textarea.tsx",
         "src/components/ui/resizable.tsx",
-        "src/components/ProjectStats.tsx",
         "src/components/ui/form.tsx",
-        "src/components/ui/tooltip.tsx",
         "src/components/ui/dialog.tsx",
-        "src/components/ui/scroll-area.tsx",
+        "src/components/ui/tooltip.tsx",
         "src/components/SettingsDialog.tsx",
+        "src/components/ProjectStats.tsx",
+        "src/components/ui/textarea.tsx",
+        "src/components/ui/scroll-area.tsx",
         "src/components/GroupManager.tsx",
+        "src/components/ui/button.tsx",
         "src/components/ui/alert-dialog.tsx",
         "src/components/ui/input.tsx",
-        "src/components/ui/button.tsx",
         "src/hooks/useDashboard.ts"
       ]
     },
@@ -882,18 +899,18 @@
       ]
     },
     "src/store/appStore.ts": {
-      "size": 18419,
-      "mtime": 1758536470,
-      "token_count": 4924,
+      "size": 18601,
+      "mtime": 1758537376,
+      "token_count": 4978,
       "links": [
-        "src/store/types.ts",
-        "src/lib/treeUtils.ts"
+        "src/lib/treeUtils.ts",
+        "src/store/types.ts"
       ]
     },
     "src/store/types.ts": {
-      "size": 1006,
-      "mtime": 1758532615,
-      "token_count": 235,
+      "size": 1058,
+      "mtime": 1758537376,
+      "token_count": 257,
       "links": []
     },
     "src/vite-env.d.ts": {
@@ -923,5 +940,5 @@
   },
   "sync_enabled": true,
   "sync_path": "C:\\Users\\tomis\\Documents\\MasterContext\\.mastercontext",
-  "data_hash": "275014ddcb38a15f900196a8d58e8a6a723967cd4627a3f2c56c48904c380972"
+  "data_hash": "325937e88b72fa4c08fac9576e3babb307c3e8ffeabe8d3a6d5d948ddfc87e58"
 }

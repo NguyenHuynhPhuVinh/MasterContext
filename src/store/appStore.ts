@@ -219,6 +219,7 @@ export const useAppStore = create<AppState>((set, get) => {
           paths: [],
           stats: defaultGroupStats(),
           crossSyncEnabled: false,
+          tokenLimit: newGroup.tokenLimit || undefined, // Đảm bảo trường mới được thêm vào
         };
         // Cập nhật state để thêm nhóm mới và chuyển sang màn hình chỉnh sửa
         set((state) => ({
@@ -284,6 +285,7 @@ export const useAppStore = create<AppState>((set, get) => {
             paths: g.paths || [],
             stats: g.stats || defaultGroupStats(),
             crossSyncEnabled: (g as any).cross_sync_enabled ?? false, // <-- XỬ LÝ DỮ LIỆU MỚI
+            tokenLimit: g.tokenLimit, // <-- XỬ LÝ DỮ LIỆU MỚI
           })),
           isScanning: false,
           // Cập nhật cài đặt đồng bộ từ file đã tải

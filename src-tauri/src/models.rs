@@ -41,6 +41,7 @@ pub struct FileNode {
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Group {
     pub id: String,
     pub name: String,
@@ -48,6 +49,7 @@ pub struct Group {
     pub paths: Vec<String>,
     pub stats: GroupStats,
     pub cross_sync_enabled: Option<bool>,
+    pub token_limit: Option<usize>, // <-- THÊM TRƯỜNG NÀY
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -34,6 +34,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -219,6 +220,33 @@ export function DashboardScene() {
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* --- TRƯỜNG MỚI CHO NGÂN SÁCH TOKEN --- */}
+              <FormField
+                control={form.control}
+                name="tokenLimit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Giới hạn Token (Tùy chọn)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Ví dụ: 8000"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value === "" ? undefined : e.target.value
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Đặt ngân sách token để nhận cảnh báo nếu nhóm vượt quá.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -8,7 +8,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"; // <-- THÊM IMPORT
 import { toast } from "sonner"; // <-- THÊM IMPORT
-import { formatBytes } from "@/lib/utils"; // <-- Import hàm tiện ích
+import { formatBytes, cn } from "@/lib/utils"; // <-- Import hàm tiện ích
 import { Label } from "@/components/ui/label"; // <-- THÊM IMPORT
 import { Switch } from "@/components/ui/switch"; // <-- THÊM IMPORT
 import { Button } from "@/components/ui/button";
@@ -296,11 +296,21 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                       Tổng dung lượng: {formatBytes(group.stats.total_size)}
                     </span>
                   </div>
+                  {/* --- CẬP NHẬT HIỂN THỊ TOKEN --- */}
                   <div className="flex items-center gap-2">
                     <BrainCircuit className="h-4 w-4" />
-                    <span>
-                      Ước tính: {group.stats.token_count.toLocaleString()}{" "}
-                      tokens
+                    <span
+                      className={cn(
+                        group.tokenLimit &&
+                          group.stats.token_count > group.tokenLimit &&
+                          "text-destructive font-bold"
+                      )}
+                    >
+                      {group.stats.token_count.toLocaleString()}
+                      {group.tokenLimit && group.tokenLimit > 0
+                        ? ` / ${group.tokenLimit.toLocaleString()}`
+                        : ""}
+                      {" tokens"}
                     </span>
                   </div>
                 </div>
