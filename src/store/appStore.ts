@@ -74,6 +74,9 @@ interface AppState {
   syncEnabled: boolean;
   syncPath: string | null;
   customIgnorePatterns: string[]; // <-- THÊM STATE MỚI
+  // --- STATE MỚI CHO HỒ SƠ ---
+  profiles: string[];
+  activeProfile: string;
 
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
@@ -112,22 +115,41 @@ interface AppState {
     }) => Promise<void>;
     setGroupCrossSync: (groupId: string, enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
     setCustomIgnorePatterns: (patterns: string[]) => Promise<void>; // <-- THÊM ACTION MỚI
+    // --- ACTIONS MỚI CHO HỒ SƠ ---
+    switchProfile: (profileName: string) => Promise<void>;
+    createProfile: (profileName: string) => Promise<void>;
+    renameProfile: (oldName: string, newName: string) => Promise<void>;
+    deleteProfile: (profileName: string) => Promise<void>;
   };
 }
 
 export const useAppStore = create<AppState>((set, get) => {
+  // --- HÀM HELPER MỚI ĐỂ TẢI DỮ LIỆU CỦA MỘT HỒ SƠ ---
+  const loadProfileData = (path: string, profileName: string) => {
+    set({
+      isScanning: true,
+      activeProfile: profileName,
+      scanProgress: { currentFile: `Đang tải hồ sơ "${profileName}"...` },
+    });
+    try {
+      invoke("open_project", { path, profileName });
+    } catch (error) {
+      console.error(`Lỗi khi tải hồ sơ ${profileName}:`, error);
+      set({ isScanning: false });
+      toast.error(`Không thể tải hồ sơ: ${profileName}.`);
+    }
+  };
+
   // --- PHẦN MỚI: Hàm trợ giúp để cập nhật groups trên backend ---
   const updateGroupsOnBackend = async () => {
-    const { rootPath, groups } = get();
+    const { rootPath, groups, activeProfile } = get();
     if (rootPath) {
       try {
-        // === BẮT ĐẦU SỬA LỖI ===
-        // Lệnh invoke giờ không cần app_handle nữa
         await invoke("update_groups_in_project_data", {
           path: rootPath,
+          profileName: activeProfile,
           groups: groups,
         });
-        // === KẾT THÚC SỬA LỖI ===
       } catch (error) {
         console.error("Lỗi khi cập nhật nhóm trên backend:", error);
       }
@@ -153,57 +175,42 @@ export const useAppStore = create<AppState>((set, get) => {
     syncEnabled: false,
     syncPath: null,
     customIgnorePatterns: [], // <-- GIÁ TRỊ MẶC ĐỊNH
+    // --- GIÁ TRỊ MẶC ĐỊNH CHO STATE HỒ SƠ ---
+    profiles: ["default"],
+    activeProfile: "default",
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
-        // 1. Cập nhật state UI ngay lập tức để hiển thị màn hình Scanning
         set({
-          isScanning: true,
           rootPath: path,
           selectedPath: path,
-          projectStats: null,
-          fileTree: null,
-          groups: [],
-          activeScene: "dashboard", // Vẫn giữ để sau khi quét xong sẽ vào dashboard
-          scanProgress: { currentFile: "Đang khởi tạo quá trình quét..." },
+          activeScene: "dashboard",
+          isScanning: true,
+          scanProgress: { currentFile: "Đang tìm các hồ sơ..." },
         });
 
-        // 2. Kích hoạt quá trình quét ở backend
         try {
-          // === THAY ĐỔI QUAN TRỌNG: XÓA `await` ===
-          // Frontend chỉ cần ra lệnh cho backend bắt đầu, không cần chờ nó xong.
-          // Kết quả sẽ được xử lý bởi listener sự kiện trong `App.tsx`.
-          invoke("open_project", { path });
+          const profiles = await invoke<string[]>("list_profiles", {
+            projectPath: path,
+          });
+          set({ profiles });
+          // Tải hồ sơ 'default' sau khi chọn một thư mục mới
+          loadProfileData(path, "default");
         } catch (error) {
-          console.error("Lỗi khi gọi command open_project:", error);
-          // Nếu việc `invoke` thất bại ngay lập tức (hiếm), chúng ta vẫn xử lý lỗi
-          set({ isScanning: false });
-          toast.error("Không thể bắt đầu phân tích dự án."); // <-- THAY alert BẰNG TOAST
+          console.error("Lỗi khi lấy danh sách hồ sơ:", error);
+          set({
+            isScanning: false,
+            profiles: ["default"],
+            activeProfile: "default",
+          });
+          toast.error("Không thể lấy danh sách hồ sơ.");
         }
       },
       // --- THÊM MỚI: Logic cho action rescanProject ---
       rescanProject: async () => {
-        const { rootPath } = get();
-        if (!rootPath) {
-          console.warn("Không thể quét lại vì chưa có dự án nào được chọn.");
-          return;
-        }
-        // 1. Đặt trạng thái đang quét
-        set({
-          isScanning: true,
-          scanProgress: { currentFile: "Bắt đầu quét lại dự án..." },
-        });
-        // 2. Gọi lại command 'open_project' với đường dẫn hiện tại
-        try {
-          invoke("open_project", { path: rootPath });
-        } catch (error) {
-          console.error("Lỗi khi bắt đầu quét lại dự án:", error);
-          set({
-            isScanning: false,
-            scanProgress: { currentFile: null },
-          });
-          toast.error("Không thể bắt đầu quá trình quét lại dự án."); // <-- THAY alert BẰNG TOAST
-        }
+        const { rootPath, activeProfile } = get();
+        if (!rootPath) return;
+        loadProfileData(rootPath, activeProfile);
       },
       reset: () =>
         set({
@@ -212,6 +219,8 @@ export const useAppStore = create<AppState>((set, get) => {
           groups: [],
           activeScene: "dashboard",
           editingGroupId: null,
+          profiles: ["default"],
+          activeProfile: "default",
         }), // Reset cả groups
 
       // --- THAY ĐỔI: Chuyển hướng ngay sau khi tạo nhóm ---
@@ -260,7 +269,7 @@ export const useAppStore = create<AppState>((set, get) => {
       },
       updateGroupPaths: (groupId, paths) => {
         // Không cần async nữa
-        const rootPath = get().rootPath;
+        const { rootPath, activeProfile } = get();
         if (!rootPath) return;
         set({ isUpdatingGroupId: groupId });
 
@@ -268,6 +277,7 @@ export const useAppStore = create<AppState>((set, get) => {
         invoke("start_group_update", {
           groupId,
           rootPathStr: rootPath,
+          profileName: activeProfile,
           paths,
         });
         // Logic sẽ được tiếp tục trong listener sự kiện `group_update_complete`
@@ -433,7 +443,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
       // --- ACTION MỚI CHO CÀI ĐẶT ĐỒNG BỘ ---
       setSyncSettings: async ({ enabled, path }) => {
-        const rootPath = get().rootPath;
+        const { rootPath, activeProfile } = get();
         if (!rootPath) return;
 
         // Cập nhật state ở frontend ngay lập tức
@@ -443,6 +453,7 @@ export const useAppStore = create<AppState>((set, get) => {
         try {
           await invoke("update_sync_settings", {
             path: rootPath,
+            profileName: activeProfile,
             enabled,
             syncPath: path,
           });
@@ -484,7 +495,7 @@ export const useAppStore = create<AppState>((set, get) => {
       },
       // --- ACTION MỚI ĐỂ LƯU CÁC MẪU LOẠI TRỪ ---
       setCustomIgnorePatterns: async (patterns: string[]) => {
-        const { rootPath } = get();
+        const { rootPath, activeProfile } = get();
         if (!rootPath) return;
 
         // Cập nhật UI ngay lập tức
@@ -494,6 +505,7 @@ export const useAppStore = create<AppState>((set, get) => {
         try {
           await invoke("update_custom_ignore_patterns", {
             path: rootPath,
+            profileName: activeProfile,
             patterns,
           });
           toast.success("Đã lưu các mẫu loại trừ. Bắt đầu quét lại dự án...");
@@ -502,6 +514,70 @@ export const useAppStore = create<AppState>((set, get) => {
         } catch (error) {
           console.error("Lỗi khi lưu các mẫu loại trừ tùy chỉnh:", error);
           toast.error("Không thể lưu các mẫu loại trừ.");
+        }
+      },
+      // --- ACTIONS MỚI CHO HỒ SƠ ---
+      switchProfile: async (profileName: string) => {
+        const { rootPath, activeProfile } = get();
+        if (!rootPath || profileName === activeProfile) return;
+        loadProfileData(rootPath, profileName);
+      },
+      createProfile: async (profileName: string) => {
+        const { rootPath, profiles } = get();
+        if (!rootPath || profiles.includes(profileName)) {
+          toast.error("Tên hồ sơ đã tồn tại.");
+          return;
+        }
+        try {
+          await invoke("create_profile", {
+            projectPath: rootPath,
+            profileName,
+          });
+          set({ profiles: [...profiles, profileName] });
+          get().actions.switchProfile(profileName);
+          toast.success(`Đã tạo và chuyển sang hồ sơ "${profileName}"`);
+        } catch (error) {
+          console.error("Lỗi khi tạo hồ sơ:", error);
+          toast.error(`Không thể tạo hồ sơ: ${error}`);
+        }
+      },
+      renameProfile: async (oldName: string, newName: string) => {
+        const { rootPath, profiles } = get();
+        if (!rootPath || profiles.includes(newName)) {
+          toast.error("Tên hồ sơ mới đã tồn tại.");
+          return;
+        }
+        try {
+          await invoke("rename_profile", {
+            projectPath: rootPath,
+            oldName,
+            newName,
+          });
+          set({
+            profiles: profiles.map((p) => (p === oldName ? newName : p)),
+            activeProfile: newName,
+          });
+          toast.success(`Đã đổi tên hồ sơ thành "${newName}"`);
+        } catch (error) {
+          console.error("Lỗi khi đổi tên hồ sơ:", error);
+          toast.error(`Không thể đổi tên hồ sơ: ${error}`);
+        }
+      },
+      deleteProfile: async (profileName: string) => {
+        const { rootPath, profiles } = get();
+        if (!rootPath || profileName === "default") return;
+        try {
+          await invoke("delete_profile", {
+            projectPath: rootPath,
+            profileName,
+          });
+          set({ profiles: profiles.filter((p) => p !== profileName) });
+          // Chuyển về hồ sơ default sau khi xóa
+          get().actions.switchProfile("default");
+          toast.success(`Đã xóa hồ sơ "${profileName}"`);
+        } catch (error) {
+          console.error("Lỗi khi xóa hồ sơ:", error);
+          toast.error(`Không thể xóa hồ sơ: ${error}`);
         }
       },
     },

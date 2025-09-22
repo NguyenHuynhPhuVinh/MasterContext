@@ -7,13 +7,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { writeText } from "@tauri-apps/plugin-clipboard-manager"; // <-- THÊM IMPORT
-import { toast } from "sonner"; // <-- THÊM IMPORT
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { toast } from "sonner";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
-import { useShallow } from "zustand/react/shallow"; // <-- BƯỚC 1: IMPORT useShallow
+import { useShallow } from "zustand/react/shallow";
 
-// Schema validation cho form
+// Schema validation cho form nhóm
 const groupSchema = z.object({
   name: z.string().min(1, "Tên nhóm không được để trống"),
   description: z.string().optional(),
@@ -28,29 +28,60 @@ const groupSchema = z.object({
 });
 type GroupFormValues = z.infer<typeof groupSchema>;
 
+// --- THÊM SCHEMA CHO FORM HỒ SƠ ---
+const profileSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Tên hồ sơ không được để trống")
+    .regex(/^[a-zA-Z0-9_-]+$/, "Chỉ cho phép chữ, số, gạch dưới và gạch nối"),
+});
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
 export function useDashboard() {
   // --- LẤY STATE VÀ ACTIONS TỪ STORE ---
-  // BƯỚC 2: SỬ DỤNG useShallow
-  const { rootPath, projectStats, selectedPath } = useAppStore(
-    useShallow((state) => ({
-      rootPath: state.rootPath,
-      projectStats: state.projectStats,
-      selectedPath: state.selectedPath,
-    }))
-  );
-  const { addGroup, updateGroup, selectRootPath, rescanProject } =
-    useAppActions();
+  const { rootPath, projectStats, selectedPath, profiles, activeProfile } =
+    useAppStore(
+      useShallow((state) => ({
+        rootPath: state.rootPath,
+        projectStats: state.projectStats,
+        selectedPath: state.selectedPath,
+        profiles: state.profiles,
+        activeProfile: state.activeProfile,
+      }))
+    );
+  const {
+    addGroup,
+    updateGroup,
+    selectRootPath,
+    rescanProject,
+    switchProfile, // <-- Action mới
+    createProfile, // <-- Action mới
+    renameProfile, // <-- Action mới
+    deleteProfile, // <-- Action mới
+  } = useAppActions();
 
   // --- STATE CỤC BỘ CỦA SCENE ---
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [isCopying, setIsCopying] = useState(false); // <-- STATE MỚI
+  const [isCopying, setIsCopying] = useState(false);
+
+  // --- STATE MỚI CHO DIALOG HỒ SƠ ---
+  const [profileDialogMode, setProfileDialogMode] = useState<
+    "create" | "rename" | null
+  >(null);
+  const [isProfileDeleteDialogOpen, setIsProfileDeleteDialogOpen] =
+    useState(false);
 
   // --- QUẢN LÝ FORM ---
-  const form = useForm<GroupFormValues>({
+  const groupForm = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
     defaultValues: { name: "", description: "", tokenLimit: undefined },
+  });
+
+  const profileForm = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: { name: "" },
   });
 
   // --- LOGIC LẮNG NGHE SỰ KIỆN TỪ BACKEND ---
@@ -66,11 +97,11 @@ export function useDashboard() {
           });
           if (filePath) {
             await writeTextFile(filePath, event.payload);
-            toast.success(`Đã lưu file thành công!`); // <-- THAY alert BẰNG TOAST
+            toast.success(`Đã lưu file thành công!`);
           }
         } catch (error) {
           console.error("Lỗi khi lưu file ngữ cảnh dự án:", error);
-          toast.error("Đã xảy ra lỗi khi lưu file."); // <-- THAY alert BẰNG TOAST
+          toast.error("Đã xảy ra lỗi khi lưu file.");
         } finally {
           setIsExporting(false);
         }
@@ -79,7 +110,7 @@ export function useDashboard() {
 
     const unlistenError = listen<string>("project_export_error", (event) => {
       console.error("Lỗi khi xuất dự án:", event.payload);
-      toast.error(`Đã xảy ra lỗi khi xuất file: ${event.payload}`); // <-- THAY alert BẰNG TOAST
+      toast.error(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
       setIsExporting(false);
     });
 
@@ -87,12 +118,12 @@ export function useDashboard() {
       unlistenComplete.then((f) => f());
       unlistenError.then((f) => f());
     };
-  }, []); // Chỉ chạy một lần
+  }, []);
 
-  // --- CÁC HÀM XỬ LÝ SỰ KIỆN (HANDLERS) ---
-  const handleOpenDialog = (group: Group | null = null) => {
+  // --- CÁC HÀM XỬ LÝ SỰ KIỆN (HANDLERS) CHO NHÓM ---
+  const handleOpenGroupDialog = (group: Group | null = null) => {
     setEditingGroup(group);
-    form.reset(
+    groupForm.reset(
       group
         ? {
             name: group.name,
@@ -101,10 +132,10 @@ export function useDashboard() {
           }
         : { name: "", description: "", tokenLimit: undefined }
     );
-    setIsDialogOpen(true);
+    setIsGroupDialogOpen(true);
   };
 
-  const onSubmit = (data: GroupFormValues) => {
+  const onGroupSubmit = (data: GroupFormValues) => {
     const groupData = {
       name: data.name,
       description: data.description || "",
@@ -115,19 +146,18 @@ export function useDashboard() {
           ? Number(data.tokenLimit)
           : data.tokenLimit,
     };
-
     if (editingGroup) {
       updateGroup({ ...editingGroup, ...groupData });
     } else {
       addGroup(groupData);
     }
-    // <-- THÊM TOAST PHẢN HỒI NGAY LẬP TỨC -->
     toast.success(
       editingGroup ? "Cập nhật nhóm thành công!" : "Tạo nhóm mới thành công!"
     );
-    setIsDialogOpen(false);
+    setIsGroupDialogOpen(false);
   };
 
+  // --- CÁC HÀM XỬ LÝ SỰ KIỆN (HANDLERS) CHO DỰ ÁN ---
   const handleOpenAnotherFolder = async () => {
     try {
       const result = await open({
@@ -144,27 +174,27 @@ export function useDashboard() {
   };
 
   const handleExportProject = () => {
-    // Không cần async nữa
-    if (!rootPath) return;
+    if (!rootPath || !activeProfile) return;
     setIsExporting(true);
-    // Chỉ "bắn" lệnh đi và không chờ đợi
-    invoke("start_project_export", { path: rootPath });
-    // Logic sẽ được tiếp tục trong listener sự kiện `project_export_complete`
+    invoke("start_project_export", {
+      path: rootPath,
+      profileName: activeProfile,
+    });
   };
 
-  // --- HÀM MỚI ---
   const handleCopyProject = async () => {
-    if (!rootPath) return;
+    if (!rootPath || !activeProfile) return;
     setIsCopying(true);
     try {
       const context = await invoke<string>("generate_project_context", {
         path: rootPath,
+        profileName: activeProfile,
       });
       await writeText(context);
-      toast.success("Đã sao chép ngữ cảnh dự án vào clipboard!"); // <-- THÊM TOAST
+      toast.success("Đã sao chép ngữ cảnh dự án vào clipboard!");
     } catch (error) {
       console.error("Lỗi khi sao chép ngữ cảnh dự án:", error);
-      toast.error(`Không thể sao chép: ${error}`); // <-- THAY alert BẰNG TOAST
+      toast.error(`Không thể sao chép: ${error}`);
     } finally {
       setIsCopying(false);
     }
@@ -174,26 +204,63 @@ export function useDashboard() {
     await rescanProject();
   };
 
+  // --- CÁC HÀM MỚI ĐỂ XỬ LÝ HỒ SƠ ---
+  const handleOpenProfileDialog = (mode: "create" | "rename") => {
+    setProfileDialogMode(mode);
+    if (mode === "rename") {
+      profileForm.setValue("name", activeProfile);
+    } else {
+      profileForm.reset({ name: "" });
+    }
+  };
+
+  const onProfileSubmit = async (data: ProfileFormValues) => {
+    if (profileDialogMode === "create") {
+      await createProfile(data.name);
+    } else if (profileDialogMode === "rename" && activeProfile) {
+      await renameProfile(activeProfile, data.name);
+    }
+    setProfileDialogMode(null);
+  };
+
+  const handleConfirmDeleteProfile = async () => {
+    if (activeProfile) {
+      await deleteProfile(activeProfile);
+    }
+    setIsProfileDeleteDialogOpen(false);
+  };
+
   // --- TRẢ VỀ "API" CHO COMPONENT UI ---
   return {
     // Data
     selectedPath,
     projectStats,
+    profiles,
+    activeProfile,
     // Trạng thái UI
-    isDialogOpen,
+    isGroupDialogOpen,
     isExporting,
-    isCopying, // <-- Trả về state mới
-    // --- XÓA `wasCopied` ---
+    isCopying,
     editingGroup,
-    // Form
-    form,
+    profileDialogMode,
+    isProfileDeleteDialogOpen,
+    // Forms
+    groupForm,
+    profileForm,
     // Handlers
-    setIsDialogOpen,
-    handleOpenDialog,
-    onSubmit,
+    setIsGroupDialogOpen,
+    handleOpenGroupDialog,
+    onGroupSubmit,
     handleOpenAnotherFolder,
     handleExportProject,
-    handleCopyProject, // <-- Trả về handler mới
+    handleCopyProject,
     handleConfirmRescan,
+    // Profile handlers
+    switchProfile,
+    handleOpenProfileDialog,
+    setProfileDialogMode,
+    onProfileSubmit,
+    setIsProfileDeleteDialogOpen,
+    handleConfirmDeleteProfile,
   };
 }

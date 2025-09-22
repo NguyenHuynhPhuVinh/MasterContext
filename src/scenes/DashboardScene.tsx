@@ -47,9 +47,27 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { PlusCircle, FolderSync, RotateCw, Settings } from "lucide-react"; // Thêm Settings
+import {
+  PlusCircle,
+  FolderSync,
+  RotateCw,
+  Settings,
+  ChevronDown,
+  Edit,
+  Trash2,
+  Plus,
+} from "lucide-react"; // Thêm icons cho profile
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SettingsDialog } from "@/components/SettingsDialog"; // <-- THAY ĐỔI: Import Dialog mới
+import { SettingsDialog } from "@/components/SettingsDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAppStore } from "@/store/appStore";
 
 export function DashboardScene() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -57,19 +75,28 @@ export function DashboardScene() {
   const {
     selectedPath,
     projectStats,
-    isDialogOpen,
+    profiles,
+    activeProfile,
+    isGroupDialogOpen,
     isExporting,
     isCopying,
-    // --- XÓA `wasCopied` ---
     editingGroup,
-    form,
-    setIsDialogOpen,
-    handleOpenDialog,
-    onSubmit,
+    profileDialogMode,
+    isProfileDeleteDialogOpen,
+    groupForm,
+    profileForm,
+    setIsGroupDialogOpen,
+    handleOpenGroupDialog,
+    onGroupSubmit,
     handleOpenAnotherFolder,
     handleExportProject,
     handleCopyProject,
     handleConfirmRescan,
+    handleOpenProfileDialog,
+    setProfileDialogMode,
+    onProfileSubmit,
+    setIsProfileDeleteDialogOpen,
+    handleConfirmDeleteProfile,
   } = useDashboard();
 
   return (
@@ -158,7 +185,56 @@ export function DashboardScene() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Button onClick={() => handleOpenDialog()}>
+                {/* --- PROFILE DROPDOWN --- */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="min-w-[120px]">
+                      <span className="truncate">{activeProfile}</span>
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel>Hồ sơ ngữ cảnh</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {profiles.map((profile) => (
+                      <DropdownMenuItem
+                        key={profile}
+                        onClick={() =>
+                          useAppStore.getState().actions.switchProfile(profile)
+                        }
+                        className={profile === activeProfile ? "bg-accent" : ""}
+                      >
+                        {profile}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleOpenProfileDialog("create")}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Tạo hồ sơ mới
+                    </DropdownMenuItem>
+                    {activeProfile !== "default" && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => handleOpenProfileDialog("rename")}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Đổi tên hồ sơ
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={handleConfirmDeleteProfile}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Xóa hồ sơ
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button onClick={() => handleOpenGroupDialog()}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm mới
                 </Button>
                 {/* --- THAY ĐỔI: Thay ThemeToggle bằng nút Cài đặt --- */}
@@ -175,7 +251,7 @@ export function DashboardScene() {
             {/* --- VÙNG NỘI DUNG CUỘN ĐƯỢC --- */}
             <ScrollArea className="flex-1">
               <div className="p-6">
-                <GroupManager onEditGroup={handleOpenDialog} />
+                <GroupManager onEditGroup={handleOpenGroupDialog} />
               </div>
             </ScrollArea>
           </div>
@@ -183,7 +259,7 @@ export function DashboardScene() {
       </ResizablePanelGroup>
 
       {/* === DIALOG TẠO/SỬA NHÓM (Không thay đổi) === */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -193,10 +269,13 @@ export function DashboardScene() {
               Điền thông tin chi tiết cho nhóm của bạn.
             </DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <Form {...groupForm}>
+            <form
+              onSubmit={groupForm.handleSubmit(onGroupSubmit)}
+              className="space-y-4"
+            >
               <FormField
-                control={form.control}
+                control={groupForm.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
@@ -209,7 +288,7 @@ export function DashboardScene() {
                 )}
               />
               <FormField
-                control={form.control}
+                control={groupForm.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
@@ -226,7 +305,7 @@ export function DashboardScene() {
               />
               {/* --- TRƯỜNG MỚI CHO NGÂN SÁCH TOKEN --- */}
               <FormField
-                control={form.control}
+                control={groupForm.control}
                 name="tokenLimit"
                 render={({ field }) => (
                   <FormItem>
@@ -269,6 +348,86 @@ export function DashboardScene() {
         isOpen={isSettingsOpen}
         onOpenChange={setIsSettingsOpen}
       />
+
+      {/* === PROFILE DIALOG === */}
+      <Dialog
+        open={profileDialogMode !== null}
+        onOpenChange={(open) => !open && setProfileDialogMode(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {profileDialogMode === "rename"
+                ? "Đổi tên hồ sơ"
+                : "Tạo hồ sơ mới"}
+            </DialogTitle>
+            <DialogDescription>
+              {profileDialogMode === "rename"
+                ? "Nhập tên mới cho hồ sơ ngữ cảnh."
+                : "Nhập tên cho hồ sơ ngữ cảnh mới."}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...profileForm}>
+            <form
+              onSubmit={profileForm.handleSubmit(onProfileSubmit)}
+              className="space-y-4"
+            >
+              <FormField
+                control={profileForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tên hồ sơ</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ví dụ: development, staging, production"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Tên hồ sơ chỉ được chứa chữ cái, số, dấu gạch ngang và dấu
+                      gạch dưới.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="ghost">
+                    Hủy
+                  </Button>
+                </DialogClose>
+                <Button type="submit">
+                  {profileDialogMode === "rename" ? "Đổi tên" : "Tạo"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* === PROFILE DELETE DIALOG === */}
+      <AlertDialog
+        open={isProfileDeleteDialogOpen}
+        onOpenChange={setIsProfileDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa hồ sơ</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa hồ sơ "{activeProfile}"? Hành động này
+              không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeleteProfile}>
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

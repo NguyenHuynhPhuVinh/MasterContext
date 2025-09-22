@@ -4,7 +4,8 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-pub fn get_project_config_path(project_path_str: &str) -> Result<PathBuf, String> {
+// --- HÀM MỚI: TÁCH RIÊNG LOGIC LẤY THƯ MỤC CẤU HÌNH ---
+pub fn get_project_config_dir(project_path_str: &str) -> Result<PathBuf, String> {
     let project_path = Path::new(project_path_str);
     if !project_path.is_dir() {
         return Err(format!(
@@ -15,12 +16,32 @@ pub fn get_project_config_path(project_path_str: &str) -> Result<PathBuf, String
     let config_dir = project_path.join(".mastercontext");
     fs::create_dir_all(&config_dir)
         .map_err(|e| format!("Không thể tạo thư mục cấu hình '.mastercontext': {}", e))?;
-    Ok(config_dir.join("data.json"))
+    Ok(config_dir)
 }
 
-pub fn load_project_data(path: &str) -> Result<CachedProjectData, String> {
-    let config_path = get_project_config_path(path)?;
+// --- CẬP NHẬT: Nhận thêm `profile_name` ---
+pub fn get_project_config_path(
+    project_path_str: &str,
+    profile_name: &str,
+) -> Result<PathBuf, String> {
+    let config_dir = get_project_config_dir(project_path_str)?;
+    // Sanitize profile name to prevent path traversal issues.
+    let sanitized_name: String = profile_name
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+        .collect();
+    if sanitized_name.is_empty() {
+        return Err("Tên hồ sơ không hợp lệ.".to_string());
+    }
+    Ok(config_dir.join(format!("data_{}.json", sanitized_name)))
+}
+
+// --- CẬP NHẬT: Nhận thêm `profile_name` ---
+pub fn load_project_data(path: &str, profile_name: &str) -> Result<CachedProjectData, String> {
+    let config_path = get_project_config_path(path, profile_name)?;
     if !config_path.exists() {
+        // If file doesn't exist, return a default empty structure
+        // This is important for creating a new profile.
         return Ok(CachedProjectData::default());
     }
     let mut file =
@@ -34,8 +55,13 @@ pub fn load_project_data(path: &str) -> Result<CachedProjectData, String> {
     serde_json::from_str(&contents).map_err(|e| format!("Lỗi phân tích cú pháp JSON: {}", e))
 }
 
-pub fn save_project_data(path: &str, data: &CachedProjectData) -> Result<(), String> {
-    let config_path = get_project_config_path(path)?;
+// --- CẬP NHẬT: Nhận thêm `profile_name` ---
+pub fn save_project_data(
+    path: &str,
+    profile_name: &str,
+    data: &CachedProjectData,
+) -> Result<(), String> {
+    let config_path = get_project_config_path(path, profile_name)?;
     let json_string = serde_json::to_string_pretty(data)
         .map_err(|e| format!("Không thể serialize dữ liệu dự án: {}", e))?;
     let mut file = File::create(config_path)

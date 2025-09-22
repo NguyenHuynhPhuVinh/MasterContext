@@ -15,6 +15,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
+            // Các command hiện có (đã được cập nhật chữ ký)
             commands::open_project,
             commands::update_groups_in_project_data,
             commands::start_group_update,
@@ -25,7 +26,12 @@ pub fn run() {
             commands::set_group_cross_sync,
             commands::generate_group_context,
             commands::generate_project_context,
-            commands::update_custom_ignore_patterns // <-- THÊM COMMAND MỚI
+            commands::update_custom_ignore_patterns,
+            // Các command mới để quản lý hồ sơ
+            commands::list_profiles,
+            commands::create_profile,
+            commands::delete_profile,
+            commands::rename_profile
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
