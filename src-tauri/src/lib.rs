@@ -7,6 +7,8 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::fmt::Write as FmtWrite; // Đổi tên để tránh xung đột với std::io::Write
 use tauri::Manager;
+use tauri::Window; // <-- Thêm cái này
+use tauri::Emitter; // <-- Thêm cái này để sử dụng emit
 use ignore::{WalkBuilder, overrides::OverrideBuilder};
 use tiktoken_rs::cl100k_base; // <--- Import tiktoken
 
@@ -67,6 +69,63 @@ struct FileNode {
 struct GroupContextResult {
     context: String,
     stats: GroupStats, // <-- Trả về cả đối tượng stats
+}
+
+// --- HÀM MỚI: TÁCH LOGIC QUÉT ĐỂ DỄ DÀNG SỬ DỤNG LẠI ---
+// Hàm này sẽ chứa logic quét và gửi sự kiện tiến trình
+fn perform_scan_with_progress(window: &Window, path: &str) -> Result<ProjectStats, String> {
+    let root_path = Path::new(path);
+    if !root_path.is_dir() {
+        return Err(format!("'{}' không phải là một thư mục hợp lệ.", path));
+    }
+
+    let mut stats = ProjectStats::default();
+
+    // ... (logic của override_builder giữ nguyên) ...
+    let override_builder = {
+        let mut builder = OverrideBuilder::new(root_path);
+        builder.add("!package-lock.json").map_err(|e| e.to_string())?;
+        builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
+        builder.add("!yarn.lock").map_err(|e| e.to_string())?;
+        builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
+        builder.build().map_err(|e| e.to_string())?
+    };
+
+    let walker = WalkBuilder::new(root_path)
+        .overrides(override_builder.clone())
+        .sort_by_file_path(|a, b| a.cmp(b))
+        .build();
+
+    let mut all_content_for_token_count = String::new();
+
+    for entry in walker.filter_map(Result::ok) {
+        let entry_path = entry.path();
+        if let Ok(relative_path) = entry_path.strip_prefix(root_path) {
+            if relative_path.as_os_str().is_empty() { continue; }
+
+            // --- GỬI SỰ KIỆN TIẾN TRÌNH ---
+            let _ = window.emit("scan_progress", relative_path.to_string_lossy().to_string());
+            
+            if let Ok(metadata) = entry.metadata() {
+                if metadata.is_dir() {
+                    stats.total_dirs += 1;
+                } else if metadata.is_file() {
+                    stats.total_files += 1;
+                    stats.total_size += metadata.len();
+                    // Chỉ đọc file để đếm token, không cần cho việc khác
+                    if let Ok(content) = fs::read_to_string(entry_path) {
+                        all_content_for_token_count.push_str(&content);
+                    }
+                }
+            }
+        }
+    }
+    
+    // Đếm token sau khi đã thu thập hết
+    let bpe = cl100k_base().map_err(|e| e.to_string())?;
+    stats.total_tokens = bpe.encode_with_special_tokens(&all_content_for_token_count).len();
+
+    Ok(stats)
 }
 
 // Hàm quét lõi, thực hiện tất cả công việc nặng nhọc CHỈ MỘT LẦN
@@ -227,6 +286,24 @@ fn save_project_data(app_handle: tauri::AppHandle, path: String, data: ProjectDa
 fn get_project_stats(path: String) -> Result<ProjectStats, String> {
     let scan_result = perform_full_scan(path)?;
     Ok(scan_result.stats)
+}
+
+// --- COMMAND MỚI: Bất đồng bộ để quét dự án ---
+#[tauri::command]
+fn start_project_scan(window: Window, path: String) {
+    // Chạy tác vụ nặng trong một thread riêng
+    std::thread::spawn(move || {
+        match perform_scan_with_progress(&window, &path) {
+            Ok(stats) => {
+                // Gửi sự kiện khi hoàn thành thành công
+                let _ = window.emit("scan_complete", &stats);
+            }
+            Err(e) => {
+                // Gửi sự kiện nếu có lỗi
+                let _ = window.emit("scan_error", e);
+            }
+        }
+    });
 }
 
 #[tauri::command]
@@ -480,7 +557,8 @@ pub fn run() {
             save_project_data,
             generate_project_context,
             get_project_file_tree, // <-- THÊM MỚI
-            generate_context_for_paths // <-- THÊM MỚI
+            generate_context_for_paths, // <-- THÊM MỚI
+            start_project_scan // <-- THÊM COMMAND MỚI
         ]) 
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

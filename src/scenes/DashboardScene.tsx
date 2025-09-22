@@ -56,7 +56,7 @@ export function DashboardScene() {
   const selectedPath = useAppStore((state) => state.selectedPath);
   const rootPath = useAppStore((state) => state.rootPath);
   const projectStats = useAppStore((state) => state.projectStats);
-  const isScanning = useAppStore((state) => state.isScanning);
+  // const isScanning = useAppStore((state) => state.isScanning); // <-- XÓA DÒNG NÀY
 
   const { addGroup, updateGroup, selectRootPath } = useAppActions(); // <-- Thêm selectRootPath
 
@@ -131,6 +131,8 @@ export function DashboardScene() {
     }
   };
 
+  // --- XÓA HOÀN TOÀN KHỐI LOGIC NÀY ---
+  /*
   if (isScanning && !projectStats) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -140,6 +142,7 @@ export function DashboardScene() {
       </div>
     );
   }
+  */
 
   return (
     <>

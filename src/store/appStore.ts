@@ -24,6 +24,11 @@ export interface ProjectStats {
   total_tokens: number;
 }
 
+// --- INTERFACE MỚI CHO TIẾN TRÌNH QUÉT ---
+export interface ScanProgress {
+  currentFile: string | null;
+}
+
 // --- HÀM TẠO STATS MẶC ĐỊNH ---
 const defaultGroupStats = (): GroupStats => ({
   total_files: 0,
@@ -56,6 +61,7 @@ interface AppState {
   // --- STATE MỚI ---
   projectStats: ProjectStats | null;
   isScanning: boolean;
+  scanProgress: ScanProgress; // <-- THÊM STATE MỚI
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
     navigateTo: (dirName: string) => Promise<void>;
@@ -68,6 +74,10 @@ interface AppState {
     editGroupContent: (groupId: string) => void;
     showDashboard: () => void;
     updateGroupPaths: (groupId: string, paths: string[]) => Promise<void>;
+    // --- THÊM CÁC ACTION "NỘI BỘ" ĐỂ XỬ LÝ SỰ KIỆN ---
+    _setScanProgress: (file: string) => void;
+    _setScanComplete: (stats: ProjectStats) => void;
+    _setScanError: (error: string) => void;
   };
 }
 
@@ -94,21 +104,23 @@ export const useAppStore = create<AppState>((set, get) => {
     // --- GIÁ TRỊ MẶC ĐỊNH CHO STATE MỚI ---
     projectStats: null,
     isScanning: false,
+    scanProgress: { currentFile: null }, // <-- GIÁ TRỊ MẶC ĐỊNH
     actions: {
-      // --- CẬP NHẬT selectRootPath ĐỂ QUÉT VÀ LƯU STATS ---
+      // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
-        set({ isScanning: true, projectStats: null }); // Bắt đầu quét
+        // 1. Reset state và bắt đầu chế độ scanning
+        set({
+          isScanning: true,
+          projectStats: null,
+          scanProgress: { currentFile: null },
+          groups: [], // Reset groups
+        });
+
         try {
-          // Tải dữ liệu nhóm đã lưu
+          // 2. Tải dữ liệu project đã có (việc này nhanh)
           const projectData = await invoke<ProjectData>("load_project_data", {
             path,
           });
-
-          // Quét và lấy thống kê tổng thể của dự án
-          const stats = await invoke<ProjectStats>("get_project_stats", {
-            path,
-          });
-
           set({
             rootPath: path,
             selectedPath: path,
@@ -118,18 +130,15 @@ export const useAppStore = create<AppState>((set, get) => {
               stats: g.stats || defaultGroupStats(),
             })),
             activeScene: "dashboard",
-            projectStats: stats, // <-- Lưu stats vào store
           });
+
+          // 3. Gọi command để BẮT ĐẦU quét, không cần await
+          await invoke("start_project_scan", { path });
         } catch (error) {
-          console.error("Lỗi khi tải hoặc quét dự án:", error);
-          set({
-            rootPath: path,
-            selectedPath: path,
-            groups: [],
-            activeScene: "dashboard",
-          });
-        } finally {
-          set({ isScanning: false }); // Kết thúc quét
+          console.error("Lỗi khi tải dữ liệu dự án:", error);
+          get().actions._setScanError(
+            typeof error === "string" ? error : "Lỗi không xác định"
+          );
         }
       },
       navigateTo: async (dirName) => {
@@ -217,6 +226,19 @@ export const useAppStore = create<AppState>((set, get) => {
         } catch (error) {
           console.error("Lỗi khi cập nhật paths của nhóm:", error);
         }
+      },
+
+      // --- CÁC ACTION MỚI ĐỂ XỬ LÝ SỰ KIỆN TỪ RUST ---
+      _setScanProgress: (file) => {
+        set({ scanProgress: { currentFile: file } });
+      },
+      _setScanComplete: (stats) => {
+        set({ projectStats: stats, isScanning: false });
+      },
+      _setScanError: (error) => {
+        console.error("Scan error from Rust:", error);
+        alert(`Đã xảy ra lỗi khi quét dự án: ${error}`);
+        set({ isScanning: false });
       },
     },
   };
