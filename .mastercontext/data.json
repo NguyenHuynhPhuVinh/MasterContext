@@ -428,13 +428,14 @@
       "name": "TESt",
       "description": "TEST",
       "paths": [
-        "public"
+        "public",
+        "src"
       ],
       "stats": {
-        "total_files": 0,
-        "total_dirs": 1,
-        "total_size": 0,
-        "token_count": 0
+        "total_files": 31,
+        "total_dirs": 8,
+        "total_size": 119447,
+        "token_count": 29880
       },
       "cross_sync_enabled": true
     }

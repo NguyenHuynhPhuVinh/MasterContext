@@ -98,7 +98,7 @@ export function ProjectStats({
         </div>
       </CardContent>
       {/* --- PHẦN MỚI: Thêm footer với các nút --- */}
-      <CardFooter className="flex gap-2">
+      <CardFooter className="flex flex-col gap-2">
         <Button
           variant="outline"
           size="sm"

@@ -334,37 +334,44 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
                 </div>
                 {/* --- KẾT THÚC PHẦN UI MỚI --- */}
               </CardContent>
-              <CardFooter className="flex justify-end gap-2">
+              <CardFooter className="flex flex-col gap-2">
                 <Button
-                  variant="outline"
                   size="sm"
-                  onClick={() => handleCopyContext(group)}
-                  disabled={!!exportingGroupId || !!copyingGroupId}
+                  onClick={() => editGroupContent(group.id)}
+                  className="w-full"
                 >
-                  {copyingGroupId === group.id ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : copiedGroupId === group.id ? (
-                    <Check className="mr-2 h-4 w-4 text-green-500" />
-                  ) : (
-                    <ClipboardCopy className="mr-2 h-4 w-4" />
-                  )}
-                  {copiedGroupId === group.id ? "Đã chép!" : "Sao chép"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleOpenExportOptions(group)}
-                  // Vô hiệu hóa TẤT CẢ các nút Xuất khác khi MỘT nhóm đang được xử lý
-                  disabled={!!exportingGroupId || !!copyingGroupId}
-                >
-                  {/* Gỡ bỏ hoàn toàn logic hiển thị icon loading và thay đổi text */}
-                  <Download className="mr-2 h-4 w-4" />
-                  Xuất
-                </Button>
-                {/* --- KẾT THÚC THAY ĐỔI --- */}
-                <Button size="sm" onClick={() => editGroupContent(group.id)}>
                   <ListChecks className="mr-2 h-4 w-4" /> Quản lý nội dung
                 </Button>
+                <div className="flex gap-2 w-full">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyContext(group)}
+                    disabled={!!exportingGroupId || !!copyingGroupId}
+                    className="flex-1"
+                  >
+                    {copyingGroupId === group.id ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : copiedGroupId === group.id ? (
+                      <Check className="mr-2 h-4 w-4 text-green-500" />
+                    ) : (
+                      <ClipboardCopy className="mr-2 h-4 w-4" />
+                    )}
+                    {copiedGroupId === group.id ? "Đã chép!" : "Sao chép"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenExportOptions(group)}
+                    // Vô hiệu hóa TẤT CẢ các nút Xuất khác khi MỘT nhóm đang được xử lý
+                    disabled={!!exportingGroupId || !!copyingGroupId}
+                    className="flex-1"
+                  >
+                    {/* Gỡ bỏ hoàn toàn logic hiển thị icon loading và thay đổi text */}
+                    <Download className="mr-2 h-4 w-4" />
+                    Xuất
+                  </Button>
+                </div>
               </CardFooter>
             </Card>
           ))}
