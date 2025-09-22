@@ -65,6 +65,12 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
     const unlisten = listen<{ groupId: string; context: string }>(
       "group_export_complete",
       async (event) => {
+        // <<< DEBUG LOG 7 >>>
+        console.log(
+          "[GROUP_MANAGER] EXPORT COMPLETE: Nhận được sự kiện từ Rust.",
+          event.payload
+        );
+
         // Chỉ xử lý nếu đúng là group đang chờ export
         if (event.payload.groupId === exportingGroupId) {
           const group = groups.find((g) => g.id === event.payload.groupId);
@@ -96,7 +102,11 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
     );
 
     const unlistenError = listen<string>("group_export_error", (event) => {
-      console.error("Lỗi khi xuất nhóm từ backend:", event.payload);
+      // <<< DEBUG LOG 8 (QUAN TRỌNG) >>>
+      console.error(
+        "[GROUP_MANAGER] EXPORT ERROR: Nhận được lỗi từ Rust:",
+        event.payload
+      );
       alert(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
       setExportingGroupId(null); // Tắt loading nếu có lỗi
     });
@@ -108,6 +118,15 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
   }, [exportingGroupId, groups]); // Chạy lại effect khi exportingGroupId thay đổi
 
   const handleExportGroup = async (group: Group) => {
+    // <<< DEBUG LOG 6 >>>
+    console.log(
+      `[GROUP_MANAGER] EXPORT START: Bắt đầu xuất nhóm '${group.name}'.`
+    );
+    console.log(
+      "[GROUP_MANAGER] EXPORT START: Paths của nhóm này là:",
+      group.paths
+    );
+
     if (!rootPath) {
       alert("Lỗi: Không tìm thấy đường dẫn gốc của dự án.");
       return;

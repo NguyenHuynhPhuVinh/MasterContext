@@ -21,35 +21,45 @@ fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut Stri
     }
 }
 
-// === BẮT ĐẦU PHẦN SỬA LỖI TRIỆT ĐỂ ===
+// === BẮT ĐẦU PHẦN SỬA LỖI DỨT ĐIỂM ===
 pub fn expand_group_paths_to_files(
     group_paths: &[String],
     metadata_cache: &BTreeMap<String, crate::models::FileMetadata>,
-    _root_path: &Path, // _root_path không còn cần thiết vì chúng ta chỉ dựa vào cache
+    _root_path: &Path, // Không cần truy cập đĩa nữa
 ) -> Vec<String> {
+    // <<< RUST DEBUG LOG 3 >>>
+    println!("[RUST] EXPAND: Bắt đầu mở rộng paths: {:?}", group_paths);
+
     let mut all_files_in_group: HashSet<String> = HashSet::new();
+
+    // Lấy danh sách tất cả các file đã được quét để duyệt hiệu quả hơn
     let all_cached_files: Vec<&String> = metadata_cache.keys().collect();
 
     for path_str in group_paths {
-        // Trường hợp 1: Đường dẫn đã lưu là một file chính xác.
+        // Xử lý trường hợp đường dẫn đã lưu là MỘT FILE cụ thể
         // Ví dụ: path_str = "src/App.tsx"
         if metadata_cache.contains_key(path_str) {
             all_files_in_group.insert(path_str.clone());
         }
 
-        // Trường hợp 2: Đường dẫn đã lưu là một thư mục.
-        // Ví dụ: path_str = "src"
-        // Chúng ta cần tìm tất cả các file có tiền tố là "src/"
+        // Xử lý trường hợp đường dẫn đã lưu là MỘT THƯ MỤC
+        // Ví dụ: path_str = "src" -> tìm các file bắt đầu bằng "src/"
         let dir_prefix = format!("{}/", path_str);
         for &cached_file in &all_cached_files {
-            if cached_file.starts_with(&dir_prefix) {
+            // Nếu path_str là thư mục gốc ("") thì dir_prefix sẽ là "/"
+            // và cached_file cũng sẽ bắt đầu bằng "/", điều này không đúng.
+            // Do đó, cần xử lý trường hợp thư mục gốc một cách đặc biệt.
+            if path_str.is_empty() {
+                 all_files_in_group.insert(cached_file.clone());
+            } else if cached_file.starts_with(&dir_prefix) {
                 all_files_in_group.insert(cached_file.clone());
             }
         }
     }
+
     all_files_in_group.into_iter().collect()
 }
-// === KẾT THÚC PHẦN SỬA LỖI TRIỆT ĐỂ ===
+// === KẾT THÚC PHẦN SỬA LỖI DỨT ĐIỂM ===
 
 
 pub fn generate_context_from_files(root_path_str: &str, file_paths: &[String]) -> Result<String, String> {

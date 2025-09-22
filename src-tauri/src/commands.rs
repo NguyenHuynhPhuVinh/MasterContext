@@ -60,6 +60,9 @@ pub fn start_group_update(window: Window, group_id: String, root_path_str: Strin
 #[command]
 // Chữ ký đã đúng, giữ nguyên
 pub fn start_group_export(window: Window, group_id: String, root_path_str: String) {
+    // <<< RUST DEBUG LOG 1 >>>
+    println!("[RUST] EXPORT: Nhận được yêu cầu xuất cho nhóm ID: {}", group_id);
+
     std::thread::spawn(move || {
         let result: Result<String, String> = (|| {
             let project_data = file_cache::load_project_data(&root_path_str)?;
@@ -67,7 +70,15 @@ pub fn start_group_export(window: Window, group_id: String, root_path_str: Strin
             let group = project_data.groups.iter()
                 .find(|g| g.id == group_id)
                 .ok_or_else(|| format!("Không tìm thấy nhóm với ID: {}", group_id))?;
+            
+            // <<< RUST DEBUG LOG 2 >>>
+            println!("[RUST] EXPORT: Đã tìm thấy nhóm '{}'. Paths được lưu: {:?}", group.name, group.paths);
+
             let expanded_files = context_generator::expand_group_paths_to_files(&group.paths, &project_data.file_metadata_cache, root_path);
+            
+            // <<< RUST DEBUG LOG 4 (QUAN TRỌNG NHẤT) >>>
+            println!("[RUST] EXPORT: Sau khi mở rộng, có {} files: {:?}", expanded_files.len(), expanded_files);
+            
             if expanded_files.is_empty() {
                 return Err("Nhóm này không chứa file nào để xuất.".to_string());
             }

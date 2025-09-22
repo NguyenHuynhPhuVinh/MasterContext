@@ -17,29 +17,28 @@ pub fn recalculate_stats_for_paths(
     let mut stats = GroupStats::default();
     let mut all_files_in_group: HashSet<String> = HashSet::new();
     let mut all_dirs_in_group: HashSet<String> = HashSet::new();
+
     let all_cached_files: Vec<&String> = metadata_cache.keys().collect();
 
     // Mở rộng các đường dẫn tối thiểu thành một danh sách file đầy đủ
     for path_str in paths {
-        // Trường hợp 1: Đường dẫn đã lưu là một file chính xác.
+        // Xử lý trường hợp đường dẫn là MỘT FILE
         if metadata_cache.contains_key(path_str) {
             all_files_in_group.insert(path_str.clone());
         }
 
-        // Trường hợp 2: Đường dẫn đã lưu là một thư mục.
-        let dir_prefix = if path_str.is_empty() {
-            "".to_string()
-        } else {
-            format!("{}/", path_str)
-        };
-        for &cached_file in &all_cached_files {
-            if path_str.is_empty() || cached_file.starts_with(&dir_prefix) {
-                 all_files_in_group.insert(cached_file.clone());
-            }
-        }
-        // Thêm thư mục gốc của đường dẫn vào danh sách thư mục
+        // Xử lý trường hợp đường dẫn là MỘT THƯ MỤC
+        let dir_prefix = format!("{}/", path_str);
         if !path_str.is_empty() {
              all_dirs_in_group.insert(path_str.clone());
+        }
+
+        for &cached_file in &all_cached_files {
+            if path_str.is_empty() {
+                all_files_in_group.insert(cached_file.clone());
+            } else if cached_file.starts_with(&dir_prefix) {
+                all_files_in_group.insert(cached_file.clone());
+            }
         }
     }
 
