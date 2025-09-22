@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 55,
     "total_dirs": 14,
-    "total_size": 374826,
-    "total_tokens": 31922
+    "total_size": 375612,
+    "total_tokens": 32255
   },
   "file_tree": {
     "name": "MasterContext",
@@ -377,22 +377,8 @@
       "stats": {
         "total_files": 23,
         "total_dirs": 5,
-        "total_size": 276387,
-        "token_count": 7312
-      }
-    },
-    {
-      "id": "1758511227481",
-      "name": "sdgdg",
-      "description": "dfgdfg",
-      "paths": [
-        "src"
-      ],
-      "stats": {
-        "total_files": 25,
-        "total_dirs": 8,
-        "total_size": 92778,
-        "token_count": 22955
+        "total_size": 277173,
+        "token_count": 7645
       }
     }
   ],
@@ -423,9 +409,9 @@
       "token_count": 542
     },
     "src-tauri/Cargo.toml": {
-      "size": 821,
-      "mtime": 1758471345,
-      "token_count": 241
+      "size": 850,
+      "mtime": 1758512456,
+      "token_count": 242
     },
     "src-tauri/build.rs": {
       "size": 42,
@@ -518,9 +504,9 @@
       "token_count": 0
     },
     "src-tauri/src/lib.rs": {
-      "size": 28323,
-      "mtime": 1758511366,
-      "token_count": 6717
+      "size": 29080,
+      "mtime": 1758512730,
+      "token_count": 7049
     },
     "src-tauri/src/main.rs": {
       "size": 195,
@@ -539,7 +525,7 @@
     },
     "src/App.tsx": {
       "size": 4769,
-      "mtime": 1758508404,
+      "mtime": 1758512456,
       "token_count": 1223
     },
     "src/components/FileTreeView.tsx": {

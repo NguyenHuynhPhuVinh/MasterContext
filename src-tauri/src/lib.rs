@@ -345,41 +345,58 @@ fn open_project(window: Window, app_handle: tauri::AppHandle, path: String) {
 // Giữ lại hàm này vì nó là logic lõi, không phải là command
 #[tauri::command]
 fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Result<GroupContextResult, String> {
-    // ... (logic của hàm này giữ nguyên như phiên bản đã sửa lỗi ở lần trước)
     let root_path = Path::new(&root_path_str);
     let mut all_files_to_include = HashSet::new();
     let mut all_dirs_to_include = HashSet::new();
     let mut file_contents_string = String::new();
     let mut stats = GroupStats::default();
-    for relative_path_str in paths.clone() {
-        let full_path = root_path.join(&relative_path_str);
-        if full_path.is_dir() {
-            all_dirs_to_include.insert(full_path.clone());
-            let walker = WalkBuilder::new(full_path).build();
-            for entry in walker.filter_map(Result::ok) {
-                let entry_path = entry.path();
-                if let Ok(metadata) = entry.metadata() {
-                    if metadata.is_file() {
-                        if all_files_to_include.insert(entry_path.to_path_buf()) {
-                            stats.total_size += metadata.len();
-                        }
-                    } else if metadata.is_dir() {
-                        all_dirs_to_include.insert(entry_path.to_path_buf());
-                    }
-                }
-            }
-        } else if full_path.is_file() {
-            if all_files_to_include.insert(full_path.clone()) {
-                if let Ok(metadata) = fs::metadata(full_path) {
+
+    // --- PHẦN MỚI (TỐI ƯU HÓA) ---
+    // 1. Tạo một OverrideBuilder tại thư mục gốc của dự án.
+    let mut override_builder = OverrideBuilder::new(root_path);
+
+    // 2. Thêm tất cả các đường dẫn từ nhóm vào builder.
+    //    Các đường dẫn này hoạt động như các quy tắc "bao gồm".
+    for relative_path_str in &paths {
+        override_builder.add(relative_path_str).map_err(|e| e.to_string())?;
+    }
+
+    // 3. Xây dựng các quy tắc override.
+    let overrides = override_builder.build().map_err(|e| e.to_string())?;
+
+    // 4. Tạo MỘT WalkBuilder DUY NHẤT và áp dụng các quy tắc override.
+    //    Thao tác này sẽ chỉ duyệt qua các tệp/thư mục khớp với quy tắc.
+    let walker = WalkBuilder::new(root_path).overrides(overrides).build();
+
+    // 5. Duyệt qua kết quả và thu thập thông tin.
+    for entry in walker.filter_map(Result::ok) {
+        let entry_path = entry.path();
+        // Bỏ qua chính thư mục gốc
+        if entry_path == root_path { continue; }
+
+        if let Ok(metadata) = entry.metadata() {
+            if metadata.is_dir() {
+                all_dirs_to_include.insert(entry_path.to_path_buf());
+            } else if metadata.is_file() {
+                // Phương thức `insert` trả về true nếu giá trị được chèn mới.
+                // Điều này đảm bảo chúng ta chỉ cộng dồn kích thước một lần cho mỗi tệp.
+                if all_files_to_include.insert(entry_path.to_path_buf()) {
                     stats.total_size += metadata.len();
                 }
             }
         }
     }
+    // --- KẾT THÚC PHẦN MỚI ---
+
+    // Phần logic còn lại của hàm không thay đổi, vì nó hoạt động dựa trên
+    // các HashSet `all_files_to_include` và `all_dirs_to_include` đã được điền ở trên.
+
     stats.total_files = all_files_to_include.len() as u64;
     stats.total_dirs = all_dirs_to_include.len() as u64;
+
     let mut selected_tree_root = BTreeMap::new();
     let all_paths_to_render: HashSet<PathBuf> = all_dirs_to_include.union(&all_files_to_include).cloned().collect();
+
     for full_path in all_paths_to_render {
         if let Ok(relative_path) = full_path.strip_prefix(root_path) {
             if relative_path.as_os_str().is_empty() { continue; }
@@ -395,10 +412,13 @@ fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Resu
             }
         }
     }
+
     let mut directory_structure = String::new();
     format_tree(&selected_tree_root, "", &mut directory_structure);
+
     let mut sorted_files: Vec<PathBuf> = all_files_to_include.into_iter().collect();
     sorted_files.sort();
+
     for file_path in sorted_files {
         if let Ok(content) = fs::read_to_string(&file_path) {
             if let Ok(relative_path) = file_path.strip_prefix(root_path) {
@@ -409,9 +429,11 @@ fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Resu
             }
         }
     }
+
     let final_context = format!("Selected directory structure:\n{}\n\n{}", directory_structure, file_contents_string);
     let bpe = cl100k_base().map_err(|e| e.to_string())?;
     stats.token_count = bpe.encode_with_special_tokens(&final_context).len();
+
     Ok(GroupContextResult { context: final_context, stats })
 }
 
