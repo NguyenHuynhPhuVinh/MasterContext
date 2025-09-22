@@ -181,6 +181,8 @@ interface AppState {
 
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
+    // --- THÊM MỚI: Action để quét lại dự án ---
+    rescanProject: () => Promise<void>;
     navigateTo: (dirName: string) => Promise<void>;
     goBack: () => Promise<void>;
     reset: () => void;
@@ -283,6 +285,30 @@ export const useAppStore = create<AppState>((set, get) => {
           console.error("Lỗi khi tải dữ liệu dự án, bắt đầu quét mới:", error);
           // Nếu có lỗi khi đọc cache, cũng tiến hành quét mới.
           await invoke("start_project_scan", { path });
+        }
+      },
+      // --- THÊM MỚI: Logic cho action rescanProject ---
+      rescanProject: async () => {
+        const { rootPath } = get();
+        if (!rootPath) {
+          console.warn("Không thể quét lại vì chưa có dự án nào được chọn.");
+          return;
+        }
+        // Đặt trạng thái đang quét. Giao diện sẽ tự động chuyển sang ScanningScene
+        set({
+          isScanning: true,
+          scanProgress: { currentFile: "Bắt đầu quét lại dự án..." },
+        });
+        // Gọi lại command quét dự án
+        try {
+          await invoke("start_project_scan", { path: rootPath });
+        } catch (error) {
+          console.error("Lỗi khi bắt đầu quét lại dự án:", error);
+          set({
+            isScanning: false,
+            scanProgress: { currentFile: null },
+          });
+          alert("Không thể bắt đầu quá trình quét lại dự án.");
         }
       },
       navigateTo: async (dirName) => {

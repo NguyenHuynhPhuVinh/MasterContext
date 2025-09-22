@@ -28,6 +28,18 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+// --- THAY ĐỔI: Import thêm các component của AlertDialog ---
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -43,7 +55,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"; // <-- Thêm import Tooltip
-import { PlusCircle, FolderSync } from "lucide-react"; // <-- Thêm icon FolderSync
+import { PlusCircle, FolderSync, RotateCw } from "lucide-react"; // <-- Thêm icon FolderSync
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Schema validation cho form
@@ -59,7 +71,8 @@ export function DashboardScene() {
   const projectStats = useAppStore((state) => state.projectStats);
   // const isScanning = useAppStore((state) => state.isScanning); // <-- XÓA DÒNG NÀY
 
-  const { addGroup, updateGroup, selectRootPath } = useAppActions(); // <-- Thêm selectRootPath
+  const { addGroup, updateGroup, selectRootPath, rescanProject } =
+    useAppActions(); // <-- Thêm selectRootPath
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
@@ -149,6 +162,11 @@ export function DashboardScene() {
     await invoke("start_project_export", { path: rootPath });
   };
 
+  // --- THAY ĐỔI: Hàm này giờ chỉ gọi action, không cần confirm ---
+  const handleConfirmRescan = async () => {
+    await rescanProject();
+  };
+
   // --- XÓA HOÀN TOÀN KHỐI LOGIC NÀY ---
   /*
   if (isScanning && !projectStats) {
@@ -171,20 +189,57 @@ export function DashboardScene() {
             {/* --- CẬP NHẬT: Thêm nút vào header của sidebar --- */}
             <div className="flex items-center justify-between px-2">
               <h2 className="text-xl font-bold">Thông tin Dự án</h2>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleOpenAnotherFolder}
-                  >
-                    <FolderSync className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Mở dự án khác</p>
-                </TooltipContent>
-              </Tooltip>
+              {/* --- THAY ĐỔI: Thêm nhóm nút --- */}
+              <div className="flex items-center">
+                {/* --- THAY ĐỔI: Bọc nút Rescan trong AlertDialog --- */}
+                <AlertDialog>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <RotateCw className="h-5 w-5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Quét lại dự án</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Bạn có chắc chắn muốn quét lại?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Hành động này sẽ đọc lại toàn bộ cây thư mục và cập nhật
+                        tất cả thống kê, bao gồm cả các nhóm đã tạo. Quá trình
+                        này có thể mất một lúc đối với các dự án lớn.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Hủy</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleConfirmRescan}>
+                        Tiếp tục
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleOpenAnotherFolder}
+                    >
+                      <FolderSync className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Mở dự án khác</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
 
             <ProjectStatsComponent

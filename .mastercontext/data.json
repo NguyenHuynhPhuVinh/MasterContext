@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 55,
     "total_dirs": 14,
-    "total_size": 362249,
-    "total_tokens": 28992
+    "total_size": 366719,
+    "total_tokens": 30023
   },
   "file_tree": {
     "name": "MasterContext",
@@ -366,5 +366,26 @@
       }
     ]
   },
-  "groups": []
+  "groups": [
+    {
+      "id": "1758509098805",
+      "name": "TEST",
+      "description": "TEST",
+      "paths": [
+        "src/assets",
+        "src/hooks",
+        "src/store",
+        "src/App.css",
+        "src/App.tsx",
+        "src/main.tsx",
+        "src/vite-env.d.ts"
+      ],
+      "stats": {
+        "total_files": 5,
+        "total_dirs": 3,
+        "total_size": 25123,
+        "token_count": 7173
+      }
+    }
+  ]
 }

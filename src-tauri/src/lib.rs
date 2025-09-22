@@ -201,9 +201,31 @@ fn perform_full_scan_and_build_tree(window: &Window, app_handle: &tauri::AppHand
         children: Some(root_children),
     };
     let mut cached_data = load_project_data(app_handle.clone(), path.to_string()).unwrap_or_default();
+    
+    // Cập nhật stats và cây thư mục mới
     cached_data.stats = stats.clone();
     cached_data.file_tree = Some(file_tree.clone());
+    
+    // --- PHẦN CẬP NHẬT QUAN TRỌNG ---
+    // Duyệt qua các nhóm hiện có và tính toán lại stats của chúng
+    let root_path_string = path.to_string();
+    for group in &mut cached_data.groups {
+        // Tái sử dụng logic tính toán context/stats đã có
+        // Chúng ta chỉ cần `stats`, không cần `context` ở đây
+        if let Ok(result) = generate_context_for_paths(root_path_string.clone(), group.paths.clone()) {
+            group.stats = result.stats;
+        } else {
+            // Nếu có lỗi (ví dụ: các file/thư mục trong nhóm đã bị xóa),
+            // reset stats về 0 để phản ánh đúng thực tế.
+            group.stats = GroupStats::default(); 
+        }
+    }
+    // --- KẾT THÚC PHẦN CẬP NHẬT ---
+    
+    // Lưu lại toàn bộ dữ liệu đã được cập nhật
     save_project_data(app_handle.clone(), path.to_string(), cached_data.clone()).map_err(|e| e.to_string())?;
+    
+    // Gửi dữ liệu hoàn chỉnh về frontend
     let _ = window.emit("scan_complete", &cached_data);
     Ok(())
 }
