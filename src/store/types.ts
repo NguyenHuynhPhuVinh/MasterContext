@@ -24,6 +24,7 @@ export interface FileMetadata {
   size: number;
   mtime: number;
   token_count: number;
+  links: string[];
 }
 
 export interface ProjectStats {

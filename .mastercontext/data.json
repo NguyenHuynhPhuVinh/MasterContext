@@ -1,9 +1,9 @@
 {
   "stats": {
-    "total_files": 64,
+    "total_files": 65,
     "total_dirs": 14,
-    "total_size": 373295,
-    "total_tokens": 31938
+    "total_size": 379933,
+    "total_tokens": 33416
   },
   "file_tree": {
     "name": "MasterContext",
@@ -79,6 +79,11 @@
                   {
                     "name": "scroll-area.tsx",
                     "path": "src/components/ui/scroll-area.tsx",
+                    "children": null
+                  },
+                  {
+                    "name": "switch.tsx",
+                    "path": "src/components/ui/switch.tsx",
                     "children": null
                   },
                   {
@@ -414,17 +419,19 @@
   },
   "groups": [
     {
-      "id": "1758516675791",
+      "id": "1758528276739",
       "name": "TEST",
       "description": "TEST",
       "paths": [
-        "src/App.css"
+        "src/scenes",
+        "src/store",
+        "src/App.tsx"
       ],
       "stats": {
-        "total_files": 1,
-        "total_dirs": 2,
-        "total_size": 4091,
-        "token_count": 1615
+        "total_files": 7,
+        "total_dirs": 4,
+        "total_size": 32947,
+        "token_count": 8096
       }
     }
   ],
@@ -432,322 +439,401 @@
     "LICENSE": {
       "size": 1096,
       "mtime": 1758460456,
-      "token_count": 225
+      "token_count": 225,
+      "links": []
     },
     "README.md": {
       "size": 385,
       "mtime": 1758460553,
-      "token_count": 99
+      "token_count": 99,
+      "links": []
     },
     "components.json": {
       "size": 444,
       "mtime": 1758463148,
-      "token_count": 141
+      "token_count": 141,
+      "links": []
     },
     "index.html": {
       "size": 390,
       "mtime": 1758460553,
-      "token_count": 118
+      "token_count": 118,
+      "links": []
     },
     "package.json": {
-      "size": 1442,
-      "mtime": 1758526732,
-      "token_count": 542
+      "size": 1483,
+      "mtime": 1758528129,
+      "token_count": 557,
+      "links": []
     },
     "src-tauri/Cargo.toml": {
-      "size": 852,
-      "mtime": 1758526732,
-      "token_count": 244
+      "size": 908,
+      "mtime": 1758528211,
+      "token_count": 267,
+      "links": []
     },
     "src-tauri/build.rs": {
       "size": 42,
       "mtime": 1758460553,
-      "token_count": 13
+      "token_count": 13,
+      "links": []
     },
     "src-tauri/capabilities/default.json": {
       "size": 262,
       "mtime": 1758469129,
-      "token_count": 72
+      "token_count": 72,
+      "links": []
     },
     "src-tauri/icons/128x128.png": {
       "size": 3512,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/128x128@2x.png": {
       "size": 7012,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/32x32.png": {
       "size": 974,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/Square107x107Logo.png": {
       "size": 2863,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/Square142x142Logo.png": {
       "size": 3858,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/Square150x150Logo.png": {
       "size": 3966,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/Square284x284Logo.png": {
       "size": 7737,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/Square30x30Logo.png": {
       "size": 903,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/Square310x310Logo.png": {
       "size": 8591,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/Square44x44Logo.png": {
       "size": 1299,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/Square71x71Logo.png": {
       "size": 2011,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/Square89x89Logo.png": {
       "size": 2468,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/StoreLogo.png": {
       "size": 1523,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/icon.icns": {
       "size": 98451,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/icon.ico": {
       "size": 86642,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/icons/icon.png": {
       "size": 14183,
       "mtime": 1758460553,
-      "token_count": 0
+      "token_count": 0,
+      "links": []
     },
     "src-tauri/src/commands.rs": {
       "size": 5183,
-      "mtime": 1758527019,
-      "token_count": 1178
+      "mtime": 1758527844,
+      "token_count": 1178,
+      "links": []
     },
     "src-tauri/src/context_generator.rs": {
       "size": 4623,
       "mtime": 1758525935,
-      "token_count": 1137
+      "token_count": 1137,
+      "links": []
     },
     "src-tauri/src/file_cache.rs": {
       "size": 1944,
       "mtime": 1758518698,
-      "token_count": 525
+      "token_count": 525,
+      "links": []
     },
     "src-tauri/src/lib.rs": {
       "size": 824,
-      "mtime": 1758526732,
-      "token_count": 183
+      "mtime": 1758527844,
+      "token_count": 183,
+      "links": []
     },
     "src-tauri/src/main.rs": {
       "size": 195,
       "mtime": 1758460553,
-      "token_count": 44
+      "token_count": 44,
+      "links": []
     },
     "src-tauri/src/models.rs": {
-      "size": 1395,
-      "mtime": 1758524536,
-      "token_count": 344
+      "size": 1424,
+      "mtime": 1758528211,
+      "token_count": 352,
+      "links": []
     },
     "src-tauri/src/project_scanner.rs": {
-      "size": 7536,
-      "mtime": 1758525214,
-      "token_count": 1692
+      "size": 11024,
+      "mtime": 1758528211,
+      "token_count": 2533,
+      "links": []
     },
     "src-tauri/tauri.conf.json": {
       "size": 751,
       "mtime": 1758464081,
-      "token_count": 225
+      "token_count": 225,
+      "links": []
     },
     "src/App.css": {
       "size": 4091,
       "mtime": 1758463148,
-      "token_count": 1615
+      "token_count": 1615,
+      "links": []
     },
     "src/App.tsx": {
       "size": 3925,
       "mtime": 1758525935,
-      "token_count": 1035
+      "token_count": 1035,
+      "links": [
+        "src/store/types.ts",
+        "src/scenes/DashboardScene.tsx",
+        "src/scenes/GroupEditorScene.tsx",
+        "src/scenes/ScanningScene.tsx",
+        "src/scenes/WelcomeScene.tsx",
+        "src/store/appStore.ts"
+      ]
     },
     "src/components/FileTreeView.tsx": {
       "size": 3838,
       "mtime": 1758521476,
-      "token_count": 912
+      "token_count": 912,
+      "links": []
     },
     "src/components/GroupManager.tsx": {
-      "size": 11290,
-      "mtime": 1758527178,
-      "token_count": 2540
+      "size": 10777,
+      "mtime": 1758527265,
+      "token_count": 2385,
+      "links": []
     },
     "src/components/ProjectStats.tsx": {
       "size": 3630,
       "mtime": 1758518853,
-      "token_count": 889
+      "token_count": 889,
+      "links": []
     },
     "src/components/ThemeToggle.tsx": {
       "size": 1317,
       "mtime": 1758519577,
-      "token_count": 347
+      "token_count": 347,
+      "links": []
     },
     "src/components/ui/alert-dialog.tsx": {
       "size": 3864,
       "mtime": 1758466041,
-      "token_count": 866
+      "token_count": 866,
+      "links": []
     },
     "src/components/ui/button.tsx": {
       "size": 2083,
       "mtime": 1758465398,
-      "token_count": 536
+      "token_count": 536,
+      "links": []
     },
     "src/components/ui/card.tsx": {
       "size": 1989,
       "mtime": 1758466041,
-      "token_count": 506
+      "token_count": 506,
+      "links": []
     },
     "src/components/ui/dialog.tsx": {
       "size": 3968,
       "mtime": 1758466040,
-      "token_count": 947
+      "token_count": 947,
+      "links": []
     },
     "src/components/ui/dropdown-menu.tsx": {
       "size": 8270,
       "mtime": 1758466064,
-      "token_count": 1993
+      "token_count": 1993,
+      "links": []
     },
     "src/components/ui/form.tsx": {
       "size": 3745,
       "mtime": 1758466041,
-      "token_count": 908
+      "token_count": 908,
+      "links": []
     },
     "src/components/ui/input.tsx": {
       "size": 962,
       "mtime": 1758466040,
-      "token_count": 222
+      "token_count": 222,
+      "links": []
     },
     "src/components/ui/label.tsx": {
       "size": 611,
       "mtime": 1758466041,
-      "token_count": 139
+      "token_count": 139,
+      "links": []
     },
     "src/components/ui/resizable.tsx": {
       "size": 2028,
       "mtime": 1758465398,
-      "token_count": 481
+      "token_count": 481,
+      "links": []
     },
     "src/components/ui/scroll-area.tsx": {
       "size": 1631,
       "mtime": 1758465398,
-      "token_count": 362
+      "token_count": 362,
+      "links": []
+    },
+    "src/components/ui/switch.tsx": {
+      "size": 1163,
+      "mtime": 1758528131,
+      "token_count": 272,
+      "links": []
     },
     "src/components/ui/textarea.tsx": {
       "size": 759,
       "mtime": 1758466040,
-      "token_count": 176
+      "token_count": 176,
+      "links": []
     },
     "src/components/ui/tooltip.tsx": {
       "size": 1877,
       "mtime": 1758465398,
-      "token_count": 445
+      "token_count": 445,
+      "links": []
     },
     "src/hooks/useDashboard.ts": {
       "size": 4726,
       "mtime": 1758527178,
-      "token_count": 1237
+      "token_count": 1237,
+      "links": []
     },
     "src/lib/treeUtils.ts": {
       "size": 4863,
       "mtime": 1758525615,
-      "token_count": 1350
+      "token_count": 1350,
+      "links": []
     },
     "src/lib/utils.ts": {
       "size": 1645,
       "mtime": 1758505313,
-      "token_count": 472
+      "token_count": 472,
+      "links": []
     },
     "src/main.tsx": {
       "size": 238,
       "mtime": 1758460553,
-      "token_count": 51
+      "token_count": 51,
+      "links": [
+        "src/App.tsx"
+      ]
     },
     "src/scenes/DashboardScene.tsx": {
       "size": 8089,
       "mtime": 1758519577,
-      "token_count": 1645
+      "token_count": 1645,
+      "links": []
     },
     "src/scenes/GroupEditorScene.tsx": {
-      "size": 2861,
-      "mtime": 1758526732,
-      "token_count": 725
+      "size": 3698,
+      "mtime": 1758528211,
+      "token_count": 872,
+      "links": []
     },
     "src/scenes/ScanningScene.tsx": {
       "size": 668,
       "mtime": 1758504780,
-      "token_count": 177
+      "token_count": 177,
+      "links": []
     },
     "src/scenes/WelcomeScene.tsx": {
       "size": 1282,
       "mtime": 1758465507,
-      "token_count": 341
+      "token_count": 341,
+      "links": []
     },
     "src/store/appStore.ts": {
-      "size": 12887,
-      "mtime": 1758527178,
-      "token_count": 3500
+      "size": 14404,
+      "mtime": 1758528211,
+      "token_count": 3822,
+      "links": []
     },
     "src/store/types.ts": {
-      "size": 861,
-      "mtime": 1758518698,
-      "token_count": 199
+      "size": 881,
+      "mtime": 1758528211,
+      "token_count": 204,
+      "links": []
     },
     "src/vite-env.d.ts": {
       "size": 39,
       "mtime": 1758460553,
-      "token_count": 10
+      "token_count": 10,
+      "links": []
     },
     "tsconfig.json": {
       "size": 701,
       "mtime": 1758463105,
-      "token_count": 206
+      "token_count": 206,
+      "links": []
     },
     "tsconfig.node.json": {
       "size": 223,
       "mtime": 1758460553,
-      "token_count": 61
+      "token_count": 61,
+      "links": []
     },
     "vite.config.ts": {
       "size": 977,
       "mtime": 1758463137,
-      "token_count": 263
+      "token_count": 263,
+      "links": []
     }
   }
 }

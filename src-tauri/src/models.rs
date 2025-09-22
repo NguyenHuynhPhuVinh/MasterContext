@@ -39,6 +39,7 @@ pub struct FileMetadata {
     pub size: u64,
     pub mtime: u64,
     pub token_count: usize,
+    pub links: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]

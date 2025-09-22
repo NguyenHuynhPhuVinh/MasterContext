@@ -8,6 +8,7 @@ import {
   type ProjectStats,
   type ScanProgress,
   type Group,
+  type FileMetadata,
 } from "./types";
 import {
   getDescendantAndSelfPaths,
@@ -66,6 +67,8 @@ interface AppState {
   isUpdatingGroupId: string | null; // <-- State loading khi lưu nhóm
   // --- STATE MỚI ---
   tempSelectedPaths: Set<string> | null; // State tạm để chỉnh sửa cây thư mục
+  fileMetadataCache: Record<string, FileMetadata> | null; // <-- THÊM STATE NÀY
+  isCrossLinkingEnabled: boolean; // <-- THÊM STATE NÀY
 
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
@@ -94,6 +97,7 @@ interface AppState {
     toggleEditingPath: (node: FileNode, isSelected: boolean) => void;
     cancelEditingGroup: () => void;
     saveEditingGroup: () => Promise<void>;
+    setCrossLinkingEnabled: (enabled: boolean) => void; // <-- THÊM ACTION NÀY
   };
 }
 
@@ -129,6 +133,8 @@ export const useAppStore = create<AppState>((set, get) => {
     fileTree: null,
     isUpdatingGroupId: null,
     tempSelectedPaths: null, // Giá trị mặc định
+    fileMetadataCache: null, // <-- Thêm giá trị mặc định
+    isCrossLinkingEnabled: false, // <-- Thêm giá trị mặc định
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
@@ -246,6 +252,8 @@ export const useAppStore = create<AppState>((set, get) => {
         set({
           projectStats: payload.stats,
           fileTree: payload.file_tree,
+          // --- THAY ĐỔI: Lưu cả file metadata cache ---
+          fileMetadataCache: payload.file_metadata_cache,
           groups: (payload.groups || []).map((g) => ({
             ...g,
             paths: g.paths || [],
@@ -288,36 +296,63 @@ export const useAppStore = create<AppState>((set, get) => {
       },
 
       toggleEditingPath: (toggledNode: FileNode, isSelected: boolean) => {
-        set((state) => {
-          if (!state.tempSelectedPaths) return {};
+        const { isCrossLinkingEnabled, fileMetadataCache, tempSelectedPaths } =
+          get();
+        if (!tempSelectedPaths || !fileMetadataCache) return;
 
-          const newSelectedPaths = new Set(state.tempSelectedPaths);
-          const pathsToToggle = getDescendantAndSelfPaths(toggledNode);
+        const newSelectedPaths = new Set(tempSelectedPaths);
 
-          if (isSelected) {
-            // Thêm mục được chọn và tất cả các con của nó
-            pathsToToggle.forEach((p) => newSelectedPaths.add(p));
+        if (isSelected) {
+          // --- LOGIC MỚI CHO VIỆC CHỌN VÀ LIÊN KẾT CHÉO ---
+          const pathsToAdd = new Set<string>();
+          const queue = [toggledNode.path]; // Bắt đầu với node được chọn
+          const visited = new Set<string>();
 
-            // *** PHẦN SỬA LỖI QUAN TRỌNG NHẤT ***
-            // Thêm tất cả các thư mục cha ngược lên đến gốc
-            // để đảm bảo logic duyệt cây không bị dừng sớm.
-            let parentPath = toggledNode.path;
+          // Nếu bật liên kết chéo, duyệt đồ thị phụ thuộc
+          if (isCrossLinkingEnabled) {
+            while (queue.length > 0) {
+              const currentPath = queue.shift()!;
+              if (visited.has(currentPath)) continue;
+
+              visited.add(currentPath);
+              pathsToAdd.add(currentPath);
+
+              const metadata = fileMetadataCache[currentPath];
+              if (metadata && metadata.links) {
+                for (const link of metadata.links) {
+                  if (!visited.has(link)) {
+                    queue.push(link);
+                  }
+                }
+              }
+            }
+          } else {
+            // Nếu không, chỉ thêm node được chọn và các con của nó
+            getDescendantAndSelfPaths(toggledNode).forEach((p) =>
+              pathsToAdd.add(p)
+            );
+          }
+
+          // Thêm tất cả các đường dẫn tìm được vào set chính
+          pathsToAdd.forEach((p) => newSelectedPaths.add(p));
+
+          // Luôn thêm các thư mục cha để UI hiển thị đúng
+          const allPathsArray = Array.from(newSelectedPaths);
+          for (const path of allPathsArray) {
+            let parentPath = path;
             while (parentPath.lastIndexOf("/") > -1) {
               parentPath = parentPath.substring(0, parentPath.lastIndexOf("/"));
               newSelectedPaths.add(parentPath);
             }
-            // Luôn đảm bảo có đường dẫn gốc ""
-            newSelectedPaths.add("");
-          } else {
-            // Xóa mục được chọn và tất cả các con của nó
-            pathsToToggle.forEach((p) => newSelectedPaths.delete(p));
-
-            // Tùy chọn: Dọn dẹp các thư mục cha nếu chúng không còn con nào được chọn
-            // (Hiện tại có thể bỏ qua để giữ logic đơn giản, việc xóa đã hoạt động đúng)
           }
+          newSelectedPaths.add("");
+        } else {
+          // Khi bỏ chọn, chỉ bỏ chọn node đó và các con của nó
+          const pathsToRemove = getDescendantAndSelfPaths(toggledNode);
+          pathsToRemove.forEach((p) => newSelectedPaths.delete(p));
+        }
 
-          return { tempSelectedPaths: newSelectedPaths };
-        });
+        set({ tempSelectedPaths: newSelectedPaths });
       },
 
       cancelEditingGroup: () => {
@@ -340,6 +375,9 @@ export const useAppStore = create<AppState>((set, get) => {
 
           // 3. Clean up and navigate back - sẽ được xử lý bởi _setGroupUpdateComplete
         }
+      },
+      setCrossLinkingEnabled: (enabled: boolean) => {
+        set({ isCrossLinkingEnabled: enabled });
       },
     },
   };
