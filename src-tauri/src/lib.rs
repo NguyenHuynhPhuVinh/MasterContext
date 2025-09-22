@@ -24,7 +24,8 @@ pub fn run() {
             commands::update_sync_settings,
             commands::set_group_cross_sync,
             commands::generate_group_context,
-            commands::generate_project_context
+            commands::generate_project_context,
+            commands::update_custom_ignore_patterns // <-- THÊM COMMAND MỚI
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

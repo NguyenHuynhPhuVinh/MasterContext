@@ -354,6 +354,14 @@ pub fn set_group_cross_sync(path: String, group_id: String, enabled: bool) -> Re
     file_cache::save_project_data(&path, &project_data)
 }
 
+// --- COMMAND MỚI: Cập nhật các mẫu loại trừ ---
+#[command]
+pub fn update_custom_ignore_patterns(path: String, patterns: Vec<String>) -> Result<(), String> {
+    let mut project_data = file_cache::load_project_data(&path)?;
+    project_data.custom_ignore_patterns = Some(patterns);
+    file_cache::save_project_data(&path, &project_data)
+}
+
 // --- HÀM HELPER: Lưu context, được sử dụng bởi auto_export ---
 fn save_context_to_path_internal(path: String, content: String) -> Result<(), String> {
     let file_path = Path::new(&path);

@@ -202,14 +202,26 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
     println!("[INFO] Aliases đã phát hiện: {:?}", aliases);
     // --- KẾT THÚC PHẦN PHÂN TÍCH ALIAS ---
 
+    // --- CẬP NHẬT: Xây dựng bộ lọc loại trừ ---
     let override_builder = {
         let mut builder = OverrideBuilder::new(root_path);
+        // Luôn bao gồm các file lock
         builder
             .add("!package-lock.json")
             .map_err(|e| e.to_string())?;
         builder.add("!Cargo.lock").map_err(|e| e.to_string())?;
         builder.add("!yarn.lock").map_err(|e| e.to_string())?;
         builder.add("!pnpm-lock.yaml").map_err(|e| e.to_string())?;
+        
+        // Thêm các mẫu loại trừ tùy chỉnh từ người dùng
+        if let Some(patterns) = &old_data.custom_ignore_patterns {
+            for pattern in patterns {
+                // Thêm tiền tố '!' để chỉ định đây là mẫu LOẠI TRỪ
+                let ignore_pattern = format!("!{}", pattern);
+                builder.add(&ignore_pattern).map_err(|e| e.to_string())?;
+            }
+        }
+
         builder.build().map_err(|e| e.to_string())?
     };
 
@@ -457,6 +469,7 @@ pub fn perform_smart_scan_and_rebuild(path: &str) -> Result<CachedProjectData, S
         sync_enabled: old_data.sync_enabled, // Giữ lại cài đặt cũ
         sync_path: old_data.sync_path,       // Giữ lại cài đặt cũ
         data_hash: Some(data_hash),
+        custom_ignore_patterns: old_data.custom_ignore_patterns, // Giữ lại cài đặt cũ
     };
 
     // --- THAY ĐỔI: Trả về dữ liệu thay vì lưu và emit ---

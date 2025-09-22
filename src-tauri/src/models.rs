@@ -69,6 +69,7 @@ pub struct CachedProjectData {
     pub sync_enabled: Option<bool>,
     pub sync_path: Option<String>,
     pub data_hash: Option<String>,
+    pub custom_ignore_patterns: Option<Vec<String>>, // <-- THÊM TRƯỜNG NÀY
 }
 
 #[derive(Debug, Clone)]

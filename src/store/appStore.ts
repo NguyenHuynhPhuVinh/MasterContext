@@ -73,6 +73,7 @@ interface AppState {
   // --- STATE MỚI CHO CÀI ĐẶT ĐỒNG BỘ ---
   syncEnabled: boolean;
   syncPath: string | null;
+  customIgnorePatterns: string[]; // <-- THÊM STATE MỚI
 
   actions: {
     selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
@@ -110,6 +111,7 @@ interface AppState {
       path: string | null;
     }) => Promise<void>;
     setGroupCrossSync: (groupId: string, enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
+    setCustomIgnorePatterns: (patterns: string[]) => Promise<void>; // <-- THÊM ACTION MỚI
   };
 }
 
@@ -150,6 +152,7 @@ export const useAppStore = create<AppState>((set, get) => {
     // --- GIÁ TRỊ MẶC ĐỊNH CHO CÀI ĐẶT ĐỒNG BỘ ---
     syncEnabled: false,
     syncPath: null,
+    customIgnorePatterns: [], // <-- GIÁ TRỊ MẶC ĐỊNH
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
@@ -291,6 +294,7 @@ export const useAppStore = create<AppState>((set, get) => {
           // Cập nhật cài đặt đồng bộ từ file đã tải
           syncEnabled: payload.sync_enabled ?? false,
           syncPath: payload.sync_path ?? null,
+          customIgnorePatterns: payload.customIgnorePatterns ?? [], // <-- CẬP NHẬT STATE
           // file_metadata_cache được backend quản lý, frontend không cần lưu
         });
       },
@@ -476,6 +480,28 @@ export const useAppStore = create<AppState>((set, get) => {
               g.id === groupId ? { ...g, crossSyncEnabled: !enabled } : g
             ),
           }));
+        }
+      },
+      // --- ACTION MỚI ĐỂ LƯU CÁC MẪU LOẠI TRỪ ---
+      setCustomIgnorePatterns: async (patterns: string[]) => {
+        const { rootPath } = get();
+        if (!rootPath) return;
+
+        // Cập nhật UI ngay lập tức
+        set({ customIgnorePatterns: patterns });
+
+        // Gọi backend để lưu
+        try {
+          await invoke("update_custom_ignore_patterns", {
+            path: rootPath,
+            patterns,
+          });
+          toast.success("Đã lưu các mẫu loại trừ. Bắt đầu quét lại dự án...");
+          // Kích hoạt quét lại để áp dụng các thay đổi
+          await get().actions.rescanProject();
+        } catch (error) {
+          console.error("Lỗi khi lưu các mẫu loại trừ tùy chỉnh:", error);
+          toast.error("Không thể lưu các mẫu loại trừ.");
         }
       },
     },
