@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 55,
     "total_dirs": 14,
-    "total_size": 374855,
-    "total_tokens": 31923
+    "total_size": 381574,
+    "total_tokens": 33507
   },
   "file_tree": {
     "name": "MasterContext",
@@ -368,17 +368,17 @@
   },
   "groups": [
     {
-      "id": "1758511167940",
+      "id": "1758516675791",
       "name": "TEST",
       "description": "TEST",
       "paths": [
-        "src-tauri"
+        "src"
       ],
       "stats": {
-        "total_files": 23,
-        "total_dirs": 5,
-        "total_size": 276416,
-        "token_count": 7313
+        "total_files": 25,
+        "total_dirs": 8,
+        "total_size": 92963,
+        "token_count": 23017
       }
     }
   ],
@@ -409,9 +409,9 @@
       "token_count": 542
     },
     "src-tauri/Cargo.toml": {
-      "size": 850,
-      "mtime": 1758512456,
-      "token_count": 242
+      "size": 821,
+      "mtime": 1758514108,
+      "token_count": 241
     },
     "src-tauri/build.rs": {
       "size": 42,
@@ -504,9 +504,9 @@
       "token_count": 0
     },
     "src-tauri/src/lib.rs": {
-      "size": 28323,
-      "mtime": 1758513450,
-      "token_count": 6717
+      "size": 34886,
+      "mtime": 1758513992,
+      "token_count": 8240
     },
     "src-tauri/src/main.rs": {
       "size": 195,
@@ -534,9 +534,9 @@
       "token_count": 912
     },
     "src/components/GroupManager.tsx": {
-      "size": 10330,
-      "mtime": 1758508404,
-      "token_count": 2266
+      "size": 10515,
+      "mtime": 1758513830,
+      "token_count": 2328
     },
     "src/components/ProjectStats.tsx": {
       "size": 3633,
