@@ -2,8 +2,8 @@
   "stats": {
     "total_files": 55,
     "total_dirs": 14,
-    "total_size": 371398,
-    "total_tokens": 31107
+    "total_size": 375244,
+    "total_tokens": 32012
   },
   "file_tree": {
     "name": "MasterContext",
@@ -366,7 +366,36 @@
       }
     ]
   },
-  "groups": [],
+  "groups": [
+    {
+      "id": "1758511167940",
+      "name": "TEST",
+      "description": "TEST",
+      "paths": [
+        "src-tauri"
+      ],
+      "stats": {
+        "total_files": 22,
+        "total_dirs": 4,
+        "total_size": 275975,
+        "token_count": 7188
+      }
+    },
+    {
+      "id": "1758511227481",
+      "name": "sdgdg",
+      "description": "dfgdfg",
+      "paths": [
+        "src"
+      ],
+      "stats": {
+        "total_files": 47,
+        "total_dirs": 10,
+        "total_size": 369583,
+        "token_count": 30357
+      }
+    }
+  ],
   "file_metadata_cache": {
     "LICENSE": {
       "size": 1096,
@@ -489,9 +518,9 @@
       "token_count": 0
     },
     "src-tauri/src/lib.rs": {
-      "size": 24000,
-      "mtime": 1758509553,
-      "token_count": 5690
+      "size": 27911,
+      "mtime": 1758511143,
+      "token_count": 6593
     },
     "src-tauri/src/main.rs": {
       "size": 195,
@@ -619,9 +648,9 @@
       "token_count": 341
     },
     "src/store/appStore.ts": {
-      "size": 16398,
-      "mtime": 1758509480,
-      "token_count": 4244
+      "size": 16333,
+      "mtime": 1758511143,
+      "token_count": 4246
     },
     "src/vite-env.d.ts": {
       "size": 39,

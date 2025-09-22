@@ -404,28 +404,111 @@ fn generate_context_for_paths(root_path_str: String, paths: Vec<String>) -> Resu
     Ok(GroupContextResult { context: final_context, stats })
 }
 
+#[tauri::command]
+fn calculate_group_stats_from_cache(app_handle: tauri::AppHandle, root_path_str: String, paths: Vec<String>) -> Result<GroupStats, String> {
+    // 1. Tải dữ liệu dự án hiện tại, bao gồm cả cache metadata
+    let project_data = load_project_data(app_handle, root_path_str.clone())?;
+    let metadata_cache = project_data.file_metadata_cache;
+    let root_path = Path::new(&root_path_str);
+
+    let mut new_group_stats = GroupStats::default();
+    let mut all_files_in_group: HashSet<String> = HashSet::new();
+    let mut all_dirs_in_group: HashSet<String> = HashSet::new();
+
+    // 2. Mở rộng các đường dẫn được chọn thành một danh sách file đầy đủ
+    for path_str in &paths {
+        let full_path = root_path.join(path_str);
+        if full_path.is_dir() {
+            // Nếu là thư mục
+            all_dirs_in_group.insert(path_str.clone());
+            // Duyệt qua cache để tìm các file/dir con
+            for (cached_path, _) in metadata_cache.iter() {
+                if cached_path.starts_with(path_str) && cached_path != path_str {
+                    all_files_in_group.insert(cached_path.clone());
+                }
+            }
+            // Cũng cần thêm các thư mục con vào all_dirs_in_group
+            // Vì cache không chứa dirs, chúng ta cần suy ra từ các file paths
+            let mut subdirs = HashSet::new();
+            for cached_path in metadata_cache.keys() {
+                if cached_path.starts_with(path_str) && cached_path != path_str {
+                    let mut current = Path::new(cached_path);
+                    while let Some(parent) = current.parent() {
+                        let parent_str = parent.to_string_lossy().to_string().replace("\\", "/");
+                        if parent_str.starts_with(path_str) && parent_str != *path_str {
+                            subdirs.insert(parent_str.clone());
+                        }
+                        current = parent;
+                        if parent_str == *path_str {
+                            break;
+                        }
+                    }
+                }
+            }
+            all_dirs_in_group.extend(subdirs);
+        } else {
+            // Nếu là file
+            all_files_in_group.insert(path_str.clone());
+        }
+    }
+
+    // 3. Tính toán stats từ danh sách file đã mở rộng
+    for file_path_str in &all_files_in_group {
+        if let Some(meta) = metadata_cache.get(file_path_str) {
+            new_group_stats.total_size += meta.size;
+            new_group_stats.token_count += meta.token_count;
+        }
+    }
+
+    new_group_stats.total_files = all_files_in_group.len() as u64;
+    new_group_stats.total_dirs = all_dirs_in_group.len() as u64;
+
+    Ok(new_group_stats)
+}
+
+#[tauri::command]
+fn update_groups_in_project_data(app_handle: tauri::AppHandle, path: String, groups: Vec<Group>) -> Result<(), String> {
+    // 1. Tải toàn bộ dữ liệu dự án hiện có (bao gồm cả cache).
+    let mut project_data = load_project_data(app_handle.clone(), path.clone())?;
+    
+    // 2. Chỉ cập nhật trường `groups`.
+    project_data.groups = groups;
+    
+    // 3. Lưu lại toàn bộ đối tượng `project_data` đã được cập nhật.
+    //    Thao tác này sẽ bảo toàn `stats`, `file_tree`, và quan trọng nhất là `file_metadata_cache`.
+    save_project_data(app_handle, path, project_data)
+}
+
 
 #[tauri::command]
 fn start_group_update(window: Window, app_handle: tauri::AppHandle, group_id: String, root_path_str: String, paths: Vec<String>) {
     std::thread::spawn(move || {
-        let result = generate_context_for_paths(root_path_str.clone(), paths.clone());
+        // SỬ DỤNG HÀM TÍNH TOÁN MỚI TỪ CACHE
+        let result = calculate_group_stats_from_cache(app_handle.clone(), root_path_str.clone(), paths.clone());
+        
         match result {
-            Ok(context_result) => {
+            Ok(new_stats) => {
+                // Logic lưu và gửi sự kiện vẫn như cũ
                 if let Ok(mut project_data) = load_project_data(app_handle.clone(), root_path_str.clone()) {
                     if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
-                        group.paths = paths.clone(); // Clone trước khi move
-                        group.stats = context_result.stats;
+                        group.paths = paths.clone();
+                        group.stats = new_stats; // Cập nhật stats mới
                     }
+                    // Lưu lại toàn bộ dữ liệu dự án
                     let _ = save_project_data(app_handle, root_path_str, project_data);
                 }
-                // --- THAY ĐỔI QUAN TRỌNG: Gửi lại chính `paths` đã được lưu ---
+                
+                // Gửi sự kiện về frontend
                 let _ = window.emit("group_update_complete", serde_json::json!({ 
                     "groupId": group_id, 
-                    "paths": paths, // Sử dụng paths gốc
-                    "stats": context_result.stats 
+                    "paths": paths, 
+                    "stats": new_stats 
                 }));
             }
-            Err(e) => { let _ = window.emit("group_update_error", e); }
+            Err(e) => { 
+                // Gửi lỗi nếu có vấn đề (ví dụ không load được cache)
+                let _ = window.emit("group_update_error", e); 
+            }
         }
     });
 }
@@ -534,7 +617,9 @@ pub fn run() {
             start_project_scan,
             start_group_update,
             start_group_export,
-            start_project_export // <-- THÊM COMMAND MỚI
+            start_project_export, // <-- THÊM COMMAND MỚI
+            calculate_group_stats_from_cache,
+            update_groups_in_project_data
         ]) 
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -221,20 +221,18 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => {
-  // --- PHẦN MỚI: Hàm trợ giúp để lưu dữ liệu hiện tại ---
-  const saveCurrentProjectData = async () => {
-    const { rootPath, groups, projectStats, fileTree } = get();
+  // --- PHẦN MỚI: Hàm trợ giúp để cập nhật groups trên backend ---
+  const updateGroupsOnBackend = async () => {
+    const { rootPath, groups } = get();
     if (rootPath) {
       try {
-        const dataToSave: CachedProjectData = {
-          stats: projectStats,
-          file_tree: fileTree,
-          groups,
-          file_metadata_cache: {}, // Frontend không quản lý cache này
-        };
-        await invoke("save_project_data", { path: rootPath, data: dataToSave });
+        // Gọi command mới, chỉ gửi đi những gì cần cập nhật
+        await invoke("update_groups_in_project_data", {
+          path: rootPath,
+          groups: groups, // Chỉ gửi mảng groups
+        });
       } catch (error) {
-        console.error("Lỗi khi lưu dữ liệu dự án:", error);
+        console.error("Lỗi khi cập nhật nhóm trên backend:", error);
       }
     }
   };
@@ -354,7 +352,7 @@ export const useAppStore = create<AppState>((set, get) => {
           stats: defaultGroupStats(), // <-- Dùng stats mặc định
         };
         set((state) => ({ groups: [...state.groups, groupWithDefaults] }));
-        saveCurrentProjectData(); // <-- LƯU
+        updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
       },
       updateGroup: (updatedGroup) => {
         set((state) => ({
@@ -362,13 +360,13 @@ export const useAppStore = create<AppState>((set, get) => {
             g.id === updatedGroup.id ? { ...g, ...updatedGroup } : g
           ),
         }));
-        saveCurrentProjectData(); // <-- LƯU
+        updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
       },
       deleteGroup: (groupId) => {
         set((state) => ({
           groups: state.groups.filter((g) => g.id !== groupId),
         }));
-        saveCurrentProjectData(); // <-- LƯU
+        updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
       },
 
       // --- CÁC ACTION MỚI ---
@@ -425,7 +423,7 @@ export const useAppStore = create<AppState>((set, get) => {
         }));
         // --- THAY ĐỔI: Gọi cancelEditingGroup để dọn dẹp và navigate ---
         get().actions.cancelEditingGroup();
-        saveCurrentProjectData(); // Lưu lại toàn bộ project data sau khi cập nhật
+        // Backend đã lưu trong start_group_update, không cần lưu lại
       },
       // --- LOGIC CHỈNH SỬA NHÓM ĐƯỢC TẬP TRUNG TẠI ĐÂY ---
 
