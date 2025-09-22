@@ -28,7 +28,7 @@ import {
 interface ProjectStatsProps {
   path: string | null;
   stats: ProjectStatsData | null;
-  onExportProject: () => Promise<void>;
+  onExportProject: () => void;
   isExporting: boolean;
 }
 
