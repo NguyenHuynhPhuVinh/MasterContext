@@ -2,7 +2,7 @@
 name = "master-context"
 version = "0.1.2"
 description = "Một công cụ mạnh mẽ để quản lý và tạo ngữ cảnh cho các dự án lập trình."
-authors = ["you"]
+authors = ["TomiSakae"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
