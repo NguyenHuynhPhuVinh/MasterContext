@@ -106,6 +106,7 @@ export const createProjectActions: StateCreator<
         exportUseFullTree: payload.export_use_full_tree ?? false,
         exportWithLineNumbers: payload.export_with_line_numbers ?? true,
         exportWithoutComments: payload.export_without_comments ?? false,
+        exportRemoveDebugLogs: payload.export_remove_debug_logs ?? false,
         alwaysApplyText: payload.always_apply_text ?? null,
         exportExcludeExtensions: payload.export_exclude_extensions ?? [],
       };
@@ -157,6 +158,7 @@ export const createProjectActions: StateCreator<
       activeProfile,
       exportWithLineNumbers,
       exportWithoutComments,
+      exportRemoveDebugLogs,
     } = get();
     if (!rootPath || !activeProfile) return;
     try {
@@ -165,6 +167,7 @@ export const createProjectActions: StateCreator<
         profileName: activeProfile,
         withLineNumbers: exportWithLineNumbers,
         withoutComments: exportWithoutComments,
+        removeDebugLogs: exportRemoveDebugLogs,
       });
       await writeText(context);
       await message("Đã sao chép ngữ cảnh dự án vào clipboard!", {

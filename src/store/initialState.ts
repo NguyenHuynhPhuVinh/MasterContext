@@ -31,6 +31,7 @@ export const initialState = {
   exportUseFullTree: false,
   exportWithLineNumbers: true,
   exportWithoutComments: false,
+  exportRemoveDebugLogs: false,
   alwaysApplyText: null,
   exportExcludeExtensions: [],
   profiles: ["default"],

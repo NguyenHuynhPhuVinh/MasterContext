@@ -56,6 +56,7 @@ export interface AppState {
   exportUseFullTree: boolean;
   exportWithLineNumbers: boolean;
   exportWithoutComments: boolean;
+  exportRemoveDebugLogs: boolean;
   alwaysApplyText: string | null;
   exportExcludeExtensions: string[];
 

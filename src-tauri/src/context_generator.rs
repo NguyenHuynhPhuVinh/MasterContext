@@ -12,6 +12,10 @@ lazy_static! {
     static ref C_STYLE_MULTI_LINE_COMMENT: Regex = Regex::new(r"(?s)/\*.*?\*/").unwrap();
     static ref HASH_COMMENT: Regex = Regex::new(r"#.*").unwrap();
     static ref HTML_COMMENT: Regex = Regex::new(r"(?s)<!--.*?-->").unwrap();
+    // Regex to find common debug logging statements
+    static ref DEBUG_LOG_REGEX: Regex = Regex::new(
+        r"(?m)^\s*(console\.(log|warn|error|info|debug|trace|assert|dir|dirxml|table|time|timeEnd|timeLog|count|countReset|group|groupEnd|groupCollapsed|clear|profile|profileEnd|clear)\s*\(.*\);?|println!\s*\(.*\);|dbg!\s*\(.*\);)\s*\r?\n?"
+    ).unwrap();
 }
 
 fn remove_comments_from_content(content: &str, file_rel_path: &str) -> String {
@@ -40,6 +44,11 @@ fn remove_comments_from_content(content: &str, file_rel_path: &str) -> String {
         .filter(|line| !line.trim().is_empty())
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn remove_debug_logs_from_content(content: &str) -> String {
+    // Replace found debug logs with an empty string
+    DEBUG_LOG_REGEX.replace_all(content, "").to_string()
 }
 
 fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut String) {
@@ -117,7 +126,8 @@ pub fn generate_context_from_files(
     use_full_tree: bool,
     full_project_tree: &Option<FileNode>,
     with_line_numbers: bool,
-    without_comments: bool, // <-- THAM SỐ MỚI
+    without_comments: bool,
+    remove_debug_logs: bool,
     always_apply_text: &Option<String>,
     exclude_extensions: &Option<Vec<String>>,
 ) -> Result<String, String> {
@@ -185,20 +195,24 @@ pub fn generate_context_from_files(
     for file_rel_path in final_files {
         let file_path = root_path.join(&file_rel_path);
         if let Ok(content) = fs::read_to_string(&file_path) {
-            let final_content = if without_comments {
-                remove_comments_from_content(&content, &file_rel_path)
-            } else {
-                content
-            };
+            let mut processed_content = content;
+            
+            if without_comments {
+                processed_content = remove_comments_from_content(&processed_content, &file_rel_path);
+            }
+
+            if remove_debug_logs {
+                processed_content = remove_debug_logs_from_content(&processed_content);
+            }
 
             let header = format!("================================================\nFILE: {}\n================================================\n", file_rel_path.replace("\\", "/"));
             file_contents_string.push_str(&header);
             if with_line_numbers {
-                for (i, line) in final_content.lines().enumerate() {
+                for (i, line) in processed_content.lines().enumerate() {
                     let _ = writeln!(file_contents_string, "{}: {}", i + 1, line);
                 }
             } else {
-                file_contents_string.push_str(&final_content);
+                file_contents_string.push_str(&processed_content);
             }
             file_contents_string.push_str("\n\n");
         }

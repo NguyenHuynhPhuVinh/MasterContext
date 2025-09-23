@@ -109,6 +109,18 @@ pub fn set_export_without_comments_setting(
 }
 
 #[command]
+pub fn set_export_remove_debug_logs_setting(
+    app: AppHandle,
+    path: String,
+    profile_name: String,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+    project_data.export_remove_debug_logs = Some(enabled);
+    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
+}
+
+#[command]
 pub fn set_export_exclude_extensions_setting(
     app: AppHandle,
     path: String,

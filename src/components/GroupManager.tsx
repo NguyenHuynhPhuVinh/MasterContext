@@ -29,15 +29,27 @@ export function GroupManager({
   onConfirmRename,
   onCancelEdit,
 }: GroupManagerProps) {
-  const { groups, activeProfile, rootPath, exportWithLineNumbers } =
-    useAppStore(
-      useShallow((state) => ({
-        groups: state.allGroups.get(profileName) || [],
+  const {
+    groups,
+    activeProfile,
+    rootPath,
+    exportWithLineNumbers,
+    exportWithoutComments,
+    exportRemoveDebugLogs,
+  } = useAppStore(
+    useShallow((state) => {
+      const allGroups = state.allGroups ?? new Map();
+      return {
+        groups: allGroups.get(profileName) || [],
         activeProfile: state.activeProfile,
         rootPath: state.rootPath,
         exportWithLineNumbers: state.exportWithLineNumbers,
-      }))
-    );
+        // Lấy thêm các cài đặt export khác
+        exportWithoutComments: state.exportWithoutComments,
+        exportRemoveDebugLogs: state.exportRemoveDebugLogs,
+      };
+    })
+  );
   const {
     deleteGroup,
     editGroupContent,
@@ -157,7 +169,9 @@ export function GroupManager({
           rootPathStr: rootPath,
           profileName: profileName,
           useFullTree: true,
-          withLineNumbers: exportWithLineNumbers,
+          withLineNumbers: exportWithLineNumbers, // Sử dụng giá trị từ state
+          withoutComments: exportWithoutComments, // Sử dụng giá trị từ state
+          removeDebugLogs: exportRemoveDebugLogs, // Sử dụng giá trị từ state
         });
         await writeText(context);
         message(`Đã sao chép ngữ cảnh nhóm "${group.name}"`, {

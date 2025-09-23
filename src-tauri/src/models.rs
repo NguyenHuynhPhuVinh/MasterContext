@@ -81,6 +81,7 @@ pub struct CachedProjectData {
     pub export_use_full_tree: Option<bool>, // <-- THÊM TRƯỜNG MỚI NÀY
     pub export_with_line_numbers: Option<bool>, // <-- THÊM TRƯỜNG MỚI
     pub export_without_comments: Option<bool>, // <-- THÊM TRƯỜNG MỚI
+    pub export_remove_debug_logs: Option<bool>, // <-- THÊM TRƯỜNG MỚI
     pub always_apply_text: Option<String>,
     pub export_exclude_extensions: Option<Vec<String>>,
 }

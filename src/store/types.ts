@@ -13,6 +13,7 @@ export interface CachedProjectData {
   export_use_full_tree?: boolean | null; // <-- THÊM TRƯỜNG MỚI NÀY
   export_with_line_numbers?: boolean | null; // <-- THÊM TRƯỜNG MỚI
   export_without_comments?: boolean | null; // <-- THÊM TRƯỜNG MỚI
+  export_remove_debug_logs?: boolean | null; // <-- THÊM TRƯỜNG MỚI
   always_apply_text?: string | null;
   export_exclude_extensions?: string[];
 }

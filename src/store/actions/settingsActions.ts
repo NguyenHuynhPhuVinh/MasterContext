@@ -16,6 +16,7 @@ export interface SettingsActions {
   setExportUseFullTree: (enabled: boolean) => Promise<void>;
   setExportWithLineNumbers: (enabled: boolean) => Promise<void>;
   setExportWithoutComments: (enabled: boolean) => Promise<void>;
+  setExportRemoveDebugLogs: (enabled: boolean) => Promise<void>;
   setAlwaysApplyText: (text: string) => Promise<void>;
   setExportExcludeExtensions: (extensions: string[]) => Promise<void>;
   setCrossLinkingEnabled: (enabled: boolean) => void;
@@ -184,6 +185,26 @@ export const createSettingsActions: StateCreator<
         kind: "error",
       });
       set((state) => ({ exportWithoutComments: !state.exportWithoutComments }));
+    }
+  },
+  setExportRemoveDebugLogs: async (enabled: boolean) => {
+    const { rootPath, activeProfile } = get();
+    if (!rootPath) return;
+    set({ exportRemoveDebugLogs: enabled });
+    try {
+      await invoke("set_export_remove_debug_logs_setting", {
+        path: rootPath,
+        profileName: activeProfile,
+        enabled,
+      });
+    } catch (error) {
+      message(`Không thể lưu cài đặt loại bỏ debug logs: ${error}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
+      set((state) => ({
+        exportRemoveDebugLogs: !state.exportRemoveDebugLogs,
+      }));
     }
   },
   setAlwaysApplyText: async (text: string) => {

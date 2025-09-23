@@ -30,6 +30,7 @@ export function SettingsScene() {
     exportUseFullTree,
     exportWithLineNumbers,
     exportWithoutComments,
+    exportRemoveDebugLogs,
     alwaysApplyText,
     exportExcludeExtensions,
     showDashboard,
@@ -37,6 +38,7 @@ export function SettingsScene() {
     setExportUseFullTree,
     setExportWithLineNumbers,
     setExportWithoutComments,
+    setExportRemoveDebugLogs,
     setAlwaysApplyText,
     setExportExcludeExtensions,
     handleToggleSync,
@@ -90,6 +92,8 @@ export function SettingsScene() {
             setExportWithLineNumbers={setExportWithLineNumbers}
             exportWithoutComments={exportWithoutComments}
             setExportWithoutComments={setExportWithoutComments}
+            exportRemoveDebugLogs={exportRemoveDebugLogs}
+            setExportRemoveDebugLogs={setExportRemoveDebugLogs}
             exportExcludeExtensions={exportExcludeExtensions}
             setExportExcludeExtensions={setExportExcludeExtensions}
           />

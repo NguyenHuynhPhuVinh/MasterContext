@@ -17,6 +17,7 @@ export function useSettingsScene() {
     exportUseFullTree,
     exportWithLineNumbers,
     exportWithoutComments,
+    exportRemoveDebugLogs,
     alwaysApplyText,
     exportExcludeExtensions,
   } = useAppStore(
@@ -30,6 +31,7 @@ export function useSettingsScene() {
       exportUseFullTree: state.exportUseFullTree,
       exportWithLineNumbers: state.exportWithLineNumbers,
       exportWithoutComments: state.exportWithoutComments,
+      exportRemoveDebugLogs: state.exportRemoveDebugLogs,
       alwaysApplyText: state.alwaysApplyText,
       exportExcludeExtensions: state.exportExcludeExtensions,
     }))
@@ -43,6 +45,7 @@ export function useSettingsScene() {
     setExportUseFullTree,
     setExportWithLineNumbers,
     setExportWithoutComments,
+    setExportRemoveDebugLogs,
     setAlwaysApplyText,
     setExportExcludeExtensions,
   } = useAppActions();
@@ -107,6 +110,7 @@ export function useSettingsScene() {
     exportUseFullTree,
     exportWithLineNumbers,
     exportWithoutComments,
+    exportRemoveDebugLogs,
     alwaysApplyText,
     exportExcludeExtensions,
     showDashboard,
@@ -116,6 +120,7 @@ export function useSettingsScene() {
     setExportUseFullTree,
     setExportWithLineNumbers,
     setExportWithoutComments,
+    setExportRemoveDebugLogs,
     setAlwaysApplyText,
     setExportExcludeExtensions,
     handleToggleSync,

@@ -111,6 +111,7 @@ pub fn clone_profile(
         export_use_full_tree: Some(false),
         export_with_line_numbers: Some(true),
         export_without_comments: Some(false),
+        export_remove_debug_logs: Some(false),
         always_apply_text: Some("".to_string()),
         export_exclude_extensions: Some(vec![]),
     };

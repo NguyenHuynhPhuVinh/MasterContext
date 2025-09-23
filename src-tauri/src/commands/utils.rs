@@ -20,6 +20,7 @@ pub fn perform_auto_export(project_path: &str, _profile_name: &str, data: &model
     let use_full_tree = data.export_use_full_tree.unwrap_or(false);
     let with_line_numbers = data.export_with_line_numbers.unwrap_or(true);
     let without_comments = data.export_without_comments.unwrap_or(false);
+    let remove_debug_logs = data.export_remove_debug_logs.unwrap_or(false);
     let always_apply_text = &data.always_apply_text;
     let exclude_extensions = &data.export_exclude_extensions;
     let all_files: Vec<String> = data.file_metadata_cache.keys().cloned().collect();
@@ -31,6 +32,7 @@ pub fn perform_auto_export(project_path: &str, _profile_name: &str, data: &model
         &data.file_tree,
         with_line_numbers,
         without_comments,
+        remove_debug_logs,
         always_apply_text,
         exclude_extensions,
     ) {
@@ -53,6 +55,7 @@ pub fn perform_auto_export(project_path: &str, _profile_name: &str, data: &model
                 &data.file_tree,
                 with_line_numbers,
                 without_comments,
+                remove_debug_logs,
                 always_apply_text,
                 exclude_extensions,
             ) {

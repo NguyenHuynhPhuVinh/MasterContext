@@ -13,6 +13,8 @@ interface ExportTabProps {
   setExportWithLineNumbers: (enabled: boolean) => void;
   exportWithoutComments: boolean;
   setExportWithoutComments: (enabled: boolean) => void;
+  exportRemoveDebugLogs: boolean;
+  setExportRemoveDebugLogs: (enabled: boolean) => void;
   exportExcludeExtensions: string[];
   setExportExcludeExtensions: (extensions: string[]) => Promise<void>;
 }
@@ -24,6 +26,8 @@ export function ExportTab({
   setExportWithLineNumbers,
   exportWithoutComments,
   setExportWithoutComments,
+  exportRemoveDebugLogs,
+  setExportRemoveDebugLogs,
   exportExcludeExtensions,
   setExportExcludeExtensions,
 }: ExportTabProps) {
@@ -93,6 +97,22 @@ export function ExportTab({
             id="export-comments-toggle"
             checked={exportWithoutComments}
             onCheckedChange={setExportWithoutComments}
+          />
+        </div>
+        <div className="flex items-center justify-between pt-4 border-t">
+          <Label
+            htmlFor="export-debug-toggle"
+            className="flex flex-col items-start gap-1"
+          >
+            <span>Loại bỏ debug logs</span>
+            <span className="text-xs text-muted-foreground">
+              Xóa `console.log`, `println!`... khỏi mã nguồn khi xuất.
+            </span>
+          </Label>
+          <Switch
+            id="export-debug-toggle"
+            checked={exportRemoveDebugLogs}
+            onCheckedChange={setExportRemoveDebugLogs}
           />
         </div>
         <div className="flex flex-col space-y-3 pt-4 border-t">
