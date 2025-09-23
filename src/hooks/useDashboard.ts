@@ -2,7 +2,6 @@
 import { useState } from "react";
 // --- BỎ IMPORT CỦA react-hook-form VÀ ZOD CHO GROUP ---
 import { useAppStore, useAppActions } from "@/store/appStore";
-import { type Group } from "@/store/types";
 import { useShallow } from "zustand/react/shallow";
 import { message } from "@tauri-apps/plugin-dialog";
 
@@ -93,7 +92,10 @@ export function useDashboard() {
     setInlineEditingProfile(null); // Hủy edit profile nếu có
     setInlineEditingGroup({ mode: "create", profileName });
   };
-  const handleStartRenameGroup = (profileName: string, group: Group) => {
+  const handleStartRenameGroup = (
+    profileName: string,
+    group: { id: string }
+  ) => {
     setInlineEditingProfile(null);
     setInlineEditingGroup({ mode: "rename", profileName, groupId: group.id });
   };
