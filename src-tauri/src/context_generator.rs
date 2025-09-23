@@ -126,11 +126,15 @@ pub fn generate_context_from_files(
     for file_rel_path in sorted_files {
         let file_path = root_path.join(&file_rel_path);
         if let Ok(content) = fs::read_to_string(&file_path) {
-            let header = format!("================================================\nFILE: {}\n================================================\n", file_rel_path.replace("\\", "/"));
-            file_contents_string.push_str(&header);
-            file_contents_string.push_str(&content);
-            file_contents_string.push_str("\n\n");
+        let header = format!("================================================\nFILE: {}\n================================================\n", file_rel_path.replace("\\", "/"));
+        file_contents_string.push_str(&header);
+        // --- THAY ĐỔI LOGIC TẠI ĐÂY ---
+        // Thêm số thứ tự cho mỗi dòng trong nội dung file
+        for (i, line) in content.lines().enumerate() {
+            let _ = writeln!(file_contents_string, "{}: {}", i + 1, line);
         }
+        file_contents_string.push_str("\n\n");
+    }
     }
     let final_context = format!(
         "Directory structure:\n{}\n\n{}",
