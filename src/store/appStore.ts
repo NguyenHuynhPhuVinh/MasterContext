@@ -57,6 +57,7 @@ export interface AppState {
   exportWithLineNumbers: boolean;
   exportWithoutComments: boolean;
   alwaysApplyText: string | null;
+  exportExcludeExtensions: string[];
 
   // Quản lý hồ sơ
   profiles: string[];

@@ -14,6 +14,7 @@ export interface CachedProjectData {
   export_with_line_numbers?: boolean | null; // <-- THÊM TRƯỜNG MỚI
   export_without_comments?: boolean | null; // <-- THÊM TRƯỜNG MỚI
   always_apply_text?: string | null;
+  export_exclude_extensions?: string[];
 }
 
 export interface FileNode {

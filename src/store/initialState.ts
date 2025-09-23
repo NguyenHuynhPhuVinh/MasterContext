@@ -32,6 +32,7 @@ export const initialState = {
   exportWithLineNumbers: true,
   exportWithoutComments: false,
   alwaysApplyText: null,
+  exportExcludeExtensions: [],
   profiles: ["default"],
   activeProfile: "default",
   isSidebarVisible: true,

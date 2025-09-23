@@ -112,6 +112,7 @@ pub fn clone_profile(
         export_with_line_numbers: Some(true),
         export_without_comments: Some(false),
         always_apply_text: Some("".to_string()),
+        export_exclude_extensions: Some(vec![]),
     };
 
     file_cache::save_project_data(&app, &project_path, &new_profile_name, &new_data)

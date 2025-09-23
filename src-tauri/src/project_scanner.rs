@@ -289,6 +289,7 @@ pub fn perform_smart_scan_and_rebuild(
         export_with_line_numbers: old_data.export_with_line_numbers, // Giữ lại cài đặt cũ
         export_without_comments: old_data.export_without_comments, // Giữ lại cài đặt cũ
         always_apply_text: old_data.always_apply_text,
+        export_exclude_extensions: old_data.export_exclude_extensions,
     };
 
     // --- THAY ĐỔI: Trả về dữ liệu thay vì lưu và emit ---

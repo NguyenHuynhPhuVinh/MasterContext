@@ -1,6 +1,10 @@
 // src/scenes/settings/ExportTab.tsx
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Save, Loader2 } from "lucide-react";
 
 interface ExportTabProps {
   exportUseFullTree: boolean;
@@ -9,6 +13,8 @@ interface ExportTabProps {
   setExportWithLineNumbers: (enabled: boolean) => void;
   exportWithoutComments: boolean;
   setExportWithoutComments: (enabled: boolean) => void;
+  exportExcludeExtensions: string[];
+  setExportExcludeExtensions: (extensions: string[]) => Promise<void>;
 }
 
 export function ExportTab({
@@ -18,7 +24,25 @@ export function ExportTab({
   setExportWithLineNumbers,
   exportWithoutComments,
   setExportWithoutComments,
+  exportExcludeExtensions,
+  setExportExcludeExtensions,
 }: ExportTabProps) {
+  const [localExcludeText, setLocalExcludeText] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setLocalExcludeText(exportExcludeExtensions.join(", "));
+  }, [exportExcludeExtensions]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    const extensions = localExcludeText
+      .split(",")
+      .map((s) => s.trim().toLowerCase().replace(/^\./, "")) // remove leading dots
+      .filter(Boolean);
+    await setExportExcludeExtensions([...new Set(extensions)]);
+    setIsSaving(false);
+  };
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Cài đặt Xuất File</h2>
@@ -70,6 +94,40 @@ export function ExportTab({
             checked={exportWithoutComments}
             onCheckedChange={setExportWithoutComments}
           />
+        </div>
+        <div className="flex flex-col space-y-3 pt-4 border-t">
+          <div className="flex flex-col items-start gap-1">
+            <Label htmlFor="export-exclude-extensions">
+              Loại trừ các phần mở rộng
+            </Label>
+            <span className="text-xs text-muted-foreground">
+              Các tệp có phần mở rộng này sẽ không được đưa vào file ngữ cảnh.
+            </span>
+          </div>
+          <Input
+            id="export-exclude-extensions"
+            placeholder="png, svg, jpg, lock..."
+            value={localExcludeText}
+            onChange={(e) => setLocalExcludeText(e.target.value)}
+          />
+          <p className="text-sm text-muted-foreground">
+            Phân cách các phần mở rộng bằng dấu phẩy (,).
+          </p>
+          <Button
+            onClick={handleSave}
+            disabled={
+              isSaving ||
+              localExcludeText === exportExcludeExtensions.join(", ")
+            }
+            className="w-full mt-2"
+          >
+            {isSaving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            Lưu cài đặt loại trừ
+          </Button>
         </div>
       </div>
     </div>

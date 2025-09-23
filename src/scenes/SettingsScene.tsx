@@ -31,12 +31,14 @@ export function SettingsScene() {
     exportWithLineNumbers,
     exportWithoutComments,
     alwaysApplyText,
+    exportExcludeExtensions,
     showDashboard,
     setFileWatching,
     setExportUseFullTree,
     setExportWithLineNumbers,
     setExportWithoutComments,
     setAlwaysApplyText,
+    setExportExcludeExtensions,
     handleToggleSync,
     handleChooseSyncPath,
     ignoreText,
@@ -88,6 +90,8 @@ export function SettingsScene() {
             setExportWithLineNumbers={setExportWithLineNumbers}
             exportWithoutComments={exportWithoutComments}
             setExportWithoutComments={setExportWithoutComments}
+            exportExcludeExtensions={exportExcludeExtensions}
+            setExportExcludeExtensions={setExportExcludeExtensions}
           />
         );
       default:

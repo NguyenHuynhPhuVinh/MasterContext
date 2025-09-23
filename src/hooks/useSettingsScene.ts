@@ -18,6 +18,7 @@ export function useSettingsScene() {
     exportWithLineNumbers,
     exportWithoutComments,
     alwaysApplyText,
+    exportExcludeExtensions,
   } = useAppStore(
     useShallow((state) => ({
       syncEnabled: state.syncEnabled,
@@ -30,6 +31,7 @@ export function useSettingsScene() {
       exportWithLineNumbers: state.exportWithLineNumbers,
       exportWithoutComments: state.exportWithoutComments,
       alwaysApplyText: state.alwaysApplyText,
+      exportExcludeExtensions: state.exportExcludeExtensions,
     }))
   );
 
@@ -42,6 +44,7 @@ export function useSettingsScene() {
     setExportWithLineNumbers,
     setExportWithoutComments,
     setAlwaysApplyText,
+    setExportExcludeExtensions,
   } = useAppActions();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
@@ -105,6 +108,7 @@ export function useSettingsScene() {
     exportWithLineNumbers,
     exportWithoutComments,
     alwaysApplyText,
+    exportExcludeExtensions,
     showDashboard,
     setSyncSettings,
     setCustomIgnorePatterns,
@@ -113,6 +117,7 @@ export function useSettingsScene() {
     setExportWithLineNumbers,
     setExportWithoutComments,
     setAlwaysApplyText,
+    setExportExcludeExtensions,
     handleToggleSync,
     handleChooseSyncPath,
     ignoreText,

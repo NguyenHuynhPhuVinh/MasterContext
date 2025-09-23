@@ -17,6 +17,7 @@ export interface SettingsActions {
   setExportWithLineNumbers: (enabled: boolean) => Promise<void>;
   setExportWithoutComments: (enabled: boolean) => Promise<void>;
   setAlwaysApplyText: (text: string) => Promise<void>;
+  setExportExcludeExtensions: (extensions: string[]) => Promise<void>;
   setCrossLinkingEnabled: (enabled: boolean) => void;
   updateAppSettings: (settings: Partial<AppSettings>) => Promise<void>;
 }
@@ -200,6 +201,24 @@ export const createSettingsActions: StateCreator<
         title: "Lỗi",
         kind: "error",
       });
+    }
+  },
+  setExportExcludeExtensions: async (extensions: string[]) => {
+    const { rootPath, activeProfile } = get();
+    if (!rootPath) return;
+    set({ exportExcludeExtensions: extensions });
+    try {
+      await invoke("set_export_exclude_extensions_setting", {
+        path: rootPath,
+        profileName: activeProfile,
+        extensions,
+      });
+    } catch (error) {
+      message(`Không thể lưu cài đặt loại trừ file: ${error}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
+      // Revert on error? Or just log it. Let's just log and show message.
     }
   },
   setCrossLinkingEnabled: (enabled: boolean) => {

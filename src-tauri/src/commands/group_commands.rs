@@ -130,6 +130,7 @@ pub fn start_group_export(
             let with_line_numbers = project_data.export_with_line_numbers.unwrap_or(true);
             let without_comments = project_data.export_without_comments.unwrap_or(false);
             let always_apply_text = project_data.always_apply_text;
+            let exclude_extensions = project_data.export_exclude_extensions;
             let root_path = Path::new(&root_path_str);
             let group = project_data
                 .groups
@@ -152,6 +153,7 @@ pub fn start_group_export(
                 with_line_numbers,
                 without_comments,
                 &always_apply_text,
+                &exclude_extensions,
             )
         })();
         match result {
@@ -180,6 +182,7 @@ pub fn generate_group_context(
 ) -> Result<String, String> {
     let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
     let always_apply_text = project_data.always_apply_text;
+    let exclude_extensions = project_data.export_exclude_extensions;
     let root_path = Path::new(&root_path_str);
     let group = project_data
         .groups
@@ -202,6 +205,7 @@ pub fn generate_group_context(
         with_line_numbers,
         without_comments,
         &always_apply_text,
+        &exclude_extensions,
     )
 }
 

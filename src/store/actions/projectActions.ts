@@ -107,6 +107,7 @@ export const createProjectActions: StateCreator<
         exportWithLineNumbers: payload.export_with_line_numbers ?? true,
         exportWithoutComments: payload.export_without_comments ?? false,
         alwaysApplyText: payload.always_apply_text ?? null,
+        exportExcludeExtensions: payload.export_exclude_extensions ?? [],
       };
     });
 

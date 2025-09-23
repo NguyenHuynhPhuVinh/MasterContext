@@ -51,6 +51,7 @@ export const createProfileActions: StateCreator<
           exportWithLineNumbers: profileData.export_with_line_numbers ?? true,
           exportWithoutComments: profileData.export_without_comments ?? false,
           alwaysApplyText: profileData.always_apply_text ?? null,
+          exportExcludeExtensions: profileData.export_exclude_extensions ?? [],
           scanProgress: { currentFile: null, currentPhase: "scanning" },
         };
       });

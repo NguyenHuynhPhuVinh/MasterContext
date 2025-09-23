@@ -63,6 +63,7 @@ pub fn start_project_export(window: Window, app: AppHandle, path: String, profil
             let with_line_numbers = project_data.export_with_line_numbers.unwrap_or(true);
             let without_comments = project_data.export_without_comments.unwrap_or(false);
             let always_apply_text = project_data.always_apply_text;
+            let exclude_extensions = project_data.export_exclude_extensions;
             let all_files: Vec<String> = project_data.file_metadata_cache.keys().cloned().collect();
             if all_files.is_empty() {
                 return Err("Dự án không có file nào để xuất.".to_string());
@@ -75,6 +76,7 @@ pub fn start_project_export(window: Window, app: AppHandle, path: String, profil
                 with_line_numbers,
                 without_comments,
                 &always_apply_text,
+                &exclude_extensions,
             )
         })();
         match result {
@@ -92,6 +94,7 @@ pub fn start_project_export(window: Window, app: AppHandle, path: String, profil
 pub fn generate_project_context(app: AppHandle, path: String, profile_name: String, with_line_numbers: bool, without_comments: bool) -> Result<String, String> {
     let project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
     let always_apply_text = project_data.always_apply_text;
+    let exclude_extensions = project_data.export_exclude_extensions;
     let all_files: Vec<String> = project_data.file_metadata_cache.keys().cloned().collect();
     if all_files.is_empty() {
         return Err("Dự án không có file nào để tạo ngữ cảnh.".to_string());
@@ -104,5 +107,6 @@ pub fn generate_project_context(app: AppHandle, path: String, profile_name: Stri
         with_line_numbers,
         without_comments,
         &always_apply_text,
+        &exclude_extensions,
     )
 }

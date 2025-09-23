@@ -119,6 +119,7 @@ pub fn generate_context_from_files(
     with_line_numbers: bool,
     without_comments: bool, // <-- THAM SỐ MỚI
     always_apply_text: &Option<String>,
+    exclude_extensions: &Option<Vec<String>>,
 ) -> Result<String, String> {
     let root_path = Path::new(root_path_str);
     let mut tree_builder_root = BTreeMap::new();
@@ -163,7 +164,25 @@ pub fn generate_context_from_files(
     let mut file_contents_string = String::new();
     let mut sorted_files = file_paths.to_vec();
     sorted_files.sort();
-    for file_rel_path in sorted_files {
+
+    // --- NEW FILTERING LOGIC ---
+    let final_files: Vec<_> = if let Some(extensions_to_exclude) = exclude_extensions {
+        let exclude_set: HashSet<_> = extensions_to_exclude.iter().map(|s| s.as_str()).collect();
+        sorted_files
+            .into_iter()
+            .filter(|file_rel_path| {
+                let extension = Path::new(file_rel_path)
+                    .extension()
+                    .and_then(std::ffi::OsStr::to_str)
+                    .unwrap_or("");
+                !exclude_set.contains(extension)
+            })
+            .collect()
+    } else {
+        sorted_files
+    };
+
+    for file_rel_path in final_files {
         let file_path = root_path.join(&file_rel_path);
         if let Ok(content) = fs::read_to_string(&file_path) {
             let final_content = if without_comments {
