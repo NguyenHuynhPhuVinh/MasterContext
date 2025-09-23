@@ -19,6 +19,7 @@ export function SettingsScene() {
     activeProfile,
     isWatchingFiles,
     rootPath,
+    exportUseFullTree, // <-- Lấy state mới
   } = useAppStore(
     useShallow((state) => ({
       syncEnabled: state.syncEnabled,
@@ -27,6 +28,7 @@ export function SettingsScene() {
       activeProfile: state.activeProfile,
       isWatchingFiles: state.isWatchingFiles,
       rootPath: state.rootPath,
+      exportUseFullTree: state.exportUseFullTree,
     }))
   );
   const {
@@ -34,6 +36,7 @@ export function SettingsScene() {
     setCustomIgnorePatterns,
     setFileWatching,
     showDashboard, // Action để quay lại
+    setExportUseFullTree, // <-- Lấy action mới
   } = useAppActions();
 
   const [ignoreText, setIgnoreText] = useState("");
@@ -121,6 +124,24 @@ export function SettingsScene() {
                   checked={isWatchingFiles}
                   onCheckedChange={setFileWatching}
                   disabled={!rootPath}
+                />
+              </div>
+            </div>
+
+            {/* THÊM KHỐI CÀI ĐẶT MỚI */}
+            <div className="space-y-4 rounded-lg border p-4">
+              <h3 className="font-semibold">Cài đặt Xuất File</h3>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="export-tree-toggle" className="flex flex-col">
+                  <span>Sử dụng cây thư mục đầy đủ</span>
+                  <span className="text-xs text-muted-foreground">
+                    Bật để file ngữ cảnh luôn có cấu trúc dự án đầy đủ.
+                  </span>
+                </Label>
+                <Switch
+                  id="export-tree-toggle"
+                  checked={exportUseFullTree}
+                  onCheckedChange={setExportUseFullTree}
                 />
               </div>
             </div>

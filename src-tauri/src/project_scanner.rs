@@ -482,6 +482,7 @@ pub fn perform_smart_scan_and_rebuild(
         data_hash: Some(data_hash),
         custom_ignore_patterns: old_data.custom_ignore_patterns, // Giữ lại cài đặt cũ
         is_watching_files: old_data.is_watching_files, // Giữ lại cài đặt cũ
+        export_use_full_tree: old_data.export_use_full_tree, // Giữ lại cài đặt cũ
     };
 
     // --- THAY ĐỔI: Trả về dữ liệu thay vì lưu và emit ---

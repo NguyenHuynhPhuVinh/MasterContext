@@ -79,6 +79,7 @@ interface AppState {
   syncPath: string | null;
   customIgnorePatterns: string[];
   isWatchingFiles: boolean;
+  exportUseFullTree: boolean; // <-- THÊM STATE MỚI
 
   // Quản lý hồ sơ
   profiles: string[];
@@ -123,6 +124,7 @@ interface AppState {
     renameProfile: (oldName: string, newName: string) => Promise<void>;
     deleteProfile: (profileName: string) => Promise<void>;
     setFileWatching: (enabled: boolean) => Promise<void>;
+    setExportUseFullTree: (enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
     exportProject: () => void;
     copyProjectToClipboard: () => Promise<void>;
     toggleSidebarVisibility: () => void;
@@ -166,6 +168,7 @@ export const useAppStore = create<AppState>((set, get) => {
     syncPath: null,
     customIgnorePatterns: [],
     isWatchingFiles: false,
+    exportUseFullTree: false, // <-- Thêm giá trị mặc định
     profiles: ["default"],
     activeProfile: "default",
     isSidebarVisible: true,
@@ -337,6 +340,7 @@ export const useAppStore = create<AppState>((set, get) => {
             syncPath: payload.sync_path ?? null,
             customIgnorePatterns: payload.custom_ignore_patterns ?? [],
             isWatchingFiles: payload.is_watching_files ?? false,
+            exportUseFullTree: payload.export_use_full_tree ?? false, // <-- Tải cài đặt mới
           };
         });
 
@@ -623,6 +627,7 @@ export const useAppStore = create<AppState>((set, get) => {
               syncPath: profileData.sync_path ?? null,
               customIgnorePatterns: profileData.custom_ignore_patterns ?? [],
               isWatchingFiles: profileData.is_watching_files ?? false,
+              exportUseFullTree: profileData.export_use_full_tree ?? false, // <-- Tải cài đặt mới
               scanProgress: { currentFile: null },
             };
           });
@@ -767,6 +772,27 @@ export const useAppStore = create<AppState>((set, get) => {
           );
           // Revert state nếu có lỗi
           set({ isWatchingFiles: !enabled });
+        }
+      },
+      // --- ACTION MỚI ĐỂ LƯU CÀI ĐẶT XUẤT FILE ---
+      setExportUseFullTree: async (enabled: boolean) => {
+        const { rootPath, activeProfile } = get();
+        if (!rootPath) return;
+
+        set({ exportUseFullTree: enabled }); // Cập nhật UI ngay lập tức
+
+        try {
+          await invoke("set_export_use_full_tree_setting", {
+            path: rootPath,
+            profileName: activeProfile,
+            enabled,
+          });
+        } catch (error) {
+          message(`Không thể lưu cài đặt xuất file: ${error}`, {
+            title: "Lỗi",
+            kind: "error",
+          });
+          set((state) => ({ exportUseFullTree: !state.exportUseFullTree })); // Hoàn tác nếu lỗi
         }
       },
       // --- THÊM LOGIC CHO ACTIONS MỚI ---

@@ -189,11 +189,15 @@ pub fn start_group_export(
     group_id: String,
     root_path_str: String,
     profile_name: String,
-    use_full_tree: bool,
+    // --- XÓA tham số `use_full_tree` ---
 ) {
     std::thread::spawn(move || {
         let result: Result<String, String> = (|| {
             let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
+            
+            // --- LOGIC MỚI: Tự động đọc cài đặt từ dữ liệu hồ sơ ---
+            let use_full_tree = project_data.export_use_full_tree.unwrap_or(false); // Mặc định là false (cây tối giản)
+
             let root_path = Path::new(&root_path_str);
             let group = project_data
                 .groups
@@ -213,7 +217,7 @@ pub fn start_group_export(
             context_generator::generate_context_from_files(
                 &root_path_str,
                 &expanded_files,
-                use_full_tree,
+                use_full_tree, // <-- Sử dụng giá trị đã đọc
                 &project_data.file_tree,
             )
         })();
@@ -490,6 +494,14 @@ pub fn set_file_watching_setting(app: AppHandle, path: String, profile_name: Str
     file_cache::save_project_data(&app, &path, &profile_name, &project_data)
 }
 
+// --- COMMAND MỚI: Lưu cài đặt xuất file ---
+#[command]
+pub fn set_export_use_full_tree_setting(app: AppHandle, path: String, profile_name: String, enabled: bool) -> Result<(), String> {
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+    project_data.export_use_full_tree = Some(enabled);
+    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
+}
+
 // --- COMMAND MỚI: Bắt đầu theo dõi file ---
 #[command]
 pub fn start_file_watching(window: Window, path: String) -> Result<(), String> {
@@ -579,6 +591,7 @@ pub fn clone_profile(
         sync_path: None,
         custom_ignore_patterns: Some(vec![]), // Xóa các mẫu ignore tùy chỉnh
         is_watching_files: Some(false), // Tắt theo dõi file mặc định
+        export_use_full_tree: Some(false), // <-- THÊM giá trị mặc định cho hồ sơ mới
     };
 
     // 3. Lưu cấu trúc dữ liệu mới này thành hồ sơ mới

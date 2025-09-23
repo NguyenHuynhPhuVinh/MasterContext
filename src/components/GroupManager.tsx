@@ -8,8 +8,6 @@ import { save, message } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { cn } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -62,10 +60,11 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
 
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
   const [copyingGroupId, setCopyingGroupId] = useState<string | null>(null);
-  const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
-  const [groupToExport, setGroupToExport] = useState<Group | null>(null);
-  const [useFullTree, setUseFullTree] = useState(false);
-  const [isConfirmingExport, setIsConfirmingExport] = useState(false);
+  // --- XÓA CÁC STATE LIÊN QUAN ĐẾN DIALOG ---
+  // const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
+  // const [groupToExport, setGroupToExport] = useState<Group | null>(null);
+  // const [useFullTree, setUseFullTree] = useState(false);
+  // const [isConfirmingExport, setIsConfirmingExport] = useState(false);
   const [pendingExportData, setPendingExportData] = useState<{
     context: string;
     group: Group;
@@ -92,9 +91,7 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
           title: "Lỗi",
           kind: "error",
         });
-        setIsConfirmingExport(false);
         setExportingGroupId(null);
-        setExportOptionsOpen(false);
       }
     );
 
@@ -130,28 +127,30 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
           });
         } finally {
           setPendingExportData(null);
-          setIsConfirmingExport(false);
           setExportingGroupId(null);
-          setExportOptionsOpen(false);
         }
       };
       showSaveDialog();
     }
   }, [pendingExportData]);
 
-  const handleConfirmExport = async () => {
-    if (!groupToExport || !rootPath || !activeProfile) return;
-    setIsConfirmingExport(true);
-    setExportingGroupId(groupToExport.id);
-    invoke("start_group_export", {
-      groupId: groupToExport.id,
-      rootPathStr: rootPath,
-      profileName: activeProfile,
-      useFullTree: useFullTree,
+  // --- HÀM XUẤT FILE ĐƯỢC ĐƠN GIẢN HÓA ---
+  const handleExport = (group: Group) => {
+    performActionAfterSwitch(() => {
+      setExportingGroupId(group.id);
+      invoke("start_group_export", {
+        groupId: group.id,
+        rootPathStr: rootPath,
+        profileName: profileName,
+        // Không cần truyền useFullTree nữa
+      }).catch((err) => {
+        message(`Không thể bắt đầu xuất file: ${err}`, {
+          title: "Lỗi",
+          kind: "error",
+        });
+        setExportingGroupId(null);
+      });
     });
-  };
-  const handleCloseDialog = () => {
-    if (!isConfirmingExport) setExportOptionsOpen(false);
   };
 
   // --- LOGIC MỚI: Hàm trợ giúp để thực hiện hành động sau khi chuyển hồ sơ nếu cần ---
@@ -198,14 +197,6 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
       } finally {
         setCopyingGroupId(null);
       }
-    });
-  };
-
-  const handleOpenExportOptions = (group: Group) => {
-    performActionAfterSwitch(() => {
-      setGroupToExport(group);
-      setExportOptionsOpen(true);
-      setUseFullTree(false);
     });
   };
 
@@ -285,11 +276,9 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
                       <ClipboardCopy className="mr-2 h-4 w-4" />
                       <span>Sao chép Ngữ cảnh</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleOpenExportOptions(group)}
-                    >
+                    <DropdownMenuItem onClick={() => handleExport(group)}>
                       <Download className="mr-2 h-4 w-4" />
-                      <span>Xuất Ngữ cảnh...</span>
+                      <span>Xuất Ngữ cảnh</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuCheckboxItem
@@ -341,50 +330,7 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
         </div>
       )}
 
-      {/* DIALOG XUẤT FILE (GIỮ NGUYÊN) */}
-      <AlertDialog open={exportOptionsOpen} onOpenChange={handleCloseDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Tùy chọn xuất cho nhóm "{groupToExport?.name}"
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Chọn cách bạn muốn cấu trúc cây thư mục trong file ngữ cảnh được
-              xuất ra.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex items-center space-x-2 my-4">
-            <Switch
-              id="full-tree-switch"
-              checked={useFullTree}
-              onCheckedChange={setUseFullTree}
-              disabled={isConfirmingExport}
-            />
-            <Label htmlFor="full-tree-switch" className="cursor-pointer">
-              Sử dụng cây thư mục đầy đủ của dự án
-            </Label>
-          </div>
-          <p className="text-sm text-muted-foreground -mt-2">
-            {useFullTree
-              ? "File xuất sẽ hiển thị toàn bộ cấu trúc dự án. Chỉ nội dung các tệp trong nhóm này được bao gồm."
-              : "File xuất sẽ chỉ hiển thị cấu trúc thư mục chứa các tệp đã chọn trong nhóm này."}
-          </p>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isConfirmingExport}>
-              Hủy
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmExport}
-              disabled={isConfirmingExport}
-            >
-              {isConfirmingExport ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              {isConfirmingExport ? "Đang xử lý..." : "Xác nhận và Xuất"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* --- XÓA HOÀN TOÀN ALERTDIALOG CHO TÙY CHỌN XUẤT FILE --- */}
     </>
   );
 }
