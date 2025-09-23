@@ -2,8 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
-import { open } from "@tauri-apps/plugin-dialog";
-import { toast } from "sonner";
+import { open, message } from "@tauri-apps/plugin-dialog"; // <-- THAY ĐỔI IMPORT
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -44,10 +43,11 @@ export function SettingsScene() {
     setIgnoreText((customIgnorePatterns || []).join("\n"));
   }, [customIgnorePatterns]);
 
-  const handleToggleSync = (enabled: boolean) => {
+  const handleToggleSync = async (enabled: boolean) => {
     if (enabled && !syncPath) {
-      toast.warning(
-        "Bạn phải chọn một thư mục đồng bộ trước khi bật tính năng này."
+      await message(
+        "Bạn phải chọn một thư mục đồng bộ trước khi bật tính năng này.",
+        { title: "Cảnh báo", kind: "warning" }
       );
       return;
     }

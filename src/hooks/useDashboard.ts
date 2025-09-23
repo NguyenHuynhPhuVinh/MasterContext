@@ -1,4 +1,3 @@
-// src/hooks/useDashboard.ts
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +5,7 @@ import * as z from "zod";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
 import { useShallow } from "zustand/react/shallow";
-import { toast } from "sonner";
+import { message } from "@tauri-apps/plugin-dialog"; // <-- THAY ĐỔI IMPORT
 
 // Schema validation cho form nhóm
 const groupSchema = z.object({
@@ -94,7 +93,7 @@ export function useDashboard() {
     setIsGroupDialogOpen(true);
   };
 
-  const onGroupSubmit = (data: GroupFormValues) => {
+  const onGroupSubmit = async (data: GroupFormValues) => {
     const groupData = {
       name: data.name,
       description: data.description || "",
@@ -110,8 +109,9 @@ export function useDashboard() {
     } else {
       addGroup(groupData);
     }
-    toast.success(
-      editingGroup ? "Cập nhật nhóm thành công!" : "Tạo nhóm mới thành công!"
+    await message(
+      editingGroup ? "Cập nhật nhóm thành công!" : "Tạo nhóm mới thành công!",
+      { title: "Thành công", kind: "info" }
     );
     setIsGroupDialogOpen(false);
   };

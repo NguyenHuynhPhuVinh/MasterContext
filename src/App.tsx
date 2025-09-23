@@ -2,9 +2,8 @@
 import { useEffect, useMemo } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { Menu, MenuItem, Submenu } from "@tauri-apps/api/menu";
-import { save } from "@tauri-apps/plugin-dialog";
+import { save, message } from "@tauri-apps/plugin-dialog"; // <-- THAY ĐỔI IMPORT
 import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { Toaster, toast } from "sonner";
 import { useAppStore, useAppActions } from "./store/appStore";
 import { type GroupStats, type CachedProjectData } from "./store/types";
 import { WelcomeScene } from "./scenes/WelcomeScene";
@@ -53,11 +52,14 @@ function App() {
         const rescanFolderItem = await MenuItem.new({
           id: "rescan_folder",
           text: "Quét lại thư mục",
-          action: () => {
+          action: async () => {
             if (useAppStore.getState().selectedPath) {
               rescanProject();
             } else {
-              toast.info("Vui lòng mở một dự án trước khi quét lại.");
+              await message("Vui lòng mở một dự án trước khi quét lại.", {
+                title: "Thông báo",
+                kind: "info",
+              });
             }
           },
         });
@@ -106,7 +108,10 @@ function App() {
         await appMenu.setAsAppMenu();
       } catch (error) {
         console.error("Failed to create application menu:", error);
-        toast.error("Không thể khởi tạo menu ứng dụng.");
+        await message("Không thể khởi tạo menu ứng dụng.", {
+          title: "Lỗi nghiêm trọng",
+          kind: "error",
+        });
       }
     };
 
@@ -154,45 +159,60 @@ function App() {
       })
     );
     unlistenFuncs.push(
-      listen<CachedProjectData>("scan_complete", (event) => {
+      listen<CachedProjectData>("scan_complete", async (event) => {
         _setScanComplete(event.payload);
-        toast.success("Phân tích dự án hoàn tất!");
+        await message("Phân tích dự án hoàn tất!", {
+          title: "Thành công",
+          kind: "info",
+        });
       })
     );
     unlistenFuncs.push(
-      listen<string>("scan_error", (event) => {
+      listen<string>("scan_error", async (event) => {
         _setScanError(event.payload);
-        toast.error(`Lỗi khi phân tích dự án: ${event.payload}`);
+        await message(`Lỗi khi phân tích dự án: ${event.payload}`, {
+          title: "Lỗi",
+          kind: "error",
+        });
       })
     );
     unlistenFuncs.push(
       listen<{ groupId: string; stats: GroupStats; paths: string[] }>(
         "group_update_complete",
-        (event) => {
+        async (event) => {
           _setGroupUpdateComplete(event.payload);
-          toast.success("Lưu nhóm thành công!");
+          await message("Lưu nhóm thành công!", {
+            title: "Thành công",
+            kind: "info",
+          });
         }
       )
     );
     unlistenFuncs.push(
-      listen<string>("auto_sync_started", (event) => {
-        toast.info(event.payload);
+      listen<string>("auto_sync_started", async (event) => {
+        await message(event.payload, { title: "Thông báo", kind: "info" });
       })
     );
     unlistenFuncs.push(
-      listen<string>("auto_sync_complete", (event) => {
-        toast.success(event.payload);
+      listen<string>("auto_sync_complete", async (event) => {
+        await message(event.payload, { title: "Hoàn tất", kind: "info" });
       })
     );
     unlistenFuncs.push(
-      listen<string>("auto_sync_error", (event) => {
-        toast.error(`Lỗi đồng bộ: ${event.payload}`);
+      listen<string>("auto_sync_error", async (event) => {
+        await message(`Lỗi đồng bộ: ${event.payload}`, {
+          title: "Lỗi đồng bộ",
+          kind: "error",
+        });
       })
     );
     unlistenFuncs.push(
-      listen<void>("file_change_detected", () => {
+      listen<void>("file_change_detected", async () => {
         if (!useAppStore.getState().isScanning) {
-          toast.info("Phát hiện thay đổi, bắt đầu quét lại dự án...");
+          await message("Phát hiện thay đổi, bắt đầu quét lại dự án...", {
+            title: "Tự động quét lại",
+            kind: "info",
+          });
           rescanProject();
         }
       })
@@ -208,17 +228,26 @@ function App() {
           });
           if (filePath) {
             await writeTextFile(filePath, event.payload);
-            toast.success(`Đã lưu file thành công!`);
+            await message(`Đã lưu file thành công!`, {
+              title: "Thành công",
+              kind: "info",
+            });
           }
         } catch (error) {
           console.error("Lỗi khi lưu file ngữ cảnh dự án:", error);
-          toast.error("Đã xảy ra lỗi khi lưu file.");
+          await message("Đã xảy ra lỗi khi lưu file.", {
+            title: "Lỗi",
+            kind: "error",
+          });
         }
       })
     );
     unlistenFuncs.push(
-      listen<string>("project_export_error", (event) => {
-        toast.error(`Lỗi khi xuất dự án: ${event.payload}`);
+      listen<string>("project_export_error", async (event) => {
+        await message(`Lỗi khi xuất dự án: ${event.payload}`, {
+          title: "Lỗi",
+          kind: "error",
+        });
       })
     );
 
@@ -260,7 +289,7 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col bg-background text-foreground">
-      <Toaster richColors />
+      {/* <Toaster richColors /> XÓA DÒNG NÀY */}
       {renderContent()}
     </div>
   );

@@ -4,10 +4,9 @@ import { listen } from "@tauri-apps/api/event";
 import { useAppStore, useAppActions } from "@/store/appStore"; // <-- Sửa: Lấy trực tiếp useAppStore
 import { type Group } from "@/store/types";
 import { invoke } from "@tauri-apps/api/core";
-import { save } from "@tauri-apps/plugin-dialog";
+import { save, message } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { toast } from "sonner";
 import { formatBytes, cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -95,13 +94,19 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
       }
     );
 
-    const unlistenError = listen<string>("group_export_error", (event) => {
-      console.error("Lỗi khi xuất nhóm từ backend:", event.payload);
-      toast.error(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
-      setIsConfirmingExport(false);
-      setExportingGroupId(null);
-      setExportOptionsOpen(false);
-    });
+    const unlistenError = listen<string>(
+      "group_export_error",
+      async (event) => {
+        console.error("Lỗi khi xuất nhóm từ backend:", event.payload);
+        await message(`Đã xảy ra lỗi khi xuất file: ${event.payload}`, {
+          title: "Lỗi",
+          kind: "error",
+        });
+        setIsConfirmingExport(false);
+        setExportingGroupId(null);
+        setExportOptionsOpen(false);
+      }
+    );
 
     return () => {
       unlistenComplete.then((f) => f());
@@ -126,11 +131,17 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
 
           if (filePath) {
             await writeTextFile(filePath, pendingExportData.context);
-            toast.success(`Đã lưu file thành công!`);
+            await message(`Đã lưu file thành công!`, {
+              title: "Thành công",
+              kind: "info",
+            });
           }
         } catch (error) {
           console.error("Lỗi khi lưu file ngữ cảnh:", error);
-          toast.error("Đã xảy ra lỗi khi lưu file.");
+          await message("Đã xảy ra lỗi khi lưu file.", {
+            title: "Lỗi",
+            kind: "error",
+          });
         } finally {
           setPendingExportData(null);
           setIsConfirmingExport(false);
@@ -149,7 +160,7 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
     setUseFullTree(false);
   };
 
-  const handleConfirmExport = () => {
+  const handleConfirmExport = async () => {
     // <-- CẬP NHẬT: Thêm kiểm tra activeProfile
     if (!groupToExport || !rootPath || !activeProfile) return;
 
@@ -166,7 +177,10 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
       });
     } catch (error) {
       console.error("Lỗi khi gọi command start_group_export:", error);
-      toast.error("Không thể bắt đầu quá trình xuất file.");
+      await message("Không thể bắt đầu quá trình xuất file.", {
+        title: "Lỗi",
+        kind: "error",
+      });
       setIsConfirmingExport(false);
       setExportingGroupId(null);
     }
@@ -191,10 +205,16 @@ export function GroupManager({ onEditGroup }: GroupManagerProps) {
         useFullTree: true,
       });
       await writeText(context);
-      toast.success(`Đã sao chép ngữ cảnh nhóm "${group.name}"`);
+      await message(`Đã sao chép ngữ cảnh nhóm "${group.name}"`, {
+        title: "Thành công",
+        kind: "info",
+      });
     } catch (error) {
       console.error(`Lỗi khi sao chép ngữ cảnh nhóm ${group.name}:`, error);
-      toast.error(`Không thể sao chép: ${error}`);
+      await message(`Không thể sao chép: ${error}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
     } finally {
       setCopyingGroupId(null);
     }

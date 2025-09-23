@@ -1,9 +1,8 @@
 // src/store/appStore.ts
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, message } from "@tauri-apps/plugin-dialog"; // <-- THAY ĐỔI IMPORT
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { toast } from "sonner";
 import {
   type CachedProjectData,
   type FileNode,
@@ -143,7 +142,10 @@ export const useAppStore = create<AppState>((set, get) => {
     } catch (error) {
       console.error(`Lỗi khi tải hồ sơ ${profileName}:`, error);
       set({ isScanning: false });
-      toast.error(`Không thể tải hồ sơ: ${profileName}.`);
+      message(`Không thể tải hồ sơ: ${profileName}.`, {
+        title: "Lỗi",
+        kind: "error",
+      });
     }
   };
 
@@ -222,7 +224,10 @@ export const useAppStore = create<AppState>((set, get) => {
             profiles: ["default"],
             activeProfile: "default",
           });
-          toast.error("Không thể lấy danh sách hồ sơ.");
+          await message("Không thể lấy danh sách hồ sơ.", {
+            title: "Lỗi",
+            kind: "error",
+          });
         }
       },
 
@@ -240,7 +245,10 @@ export const useAppStore = create<AppState>((set, get) => {
           }
         } catch (error) {
           console.error("Lỗi khi chọn thư mục từ menu:", error);
-          toast.error("Không thể mở thư mục.");
+          await message("Không thể mở thư mục.", {
+            title: "Lỗi",
+            kind: "error",
+          });
         }
       },
 
@@ -500,10 +508,16 @@ export const useAppStore = create<AppState>((set, get) => {
             enabled,
             syncPath: path,
           });
-          toast.success("Lưu cài đặt đồng bộ thành công!"); // <-- THÊM TOAST
+          await message("Lưu cài đặt đồng bộ thành công!", {
+            title: "Thành công",
+            kind: "info",
+          });
         } catch (error) {
           console.error("Lỗi khi lưu cài đặt đồng bộ:", error);
-          toast.error("Không thể lưu cài đặt đồng bộ."); // <-- THAY alert BẰNG TOAST
+          await message("Không thể lưu cài đặt đồng bộ.", {
+            title: "Lỗi",
+            kind: "error",
+          });
         }
       },
 
@@ -528,7 +542,10 @@ export const useAppStore = create<AppState>((set, get) => {
           });
         } catch (error) {
           console.error("Lỗi khi cập nhật cài đặt đồng bộ chéo:", error);
-          toast.error(`Không thể cập nhật đồng bộ chéo: ${error}`);
+          await message(`Không thể cập nhật đồng bộ chéo: ${error}`, {
+            title: "Lỗi",
+            kind: "error",
+          });
           set((state) => ({
             groups: state.groups.map((g) =>
               g.id === groupId ? { ...g, crossSyncEnabled: !enabled } : g
@@ -552,12 +569,18 @@ export const useAppStore = create<AppState>((set, get) => {
             profileName: activeProfile,
             patterns,
           });
-          toast.success("Đã lưu các mẫu loại trừ. Bắt đầu quét lại dự án...");
+          await message("Đã lưu các mẫu loại trừ. Bắt đầu quét lại dự án...", {
+            title: "Thành công",
+            kind: "info",
+          });
           // Kích hoạt quét lại để áp dụng các thay đổi
           await get().actions.rescanProject();
         } catch (error) {
           console.error("Lỗi khi lưu các mẫu loại trừ tùy chỉnh:", error);
-          toast.error("Không thể lưu các mẫu loại trừ.");
+          await message("Không thể lưu các mẫu loại trừ.", {
+            title: "Lỗi",
+            kind: "error",
+          });
         }
       },
       // --- ACTIONS MỚI CHO HỒ SƠ ---
@@ -569,7 +592,10 @@ export const useAppStore = create<AppState>((set, get) => {
       createProfile: async (profileName: string) => {
         const { rootPath, profiles } = get();
         if (!rootPath || profiles.includes(profileName)) {
-          toast.error("Tên hồ sơ đã tồn tại.");
+          await message("Tên hồ sơ đã tồn tại.", {
+            title: "Lỗi",
+            kind: "error",
+          });
           return;
         }
         try {
@@ -579,16 +605,25 @@ export const useAppStore = create<AppState>((set, get) => {
           });
           set({ profiles: [...profiles, profileName] });
           get().actions.switchProfile(profileName);
-          toast.success(`Đã tạo và chuyển sang hồ sơ "${profileName}"`);
+          await message(`Đã tạo và chuyển sang hồ sơ "${profileName}"`, {
+            title: "Thành công",
+            kind: "info",
+          });
         } catch (error) {
           console.error("Lỗi khi tạo hồ sơ:", error);
-          toast.error(`Không thể tạo hồ sơ: ${error}`);
+          await message(`Không thể tạo hồ sơ: ${error}`, {
+            title: "Lỗi",
+            kind: "error",
+          });
         }
       },
       renameProfile: async (oldName: string, newName: string) => {
         const { rootPath, profiles } = get();
         if (!rootPath || profiles.includes(newName)) {
-          toast.error("Tên hồ sơ mới đã tồn tại.");
+          await message("Tên hồ sơ mới đã tồn tại.", {
+            title: "Lỗi",
+            kind: "error",
+          });
           return;
         }
         try {
@@ -601,10 +636,16 @@ export const useAppStore = create<AppState>((set, get) => {
             profiles: profiles.map((p) => (p === oldName ? newName : p)),
             activeProfile: newName,
           });
-          toast.success(`Đã đổi tên hồ sơ thành "${newName}"`);
+          await message(`Đã đổi tên hồ sơ thành "${newName}"`, {
+            title: "Thành công",
+            kind: "info",
+          });
         } catch (error) {
           console.error("Lỗi khi đổi tên hồ sơ:", error);
-          toast.error(`Không thể đổi tên hồ sơ: ${error}`);
+          await message(`Không thể đổi tên hồ sơ: ${error}`, {
+            title: "Lỗi",
+            kind: "error",
+          });
         }
       },
       deleteProfile: async (profileName: string) => {
@@ -618,10 +659,16 @@ export const useAppStore = create<AppState>((set, get) => {
           set({ profiles: profiles.filter((p) => p !== profileName) });
           // Chuyển về hồ sơ default sau khi xóa
           get().actions.switchProfile("default");
-          toast.success(`Đã xóa hồ sơ "${profileName}"`);
+          await message(`Đã xóa hồ sơ "${profileName}"`, {
+            title: "Thành công",
+            kind: "info",
+          });
         } catch (error) {
           console.error("Lỗi khi xóa hồ sơ:", error);
-          toast.error(`Không thể xóa hồ sơ: ${error}`);
+          await message(`Không thể xóa hồ sơ: ${error}`, {
+            title: "Lỗi",
+            kind: "error",
+          });
         }
       },
       // --- ACTION MỚI ĐỂ BẬT/TẮT THEO DÕI FILE ---
@@ -638,7 +685,10 @@ export const useAppStore = create<AppState>((set, get) => {
           });
         } catch (error) {
           console.error("Lỗi khi lưu cài đặt theo dõi file:", error);
-          toast.error(`Không thể lưu cài đặt: ${error}`);
+          await message(`Không thể lưu cài đặt: ${error}`, {
+            title: "Lỗi",
+            kind: "error",
+          });
           return; // Dừng lại nếu không lưu được
         }
 
@@ -648,25 +698,35 @@ export const useAppStore = create<AppState>((set, get) => {
         try {
           if (enabled) {
             await invoke("start_file_watching", { path: rootPath });
-            toast.success("Đã bật theo dõi thay đổi thời gian thực.");
+            await message("Đã bật theo dõi thay đổi thời gian thực.", {
+              title: "Thông báo",
+              kind: "info",
+            });
           } else {
             await invoke("stop_file_watching");
-            toast.info("Đã tắt theo dõi thay đổi thời gian thực.");
+            await message("Đã tắt theo dõi thay đổi thời gian thực.", {
+              title: "Thông báo",
+              kind: "info",
+            });
           }
         } catch (error) {
           console.error("Lỗi khi thay đổi trạng thái theo dõi file:", error);
-          toast.error(
-            `Không thể ${enabled ? "bật" : "tắt"} theo dõi: ${error}`
+          await message(
+            `Không thể ${enabled ? "bật" : "tắt"} theo dõi: ${error}`,
+            { title: "Lỗi", kind: "error" }
           );
           // Revert state nếu có lỗi
           set({ isWatchingFiles: !enabled });
         }
       },
       // --- THÊM LOGIC CHO ACTIONS MỚI ---
-      exportProject: () => {
+      exportProject: async () => {
         const { rootPath, activeProfile } = get();
         if (!rootPath || !activeProfile) return;
-        toast.info("Bắt đầu xuất ngữ cảnh dự án...");
+        await message("Bắt đầu xuất ngữ cảnh dự án...", {
+          title: "Thông báo",
+          kind: "info",
+        });
         invoke("start_project_export", {
           path: rootPath,
           profileName: activeProfile,
@@ -676,17 +736,26 @@ export const useAppStore = create<AppState>((set, get) => {
       copyProjectToClipboard: async () => {
         const { rootPath, activeProfile } = get();
         if (!rootPath || !activeProfile) return;
-        toast.info("Đang tạo ngữ cảnh để sao chép...");
+        await message("Đang tạo ngữ cảnh để sao chép...", {
+          title: "Thông báo",
+          kind: "info",
+        });
         try {
           const context = await invoke<string>("generate_project_context", {
             path: rootPath,
             profileName: activeProfile,
           });
           await writeText(context);
-          toast.success("Đã sao chép ngữ cảnh dự án vào clipboard!");
+          await message("Đã sao chép ngữ cảnh dự án vào clipboard!", {
+            title: "Thành công",
+            kind: "info",
+          });
         } catch (error) {
           console.error("Lỗi khi sao chép ngữ cảnh dự án:", error);
-          toast.error(`Không thể sao chép: ${error}`);
+          await message(`Không thể sao chép: ${error}`, {
+            title: "Lỗi",
+            kind: "error",
+          });
         }
       },
     },

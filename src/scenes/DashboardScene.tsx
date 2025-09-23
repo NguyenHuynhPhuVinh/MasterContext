@@ -93,7 +93,7 @@ export function DashboardScene() {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>Hồ sơ ngữ cảnh</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {profiles.map((profile) => (
+                {profiles.map((profile: string) => (
                   <DropdownMenuItem
                     key={profile}
                     onClick={() =>
