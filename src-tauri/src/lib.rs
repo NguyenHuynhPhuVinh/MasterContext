@@ -1,7 +1,7 @@
 // src-tauri/src/lib.rs
 
 // Khai báo các module
-mod commands;
+pub mod commands;
 pub mod dependency_analyzer;
 pub mod group_updater;
 mod context_generator;
