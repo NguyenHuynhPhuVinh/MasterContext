@@ -60,9 +60,7 @@ pub fn open_project(window: Window, path: String, profile_name: String) {
                 let sync_enabled = new_data.sync_enabled.unwrap_or(false);
                 let has_changed = old_hash != new_data.data_hash;
                 if sync_enabled && has_changed && new_data.sync_path.is_some() {
-                    let _ = window.emit("auto_sync_started", "Phát hiện thay đổi, bắt đầu đồng bộ...");
                     perform_auto_export(&path, &profile_name, &new_data);
-                    let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
                 }
             }
             Err(e) => {
@@ -74,7 +72,6 @@ pub fn open_project(window: Window, path: String, profile_name: String) {
 
 #[command]
 pub fn update_groups_in_project_data(
-    window: Window,
     app: AppHandle, // <-- Thêm app
     path: String,
     profile_name: String,
@@ -120,12 +117,7 @@ pub fn update_groups_in_project_data(
     project_data.groups = groups;
 
     if project_data.sync_enabled.unwrap_or(false) && project_data.sync_path.is_some() {
-        let _ = window.emit(
-            "auto_sync_started",
-            "Cập nhật nhóm, bắt đầu đồng bộ...",
-        );
         perform_auto_export(&path, &profile_name, &project_data);
-        let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
     }
 
     file_cache::save_project_data(&app, &path, &profile_name, &project_data)
@@ -170,12 +162,7 @@ pub fn start_group_update(
                         group.stats = new_stats;
 
                         if project_data.sync_enabled.unwrap_or(false) && project_data.sync_path.is_some() {
-                            let _ = window.emit(
-                                "auto_sync_started",
-                                "Phát hiện thay đổi nhóm, bắt đầu đồng bộ...",
-                            );
                             perform_auto_export(&root_path_str, &profile_name, &project_data);
-                            let _ = window.emit("auto_sync_complete", "Đồng bộ hoàn tất.");
                         }
                     }
                     let _ = file_cache::save_project_data(&app, &root_path_str, &profile_name, &project_data);
@@ -317,7 +304,6 @@ pub fn generate_project_context(app: AppHandle, path: String, profile_name: Stri
 // --- BẮT ĐẦU SỬA ĐỔI ---
 #[command]
 pub fn update_sync_settings(
-    window: Window, // <-- THÊM THAM SỐ window
     app: AppHandle, // <-- Thêm app
     path: String,
     profile_name: String,
@@ -331,12 +317,8 @@ pub fn update_sync_settings(
     // --- LOGIC MỚI: KÍCH HOẠT ĐỒNG BỘ NGAY LẬP TỨC KHI BẬT ---
     // Chỉ chạy khi `enabled` là true và có một đường dẫn hợp lệ.
     if enabled && project_data.sync_path.is_some() {
-        // Gửi sự kiện để thông báo cho người dùng
-        let _ = window.emit("auto_sync_started", "Cài đặt đã lưu, bắt đầu đồng bộ lần đầu...");
         // Gọi hàm xuất
         perform_auto_export(&path, &profile_name, &project_data);
-        // Gửi sự kiện hoàn tất
-        let _ = window.emit("auto_sync_complete", "Đồng bộ lần đầu hoàn tất.");
     }
     // --- KẾT THÚC LOGIC MỚI ---
 

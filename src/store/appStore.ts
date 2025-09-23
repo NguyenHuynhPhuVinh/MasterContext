@@ -508,10 +508,6 @@ export const useAppStore = create<AppState>((set, get) => {
             enabled,
             syncPath: path,
           });
-          await message("Lưu cài đặt đồng bộ thành công!", {
-            title: "Thành công",
-            kind: "info",
-          });
         } catch (error) {
           console.error("Lỗi khi lưu cài đặt đồng bộ:", error);
           await message("Không thể lưu cài đặt đồng bộ.", {
@@ -568,10 +564,6 @@ export const useAppStore = create<AppState>((set, get) => {
             path: rootPath,
             profileName: activeProfile,
             patterns,
-          });
-          await message("Đã lưu các mẫu loại trừ. Bắt đầu quét lại dự án...", {
-            title: "Thành công",
-            kind: "info",
           });
           // Kích hoạt quét lại để áp dụng các thay đổi
           await get().actions.rescanProject();
@@ -698,16 +690,8 @@ export const useAppStore = create<AppState>((set, get) => {
         try {
           if (enabled) {
             await invoke("start_file_watching", { path: rootPath });
-            await message("Đã bật theo dõi thay đổi thời gian thực.", {
-              title: "Thông báo",
-              kind: "info",
-            });
           } else {
             await invoke("stop_file_watching");
-            await message("Đã tắt theo dõi thay đổi thời gian thực.", {
-              title: "Thông báo",
-              kind: "info",
-            });
           }
         } catch (error) {
           console.error("Lỗi khi thay đổi trạng thái theo dõi file:", error);
@@ -723,10 +707,6 @@ export const useAppStore = create<AppState>((set, get) => {
       exportProject: async () => {
         const { rootPath, activeProfile } = get();
         if (!rootPath || !activeProfile) return;
-        await message("Bắt đầu xuất ngữ cảnh dự án...", {
-          title: "Thông báo",
-          kind: "info",
-        });
         invoke("start_project_export", {
           path: rootPath,
           profileName: activeProfile,
@@ -736,10 +716,6 @@ export const useAppStore = create<AppState>((set, get) => {
       copyProjectToClipboard: async () => {
         const { rootPath, activeProfile } = get();
         if (!rootPath || !activeProfile) return;
-        await message("Đang tạo ngữ cảnh để sao chép...", {
-          title: "Thông báo",
-          kind: "info",
-        });
         try {
           const context = await invoke<string>("generate_project_context", {
             path: rootPath,

@@ -161,10 +161,6 @@ function App() {
     unlistenFuncs.push(
       listen<CachedProjectData>("scan_complete", async (event) => {
         _setScanComplete(event.payload);
-        await message("Phân tích dự án hoàn tất!", {
-          title: "Thành công",
-          kind: "info",
-        });
       })
     );
     unlistenFuncs.push(
@@ -189,16 +185,6 @@ function App() {
       )
     );
     unlistenFuncs.push(
-      listen<string>("auto_sync_started", async (event) => {
-        await message(event.payload, { title: "Thông báo", kind: "info" });
-      })
-    );
-    unlistenFuncs.push(
-      listen<string>("auto_sync_complete", async (event) => {
-        await message(event.payload, { title: "Hoàn tất", kind: "info" });
-      })
-    );
-    unlistenFuncs.push(
       listen<string>("auto_sync_error", async (event) => {
         await message(`Lỗi đồng bộ: ${event.payload}`, {
           title: "Lỗi đồng bộ",
@@ -209,10 +195,6 @@ function App() {
     unlistenFuncs.push(
       listen<void>("file_change_detected", async () => {
         if (!useAppStore.getState().isScanning) {
-          await message("Phát hiện thay đổi, bắt đầu quét lại dự án...", {
-            title: "Tự động quét lại",
-            kind: "info",
-          });
           rescanProject();
         }
       })
