@@ -7,12 +7,19 @@ import { useShallow } from "zustand/react/shallow";
 import { message } from "@tauri-apps/plugin-dialog";
 
 export function useDashboard() {
-  const { projectStats, selectedPath, profiles, activeProfile } = useAppStore(
+  const {
+    projectStats,
+    selectedPath,
+    profiles,
+    activeProfile,
+    inlineEditingGroup,
+  } = useAppStore(
     useShallow((state) => ({
       projectStats: state.projectStats,
       selectedPath: state.selectedPath,
       profiles: state.profiles,
       activeProfile: state.activeProfile,
+      inlineEditingGroup: state.inlineEditingGroup,
     }))
   );
   const {
@@ -22,6 +29,7 @@ export function useDashboard() {
     createProfile,
     renameProfile,
     deleteProfile,
+    setInlineEditingGroup,
   } = useAppActions();
 
   // --- BỎ STATE DIALOG CỦA GROUP ---
@@ -32,12 +40,7 @@ export function useDashboard() {
     name?: string;
   } | null>(null);
 
-  // --- STATE MỚI CHO INLINE EDITING CỦA GROUP ---
-  const [inlineEditingGroup, setInlineEditingGroup] = useState<{
-    mode: "create" | "rename";
-    profileName: string;
-    groupId?: string;
-  } | null>(null);
+  // --- INLINE EDITING GROUP ĐƯỢC DI CHUYỂN VÀO STORE ---
 
   const [isProfileDeleteDialogOpen, setIsProfileDeleteDialogOpen] =
     useState(false);

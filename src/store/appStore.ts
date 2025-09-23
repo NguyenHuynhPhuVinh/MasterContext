@@ -68,6 +68,11 @@ interface AppState {
   // State giao diện
   activeScene: "dashboard" | "settings";
   editingGroupId: string | null;
+  inlineEditingGroup: {
+    mode: "create" | "rename";
+    profileName: string;
+    groupId?: string;
+  } | null;
   isScanning: boolean;
   scanProgress: ScanProgress;
   isUpdatingGroupId: string | null;
@@ -130,6 +135,13 @@ interface AppState {
     exportProject: () => void;
     copyProjectToClipboard: () => Promise<void>;
     toggleSidebarVisibility: () => void;
+    setInlineEditingGroup: (
+      state: {
+        mode: "create" | "rename";
+        profileName: string;
+        groupId?: string;
+      } | null
+    ) => void;
   };
 }
 
@@ -161,6 +173,7 @@ export const useAppStore = create<AppState>((set, get) => {
     fileMetadataCache: null,
     activeScene: "dashboard",
     editingGroupId: null,
+    inlineEditingGroup: null,
     isScanning: false,
     scanProgress: { currentFile: null },
     isUpdatingGroupId: null,
@@ -722,6 +735,7 @@ export const useAppStore = create<AppState>((set, get) => {
       deleteProfile: async (profileName: string) => {
         const { rootPath } = get();
         if (!rootPath || profileName === "default") return;
+        set({ inlineEditingGroup: null }); // <-- FIX: Reset inline editing state
         try {
           await invoke("delete_profile", {
             projectPath: rootPath,
@@ -864,6 +878,7 @@ export const useAppStore = create<AppState>((set, get) => {
       toggleSidebarVisibility: () => {
         set((state) => ({ isSidebarVisible: !state.isSidebarVisible }));
       },
+      setInlineEditingGroup: (state) => set({ inlineEditingGroup: state }),
     },
   };
 });
