@@ -30,7 +30,10 @@ export function ProjectTab({
       <div className="space-y-4 rounded-lg border p-4">
         <h3 className="font-semibold">Theo dõi dự án</h3>
         <div className="flex items-center justify-between">
-          <Label htmlFor="watching-toggle" className="flex flex-col">
+          <Label
+            htmlFor="watching-toggle"
+            className="flex flex-col items-start"
+          >
             <span>Theo dõi thời gian thực</span>
             <span className="text-xs text-muted-foreground">
               Tự động quét lại khi có thay đổi file.

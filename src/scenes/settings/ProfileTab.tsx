@@ -41,7 +41,7 @@ export function ProfileTab({
       <div className="space-y-4 rounded-lg border p-4">
         <h3 className="font-semibold">Đồng bộ tự động</h3>
         <div className="flex items-center justify-between">
-          <Label htmlFor="sync-toggle" className="flex flex-col">
+          <Label htmlFor="sync-toggle" className="flex flex-col items-start">
             <span>Bật đồng bộ nền</span>
             <span className="text-xs text-muted-foreground">
               Tự động xuất lại khi có thay đổi.

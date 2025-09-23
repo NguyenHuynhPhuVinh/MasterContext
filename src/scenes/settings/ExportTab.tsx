@@ -24,7 +24,10 @@ export function ExportTab({
       <h2 className="text-xl font-semibold">Cài đặt Xuất File</h2>
       <div className="space-y-4 rounded-lg border p-4">
         <div className="flex items-center justify-between">
-          <Label htmlFor="export-tree-toggle" className="flex flex-col gap-1">
+          <Label
+            htmlFor="export-tree-toggle"
+            className="flex flex-col items-start gap-1"
+          >
             <span>Sử dụng cây thư mục đầy đủ</span>
             <span className="text-xs text-muted-foreground">
               Bật để file ngữ cảnh luôn có cấu trúc dự án đầy đủ.
@@ -37,7 +40,10 @@ export function ExportTab({
           />
         </div>
         <div className="flex items-center justify-between pt-4 border-t">
-          <Label htmlFor="export-lines-toggle" className="flex flex-col gap-1">
+          <Label
+            htmlFor="export-lines-toggle"
+            className="flex flex-col items-start gap-1"
+          >
             <span>Thêm số dòng vào nội dung file</span>
             <span className="text-xs text-muted-foreground">
               Bật để thêm `số_dòng:` vào đầu mỗi dòng code.
@@ -52,7 +58,7 @@ export function ExportTab({
         <div className="flex items-center justify-between pt-4 border-t">
           <Label
             htmlFor="export-comments-toggle"
-            className="flex flex-col gap-1"
+            className="flex flex-col items-start gap-1"
           >
             <span>Loại bỏ chú thích (comment)</span>
             <span className="text-xs text-muted-foreground">
