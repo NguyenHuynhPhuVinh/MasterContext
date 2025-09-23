@@ -45,14 +45,14 @@ export function ProjectTab({
         </div>
       </div>
 
-      <div className="space-y-4 rounded-lg border p-4 flex flex-col h-[300px]">
+      <div className="space-y-4 rounded-lg border p-4 flex flex-col">
         <h3 className="font-semibold">Các mẫu loại trừ tùy chỉnh</h3>
         <div className="space-y-2 flex-grow flex flex-col">
           <Label htmlFor="custom-ignore">Mẫu Glob (một mẫu mỗi dòng)</Label>
           <Textarea
             id="custom-ignore"
             placeholder={`dist/\n*.log\n__pycache__/`}
-            className="flex-1 resize-none"
+            className="flex-1 resize-y min-h-[120px]"
             value={ignoreText}
             onChange={(e) => setIgnoreText(e.target.value)}
             disabled={isSaving}
