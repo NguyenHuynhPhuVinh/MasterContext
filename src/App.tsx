@@ -39,7 +39,7 @@ function App() {
   }, []);
 
   // --- CẬP NHẬT LOGIC TẠO MENU ---
-  // Effect này sẽ chạy mỗi khi `selectedPath` thay đổi
+  // Effect này sẽ chạy mỗi khi `selectedPath` hoặc `isScanning` thay đổi
   useEffect(() => {
     const setupMenu = async () => {
       try {
@@ -128,15 +128,17 @@ function App() {
     };
 
     // Logic chính:
-    // Nếu có selectedPath (đang ở Dashboard), thì tạo menu
-    if (selectedPath) {
+    // Nếu có selectedPath VÀ không đang quét, thì tạo menu
+    if (selectedPath && !isScanning) {
+      // <-- THAY ĐỔI ĐIỀU KIỆN TẠI ĐÂY
       setupMenu();
     } else {
-      // Nếu không có (đang ở Welcome), thì gỡ menu
+      // Nếu không có (đang ở Welcome hoặc đang quét), thì gỡ menu
       clearMenu();
     }
   }, [
     selectedPath,
+    isScanning, // <-- THÊM VÀO DEPENDENCY
     openFolderFromMenu,
     rescanProject,
     showSettingsScene,
