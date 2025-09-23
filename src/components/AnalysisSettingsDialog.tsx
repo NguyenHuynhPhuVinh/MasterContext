@@ -10,8 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 
 interface AnalysisSettingsDialogProps {
   isOpen: boolean;
@@ -38,8 +37,9 @@ export function AnalysisSettingsDialog({
     const extensions = extensionsText
       .split(",")
       .map((s) => s.trim().toLowerCase())
-      .filter(Boolean); // Lọc bỏ các dòng trống
-    onSave(extensions);
+      .filter(Boolean); // Lọc bỏ các chuỗi rỗng
+    // Sử dụng Set để loại bỏ các extension trùng lặp
+    onSave([...new Set(extensions)]);
     onClose();
   };
 
@@ -55,18 +55,16 @@ export function AnalysisSettingsDialog({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid w-full gap-1.5">
-            <Label htmlFor="extensions">
-              Các phần mở rộng cần bỏ qua (phân cách bằng dấu phẩy)
-            </Label>
-            <ScrollArea className="h-[200px] w-full rounded-md border p-2">
-              <Textarea
-                id="extensions"
-                placeholder="png, svg, lock"
-                value={extensionsText}
-                onChange={(e) => setExtensionsText(e.target.value)}
-                className="min-h-[180px] border-0 shadow-none focus-visible:ring-0 resize-none"
-              />
-            </ScrollArea>
+            <Label htmlFor="extensions">Các phần mở rộng cần bỏ qua</Label>
+            <Input
+              id="extensions"
+              placeholder="png, svg, lock, jpg..."
+              value={extensionsText}
+              onChange={(e) => setExtensionsText(e.target.value)}
+            />
+            <p className="text-sm text-muted-foreground">
+              Phân cách các phần mở rộng bằng dấu phẩy (,).
+            </p>
           </div>
         </div>
         <DialogFooter>

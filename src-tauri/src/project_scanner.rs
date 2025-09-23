@@ -21,14 +21,7 @@ lazy_static! {
     // Define sets for files/extensions to skip during content analysis.
     // These files will still be listed, but we won't read their content,
     // count tokens, or analyze dependencies, saving significant time.
-    static ref DEFAULT_NON_ANALYZABLE_EXTENSIONS: HashSet<String> = [
-        "sql", "csv", "json", "yaml", "yml", "xml", "toml", "lock",
-        "png", "jpg", "jpeg", "gif", "svg", "webp", "ico", "icns", "bmp",
-        "woff", "woff2", "ttf", "eot", "otf",
-        "pdf", "md", "docx", "pptx", "xlsx",
-        "zip", "tar", "gz", "rar", "7z", "iso",
-    ].iter().map(|s| s.to_string()).collect();
-
+    
     static ref NON_ANALYZABLE_FILENAMES: HashSet<String> = [
         "Cargo.lock", "yarn.lock", "pnpm-lock.yaml",
     ].iter().map(|s| s.to_string()).collect();
@@ -54,11 +47,12 @@ pub fn perform_smart_scan_and_rebuild(
     let mut new_metadata_cache = BTreeMap::new();
     let mut path_map = BTreeMap::new(); // Dùng để xây dựng cây thư mục
 
-    // --- KẾT HỢP CÀI ĐẶT MẶC ĐỊNH VÀ CỦA NGƯỜI DÙNG ---
-    let mut final_non_analyzable_extensions = DEFAULT_NON_ANALYZABLE_EXTENSIONS.clone();
-    if let Some(user_exts) = options.user_non_analyzable_extensions {
-        final_non_analyzable_extensions.extend(user_exts);
-    }
+    // --- CHỈ SỬ DỤNG CÀI ĐẶT CỦA NGƯỜI DÙNG ---
+    let final_non_analyzable_extensions: HashSet<String> = options
+        .user_non_analyzable_extensions
+        .unwrap_or_default()
+        .into_iter()
+        .collect();
     // --- KẾT THÚC THAY ĐỔI ---
     
     let aliases = Arc::new(dependency_analyzer::parse_config_aliases(root_path));
