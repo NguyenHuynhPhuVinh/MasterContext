@@ -56,6 +56,11 @@ export interface Group {
   tokenLimit?: number; // <-- THÊM TRƯỜNG NÀY
 }
 
+export interface ScanCompletePayload {
+  projectData: CachedProjectData;
+  isFirstScan: boolean;
+}
+
 export interface AppSettings {
   recentPaths: string[];
   nonAnalyzableExtensions?: string[];

@@ -36,11 +36,13 @@ pub fn perform_smart_scan_and_rebuild(
     path: &str,
     old_data: CachedProjectData,
     options: ScanOptions,
-) -> Result<CachedProjectData, String> {
+) -> Result<(CachedProjectData, bool), String> {
     let root_path = Path::new(path);
     let bpe = Arc::new(cl100k_base().map_err(|e| e.to_string())?);
 
     // Dữ liệu cũ giờ được truyền vào trực tiếp, không cần đọc từ file ở đây
+    // --- PHÁT HIỆN LẦN QUÉT ĐẦU TIÊN ---
+    let is_first_scan = old_data.file_metadata_cache.is_empty();
     let old_metadata_cache = Arc::new(old_data.file_metadata_cache);
 
     let mut new_project_stats = ProjectStats::default();
@@ -289,5 +291,5 @@ pub fn perform_smart_scan_and_rebuild(
     };
 
     // --- THAY ĐỔI: Trả về dữ liệu thay vì lưu và emit ---
-    Ok(final_data)
+    Ok((final_data, is_first_scan))
 }

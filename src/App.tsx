@@ -5,11 +5,16 @@ import { Menu, MenuItem, Submenu } from "@tauri-apps/api/menu";
 import { save, message } from "@tauri-apps/plugin-dialog"; // <-- THAY ĐỔI IMPORT
 import { invoke } from "@tauri-apps/api/core";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+} from "@tauri-apps/plugin-notification";
 import { useAppStore, useAppActions } from "./store/appStore";
 import {
   type GroupStats,
-  type CachedProjectData,
   type AppSettings,
+  type ScanCompletePayload,
 } from "./store/types";
 import { useShallow } from "zustand/react/shallow"; // <-- THÊM IMPORT NÀY
 import { WelcomeScene } from "./scenes/WelcomeScene";
@@ -232,8 +237,23 @@ function App() {
       })
     );
     unlistenFuncs.push(
-      listen<CachedProjectData>("scan_complete", async (event) => {
-        _setScanComplete(event.payload);
+      listen<ScanCompletePayload>("scan_complete", async (event) => {
+        const { projectData, isFirstScan } = event.payload;
+        _setScanComplete(projectData);
+
+        if (isFirstScan) {
+          let permissionGranted = await isPermissionGranted();
+          if (!permissionGranted) {
+            const permission = await requestPermission();
+            permissionGranted = permission === "granted";
+          }
+          if (permissionGranted) {
+            sendNotification({
+              title: "Quét lần đầu hoàn tất!",
+              body: "Dữ liệu đã được lưu lại. Các lần quét sau cho dự án này sẽ nhanh hơn đáng kể.",
+            });
+          }
+        }
       })
     );
     unlistenFuncs.push(

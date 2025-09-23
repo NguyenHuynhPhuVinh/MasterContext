@@ -8,6 +8,8 @@
     "opener:default",
     "dialog:default",
     "fs:write-all",
-    "clipboard-manager:allow-write-text"
+    "clipboard-manager:allow-write-text",
+    "notification:default",
+    "notification:allow-request-permission"
   ]
 }

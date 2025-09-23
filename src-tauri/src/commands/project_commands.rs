@@ -26,7 +26,7 @@ pub fn scan_project(window: Window, path: String, profile_name: String) {
                 user_non_analyzable_extensions: app_settings.non_analyzable_extensions,
             }
         ) {
-            Ok(new_data) => {
+            Ok((new_data, is_first_scan)) => { // <-- Nhận thêm cờ is_first_scan
                 if let Err(e) = file_cache::save_project_data(&app, &path, &profile_name, &new_data) {
                     let _ = window.emit("scan_error", e);
                     return;
@@ -36,7 +36,11 @@ pub fn scan_project(window: Window, path: String, profile_name: String) {
                     perform_auto_export(&path, &profile_name, &new_data);
                 }
                 
-                let _ = window.emit("scan_complete", &new_data);
+                // --- GỬI PAYLOAD MỚI VỀ FRONTEND ---
+                let _ = window.emit("scan_complete", serde_json::json!({
+                    "projectData": new_data,
+                    "isFirstScan": is_first_scan
+                }));
 
                 if should_start_watching {
                     if let Err(e) = start_file_watching(window_clone, path_clone) {
