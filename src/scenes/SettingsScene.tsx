@@ -1,30 +1,18 @@
-// src/components/SettingsDialog.tsx
+// src/scenes/SettingsScene.tsx
 import { useState, useEffect } from "react";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { open } from "@tauri-apps/plugin-dialog";
-import { toast } from "sonner"; // <-- THÊM IMPORT
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea"; // <-- THÊM IMPORT
-import { ThemeToggle } from "./ThemeToggle";
-import { FolderUp, Loader2, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { FolderUp, Loader2, FileText, ArrowLeft } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface SettingsDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
+export function SettingsScene() {
   const {
     syncEnabled,
     syncPath,
@@ -33,29 +21,28 @@ export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
     isWatchingFiles,
     rootPath,
   } = useAppStore(
-    // <-- Lấy thêm isWatchingFiles và rootPath
     useShallow((state) => ({
       syncEnabled: state.syncEnabled,
       syncPath: state.syncPath,
       customIgnorePatterns: state.customIgnorePatterns,
       activeProfile: state.activeProfile,
-      isWatchingFiles: state.isWatchingFiles, // <-- Lấy state mới
-      rootPath: state.rootPath, // <-- Cần để biết có nên cho bật switch không
+      isWatchingFiles: state.isWatchingFiles,
+      rootPath: state.rootPath,
     }))
   );
-  const { setSyncSettings, setCustomIgnorePatterns, setFileWatching } =
-    useAppActions(); // <-- Lấy action mới
+  const {
+    setSyncSettings,
+    setCustomIgnorePatterns,
+    setFileWatching,
+    showDashboard, // Action để quay lại
+  } = useAppActions();
 
-  // State cục bộ cho textarea và trạng thái loading
   const [ignoreText, setIgnoreText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Đồng bộ state từ store vào state cục bộ khi dialog mở
   useEffect(() => {
-    if (isOpen) {
-      setIgnoreText((customIgnorePatterns || []).join("\n"));
-    }
-  }, [isOpen, customIgnorePatterns]);
+    setIgnoreText((customIgnorePatterns || []).join("\n"));
+  }, [customIgnorePatterns]);
 
   const handleToggleSync = (enabled: boolean) => {
     if (enabled && !syncPath) {
@@ -90,23 +77,29 @@ export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
         .map((p) => p.trim())
         .filter((p) => p.length > 0);
       await setCustomIgnorePatterns(patterns);
-      onOpenChange(false); // Đóng dialog sau khi quét lại bắt đầu
+      // Sau khi lưu và quét lại, tự động quay về dashboard
+      showDashboard();
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Cài đặt</DialogTitle>
-          <DialogDescription>
+    <div className="flex flex-col h-screen">
+      <header className="flex items-center justify-between p-4 border-b">
+        <div>
+          <h1 className="text-2xl font-bold">Cài đặt</h1>
+          <p className="text-muted-foreground">
             Tùy chỉnh các thiết lập cho ứng dụng. Các cài đặt sẽ được áp dụng
             cho hồ sơ đang hoạt động.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+          </p>
+        </div>
+        <Button variant="outline" onClick={showDashboard}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại Dashboard
+        </Button>
+      </header>
+      <ScrollArea className="flex-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
           {/* Cột cài đặt chung */}
           <div className="space-y-6">
             <div className="flex items-center justify-between rounded-lg border p-4">
@@ -114,7 +107,6 @@ export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
               <ThemeToggle />
             </div>
 
-            {/* --- THÊM KHỐI CÀI ĐẶT MỚI --- */}
             <div className="space-y-4 rounded-lg border p-4">
               <h3 className="font-semibold">Theo dõi dự án</h3>
               <div className="flex items-center justify-between">
@@ -128,7 +120,7 @@ export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
                   id="watching-toggle"
                   checked={isWatchingFiles}
                   onCheckedChange={setFileWatching}
-                  disabled={!rootPath} // Vô hiệu hóa nếu chưa mở dự án
+                  disabled={!rootPath}
                 />
               </div>
             </div>
@@ -199,7 +191,7 @@ export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
                 Các mẫu này sẽ được sử dụng cùng với file .gitignore của dự án.
               </p>
             </div>
-            <DialogFooter>
+            <div className="pt-4">
               <Button
                 onClick={handleSaveIgnorePatterns}
                 disabled={isSaving}
@@ -208,10 +200,10 @@ export function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogProps) {
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Lưu và Quét lại
               </Button>
-            </DialogFooter>
+            </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ScrollArea>
+    </div>
   );
 }

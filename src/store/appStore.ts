@@ -59,7 +59,7 @@ interface AppState {
   selectedPath: string | null;
   groups: Group[];
   // --- STATE MỚI ĐỂ ĐIỀU HƯỚNG ---
-  activeScene: "dashboard" | "groupEditor";
+  activeScene: "dashboard" | "groupEditor" | "settings"; // <-- THÊM MỚI
   editingGroupId: string | null;
   // --- STATE MỚI ---
   projectStats: ProjectStats | null;
@@ -91,6 +91,7 @@ interface AppState {
     // --- ACTIONS MỚI ---
     editGroupContent: (groupId: string) => void;
     showDashboard: () => void;
+    showSettingsScene: () => void; // <-- THÊM ACTION MỚI
     updateGroupPaths: (groupId: string, paths: string[]) => void;
     // --- THÊM CÁC ACTION "NỘI BỘ" ĐỂ XỬ LÝ SỰ KIỆN ---
     _setScanProgress: (file: string) => void;
@@ -300,6 +301,10 @@ export const useAppStore = create<AppState>((set, get) => {
       },
       showDashboard: () => {
         set({ activeScene: "dashboard", editingGroupId: null });
+      },
+      showSettingsScene: () => {
+        // <-- THÊM ACTION MỚI
+        set({ activeScene: "settings" });
       },
       updateGroupPaths: (groupId, paths) => {
         // Không cần async nữa

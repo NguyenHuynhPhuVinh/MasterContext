@@ -9,6 +9,7 @@ import { WelcomeScene } from "./scenes/WelcomeScene";
 import { DashboardScene } from "./scenes/DashboardScene";
 import { GroupEditorScene } from "./scenes/GroupEditorScene";
 import { ScanningScene } from "./scenes/ScanningScene";
+import { SettingsScene } from "./scenes/SettingsScene"; // <-- THÊM IMPORT
 import { throttle } from "@/lib/utils";
 import "./App.css";
 
@@ -23,6 +24,7 @@ function App() {
     _setGroupUpdateComplete,
     rescanProject,
     openFolderFromMenu,
+    showSettingsScene, // <-- Lấy action mới
   } = useAppActions();
 
   // --- Effect áp dụng theme (giữ nguyên) ---
@@ -61,8 +63,21 @@ function App() {
           items: [openFolderItem, rescanFolderItem],
         });
 
+        // --- THÊM MENU CÀI ĐẶT ---
+        const settingsItem = await MenuItem.new({
+          id: "open_settings",
+          text: "Cài đặt...",
+          action: showSettingsScene,
+        });
+
+        const optionsSubmenu = await Submenu.new({
+          text: "Tùy chọn",
+          items: [settingsItem],
+        });
+        // --- KẾT THÚC THÊM MENU ---
+
         const appMenu = await Menu.new({
-          items: [fileSubmenu],
+          items: [fileSubmenu, optionsSubmenu], // <-- Thêm menu mới vào đây
         });
 
         // Đặt menu cho cửa sổ hiện tại
@@ -93,7 +108,7 @@ function App() {
       // Nếu không có (đang ở Welcome), thì gỡ menu
       clearMenu();
     }
-  }, [selectedPath, openFolderFromMenu, rescanProject]); // Phụ thuộc vào selectedPath
+  }, [selectedPath, openFolderFromMenu, rescanProject, showSettingsScene]); // <-- Thêm dependency
 
   const throttledSetScanProgress = useMemo(
     () => throttle((file: string) => _setScanProgress(file), 10),
@@ -184,6 +199,8 @@ function App() {
     switch (activeScene) {
       case "groupEditor":
         return <GroupEditorScene />;
+      case "settings": // <-- THÊM CASE MỚI
+        return <SettingsScene />;
       case "dashboard":
       default:
         return <DashboardScene />;

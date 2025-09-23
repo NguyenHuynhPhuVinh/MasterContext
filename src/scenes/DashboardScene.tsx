@@ -1,5 +1,5 @@
 // src/scenes/DashboardScene.tsx
-import { useState } from "react";
+// import { useState } from "react"; // <-- XÓA IMPORT
 import { useDashboard } from "@/hooks/useDashboard";
 
 // Import các component UI cần thiết
@@ -43,14 +43,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   PlusCircle,
-  Settings,
+  // Settings, // <-- XÓA IMPORT
   ChevronDown,
   Edit,
   Trash2,
   Plus,
 } from "lucide-react"; // Thêm icons cho profile
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SettingsDialog } from "@/components/SettingsDialog";
+// import { SettingsDialog } from "@/components/SettingsDialog"; // <-- XÓA IMPORT
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,7 +62,7 @@ import {
 import { useAppStore } from "@/store/appStore";
 
 export function DashboardScene() {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // const [isSettingsOpen, setIsSettingsOpen] = useState(false); // <-- XÓA STATE
   // --- COMPONENT CHỈ CÒN LẠI VIỆC GỌI HOOK VÀ RENDER UI ---
   const {
     selectedPath,
@@ -179,14 +179,7 @@ export function DashboardScene() {
                 <Button onClick={() => handleOpenGroupDialog()}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm mới
                 </Button>
-                {/* --- THAY ĐỔI: Thay ThemeToggle bằng nút Cài đặt --- */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsSettingsOpen(true)}
-                >
-                  <Settings className="h-5 w-5" />
-                </Button>
+                {/* --- NÚT SETTINGS ĐÃ BỊ XÓA --- */}
               </div>
             </header>
 
@@ -285,11 +278,7 @@ export function DashboardScene() {
         </DialogContent>
       </Dialog>
 
-      {/* --- THÊM MỚI: Render Dialog Cài đặt --- */}
-      <SettingsDialog
-        isOpen={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-      />
+      {/* --- XÓA SETTINGS DIALOG KHỎI ĐÂY --- */}
 
       {/* === PROFILE DIALOG === */}
       <Dialog
