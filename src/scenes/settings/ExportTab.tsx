@@ -95,7 +95,10 @@ export function ExportTab({
         <div className="flex items-center justify-between pt-4 border-t">
           <Label
             htmlFor="export-super-compressed-toggle"
-            className="flex flex-col items-start gap-1"
+            className={cn(
+              "flex flex-col items-start gap-1",
+              exportWithLineNumbers && "opacity-50"
+            )}
           >
             <span>Xuất siêu nén</span>
             <span className="text-xs text-muted-foreground">
@@ -107,6 +110,7 @@ export function ExportTab({
             id="export-super-compressed-toggle"
             checked={exportSuperCompressed}
             onCheckedChange={setExportSuperCompressed}
+            disabled={exportWithLineNumbers}
           />
         </div>
         <div className="flex items-center justify-between pt-4 border-t">
