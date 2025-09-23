@@ -2,6 +2,8 @@
 
 // Khai báo các module
 mod commands;
+pub mod dependency_analyzer;
+pub mod group_updater;
 mod context_generator;
 mod file_cache;
 mod models;

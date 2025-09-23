@@ -1,5 +1,5 @@
 // src-tauri/src/commands.rs
-use crate::{context_generator, file_cache, models, project_scanner};
+use crate::{context_generator, file_cache, group_updater, models, project_scanner};
 use lazy_static::lazy_static; // <-- THÊM IMPORT
 use notify::{RecursiveMode, RecommendedWatcher, Watcher}; // <-- THÊM IMPORT
 use std::collections::HashMap;
@@ -140,7 +140,7 @@ pub fn calculate_group_stats_from_cache(
 ) -> Result<models::GroupStats, String> {
     let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
     let root_path = Path::new(&root_path_str);
-    Ok(project_scanner::recalculate_stats_for_paths(
+    Ok(group_updater::recalculate_stats_for_paths(
         &paths,
         &project_data.file_metadata_cache,
         root_path,

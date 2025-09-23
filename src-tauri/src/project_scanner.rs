@@ -1,156 +1,18 @@
 // src-tauri/src/project_scanner.rs
-use crate::context_generator; // <-- THÊM USE STATEMENT NÀY
-// use crate::file_cache; // <-- XÓA DÒNG NÀY
+use crate::dependency_analyzer;
+use crate::group_updater;
 use crate::models::{
-    CachedProjectData, FileMetadata, FileNode, GroupStats, ProjectStats, TsConfig,
+    CachedProjectData, FileMetadata, FileNode, ProjectStats,
 };
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
-// use tauri::{Emitter, Window}; // Không còn cần vì hàm không emit nữa
 use tauri::{Emitter, Window};
 use ignore::{overrides::OverrideBuilder, WalkBuilder};
-use lazy_static::lazy_static;
-use path_clean::PathClean;
-use regex::Regex;
 use sha2::{Digest, Sha256};
+use std::collections::HashSet;
 use tiktoken_rs::cl100k_base;
-
-pub fn recalculate_stats_for_paths(
-    paths: &[String],
-    metadata_cache: &BTreeMap<String, FileMetadata>,
-    _root_path: &Path, // _root_path không còn cần thiết
-) -> GroupStats {
-    let mut stats = GroupStats::default();
-    let mut all_files_in_group: HashSet<String> = HashSet::new();
-    let mut all_dirs_in_group: HashSet<String> = HashSet::new();
-
-    let all_cached_files: Vec<&String> = metadata_cache.keys().collect();
-
-    // Mở rộng các đường dẫn tối thiểu thành một danh sách file đầy đủ
-    for path_str in paths {
-        // Xử lý trường hợp đường dẫn là MỘT FILE
-        if metadata_cache.contains_key(path_str) {
-            all_files_in_group.insert(path_str.clone());
-        }
-
-        // Xử lý trường hợp đường dẫn là MỘT THƯ MỤC
-        let dir_prefix = format!("{}/", path_str);
-        if !path_str.is_empty() {
-            all_dirs_in_group.insert(path_str.clone());
-        }
-
-        for &cached_file in &all_cached_files {
-            if path_str.is_empty() {
-                all_files_in_group.insert(cached_file.clone());
-            } else if cached_file.starts_with(&dir_prefix) {
-                all_files_in_group.insert(cached_file.clone());
-            }
-        }
-    }
-
-    // Dùng cache để suy ra các thư mục cha từ đường dẫn file
-    let mut subdirs_from_files = HashSet::new();
-    for file_path in &all_files_in_group {
-        let mut current = Path::new(file_path);
-        while let Some(parent) = current.parent() {
-            if parent.as_os_str().is_empty() {
-                break;
-            }
-            let parent_str = parent.to_string_lossy().replace("\\", "/");
-            subdirs_from_files.insert(parent_str);
-            current = parent;
-        }
-    }
-    all_dirs_in_group.extend(subdirs_from_files);
-
-    // Tính toán stats từ danh sách file đã mở rộng và cache
-    for file_path_str in &all_files_in_group {
-        if let Some(meta) = metadata_cache.get(file_path_str) {
-            stats.total_size += meta.size;
-            stats.token_count += meta.token_count;
-        }
-    }
-
-    stats.total_files = all_files_in_group.len() as u64;
-    stats.total_dirs = all_dirs_in_group.len() as u64;
-
-    stats
-}
-
-// --- THÊM KHỐI MÃ NÀY ---
-// Biên dịch các regex một lần duy nhất để tăng hiệu suất
-lazy_static! {
-    // --- FIX 1: Cập nhật Regex để chỉ khớp các đường dẫn tương đối hoặc alias ---
-    static ref IMPORT_EXPORT_REGEX: Regex = Regex::new(
-        r#"(?:from|import|require)\s*\(?\s*['"](?P<path>(?:\.@/|/|\.\./|\./)[^'"]+)['"]\s*\)?"#
-    ).unwrap();
-}
-
-// --- THAY ĐỔI HÀM NÀY ĐỂ NHẬN VÀO ALIAS MAP ---
-fn resolve_link(
-    current_file_path: &Path,
-    link_path_str: &str,
-    all_project_files: &HashSet<String>,
-    aliases: &BTreeMap<String, String>, // <-- THAM SỐ MỚI
-) -> Option<String> {
-    // --- FIX 1: Sắp xếp các alias từ dài nhất đến ngắn nhất ---
-    // Điều này đảm bảo alias cụ thể hơn (e.g., "@/components/ui") được khớp trước
-    // alias chung hơn (e.g., "@/components").
-    let mut sorted_aliases: Vec<_> = aliases.iter().collect();
-    sorted_aliases.sort_by(|(a, _), (b, _)| b.len().cmp(&a.len()));
-
-    let mut cleaned_path: Option<PathBuf> = None;
-
-    // --- BẮT ĐẦU LOGIC PHÂN GIẢI MỚI, LINH HOẠT HƠN ---
-    // Trường hợp 1: Kiểm tra xem đường dẫn có khớp với alias nào không
-    for (alias, base_path) in sorted_aliases {
-        if link_path_str.starts_with(alias.as_str()) {
-            let stripped = &link_path_str[alias.len()..];
-            // --- FIX 1: Loại bỏ dấu gạch chéo ở đầu nếu có ---
-            let stripped_final = stripped.strip_prefix('/').unwrap_or(stripped);
-            // --- FIX 2: Chuẩn hóa dấu gạch chéo cho base_path ---
-            let full_path = Path::new(base_path.replace('\\', "/").as_str()).join(stripped_final);
-            cleaned_path = Some(full_path.clean());
-            break; 
-        }
-    }    if cleaned_path.is_none() {
-        if link_path_str.starts_with('.') {
-            // Trường hợp 2: Tương đối (nếu không có alias nào khớp)
-            let current_dir = current_file_path.parent().unwrap_or_else(|| Path::new(""));
-            cleaned_path = Some(current_dir.join(link_path_str).clean());
-        } else {
-            // Trường hợp 3: Package npm hoặc không hợp lệ, bỏ qua
-            return None;
-        }
-    }
-    // --- KẾT THÚC LOGIC PHÂN GIẢI MỚI ---
-
-    let cleaned_path_str = cleaned_path.unwrap().to_string_lossy().replace("\\", "/");
-
-    // Thử tìm file với các extension phổ biến
-    // --- FIX 2: Mở rộng danh sách extension ---
-    let extensions = ["", ".ts", ".tsx", ".js", ".jsx", ".json", ".css"];
-    for ext in extensions.iter() {
-        // --- FIX 3: Cải thiện logic phân giải ---
-        // Trường hợp A: Đường dẫn trỏ thẳng đến file (có thể thiếu extension)
-        // Ví dụ: './CharacterFrames' -> './CharacterFrames.ts'
-        let potential_path = format!("{}{}", cleaned_path_str, ext);
-        if all_project_files.contains(&potential_path) {
-            return Some(potential_path);
-        }
-
-        // Trường hợp B: Đường dẫn trỏ đến một thư mục, tìm file index bên trong
-        // Ví dụ: './platformer' -> './platformer/index.ts'
-        let potential_index_path = format!("{}/index{}", cleaned_path_str, ext);
-        if all_project_files.contains(&potential_index_path) {
-            return Some(potential_index_path);
-        }
-    }
-
-    None
-}
 
 pub fn perform_smart_scan_and_rebuild(
     window: &Window, // <-- THÊM THAM SỐ NÀY
@@ -166,50 +28,8 @@ pub fn perform_smart_scan_and_rebuild(
     let mut new_project_stats = ProjectStats::default();
     let mut new_metadata_cache = BTreeMap::new();
     let mut path_map = BTreeMap::new(); // Dùng để xây dựng cây thư mục
-
-    // --- BƯỚC MỚI: ĐỌC VÀ PHÂN TÍCH ALIAS ---
-    let mut aliases = BTreeMap::new();
-    let tsconfig_path = root_path.join("tsconfig.json");
-    let jsconfig_path = root_path.join("jsconfig.json");
-
-    let config_path = if tsconfig_path.exists() {
-        Some(tsconfig_path)
-    } else if jsconfig_path.exists() {
-        Some(jsconfig_path)
-    } else {
-        None
-    };
-
-    if let Some(path) = config_path {
-        if let Ok(content) = fs::read_to_string(path) {
-            if let Ok(tsconfig) = serde_json::from_str::<TsConfig>(&content) {
-                if let Some(options) = tsconfig.compiler_options {
-                    let base_url = options.base_url.unwrap_or_else(|| ".".to_string());
-                    if let Some(paths) = options.paths {
-                        for (alias, replacements) in paths {
-                            // Chỉ lấy replacement đầu tiên và đơn giản hóa nó
-                            if let Some(first_replacement) = replacements.get(0) {
-                                // Bỏ "/*" ở cuối alias và replacement
-                                let clean_alias = alias.strip_suffix("/*").unwrap_or(&alias);
-                                let clean_replacement = first_replacement
-                                    .strip_suffix("/*")
-                                    .unwrap_or(first_replacement);
-
-                                // Tạo đường dẫn đầy đủ từ baseUrl
-                                let full_base_path =
-                                    Path::new(&base_url).join(clean_replacement).clean();
-                                aliases.insert(
-                                    clean_alias.to_string(),
-                                    full_base_path.to_string_lossy().to_string().replace("\\", "/"),
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    // --- KẾT THÚC PHẦN PHÂN TÍCH ALIAS ---
+    
+    let aliases = dependency_analyzer::parse_config_aliases(root_path);
 
     // --- CẬP NHẬT: Xây dựng bộ lọc loại trừ ---
     let override_builder = {
@@ -307,24 +127,12 @@ pub fn perform_smart_scan_and_rebuild(
                 // <-- Thêm & để borrow
                 token_count = bpe.encode_with_special_tokens(content).len();
 
-                let mut found_links = HashSet::new();
-
-                for cap in IMPORT_EXPORT_REGEX.captures_iter(content) {
-                    if let Some(link_path_match) = cap.name("path") {
-                        let link_path = link_path_match.as_str();
-
-                        if let Some(resolved) = resolve_link(
-                            &file_info.relative_path,
-                            link_path,
-                            &all_valid_files,
-                            &aliases,
-                        ) {
-                            found_links.insert(resolved);
-                        }
-                    }
-                }
-
-                links = found_links.into_iter().collect();
+                links = dependency_analyzer::analyze_dependencies(
+                    content,
+                    &file_info.relative_path,
+                    &all_valid_files,
+                    &aliases,
+                );
             }
         }
 
@@ -393,67 +201,12 @@ pub fn perform_smart_scan_and_rebuild(
     };
 
     let mut updated_groups = old_data.groups;
-    for group in &mut updated_groups {
-        // 1. Giữ lại logic cũ: Xóa các file/thư mục không còn tồn tại
-        group.paths.retain(|p| {
-            new_metadata_cache.contains_key(p)
-                || path_map
-                    .get(&root_path.join(p))
-                    .map_or(false, |is_dir| *is_dir)
-        });
-
-        // --- LOGIC MỚI: TỰ ĐỘNG ĐỒNG BỘ CHÉO ---
-        // Kiểm tra xem tính năng có được bật cho nhóm này không (mặc định là false nếu không có)
-        if group.cross_sync_enabled.unwrap_or(false) {
-            // a. Mở rộng các đường dẫn tối thiểu thành một danh sách file đầy đủ
-            let current_files = context_generator::expand_group_paths_to_files(
-                &group.paths,
-                &new_metadata_cache,
-                root_path,
-            );
-
-            // b. Sử dụng đồ thị phụ thuộc để tìm tất cả các file liên quan
-            let mut all_related_files = HashSet::new();
-            let mut queue: Vec<String> = current_files.into_iter().collect();
-
-            while let Some(file_path) = queue.pop() {
-                if all_related_files.contains(&file_path) {
-                    continue;
-                }
-                all_related_files.insert(file_path.clone());
-
-                if let Some(metadata) = new_metadata_cache.get(&file_path) {
-                    for linked_file in &metadata.links {
-                        if !all_related_files.contains(linked_file) {
-                            queue.push(linked_file.clone());
-                        }
-                    }
-                }
-            }
-
-            // c. Tối ưu hóa lại danh sách file đã mở rộng này thành một danh sách `paths` mới.
-            //    Đây là một bước phức tạp, chúng ta cần một hàm `prune_paths` ở Rust.
-            //    Để đơn giản hóa, ta có thể chỉ thêm các file mới tìm thấy.
-            //    Cách tốt hơn là tính toán lại toàn bộ.
-            //    Ở đây, ta sẽ giả định một cách tiếp cận đơn giản: chỉ thêm các file đơn lẻ mới.
-            //    Lưu ý: Cách tiếp cận này có thể không "tối ưu" danh sách paths.
-            let mut new_paths_set: HashSet<String> = group.paths.iter().cloned().collect();
-            for file in all_related_files {
-                // Chỉ thêm nếu nó chưa được bao hàm bởi một thư mục cha đã có
-                let is_covered = new_paths_set
-                    .iter()
-                    .any(|p| file.starts_with(&format!("{}/", p)));
-                if !is_covered {
-                    new_paths_set.insert(file);
-                }
-            }
-            group.paths = new_paths_set.into_iter().collect();
-        }
-        // --- KẾT THÚC LOGIC MỚI ---
-
-        // 2. Luôn tính toán lại stats sau khi đã cập nhật `paths`
-        group.stats = recalculate_stats_for_paths(&group.paths, &new_metadata_cache, root_path);
-    }
+    group_updater::update_groups_after_scan(
+        &mut updated_groups,
+        &new_metadata_cache,
+        &path_map,
+        root_path,
+    );
 
     // --- BƯỚC 4: Tính toán hash để theo dõi thay đổi ---
     let metadata_json = serde_json::to_string(&new_metadata_cache).unwrap_or_default();
