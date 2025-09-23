@@ -2,6 +2,7 @@
 import { StateCreator } from "zustand";
 import { AppState } from "../appStore";
 import { invoke } from "@tauri-apps/api/core";
+import { type AppSettings } from "../types";
 import { message } from "@tauri-apps/plugin-dialog";
 
 export interface SettingsActions {
@@ -16,6 +17,7 @@ export interface SettingsActions {
   setExportWithLineNumbers: (enabled: boolean) => Promise<void>;
   setAlwaysApplyText: (text: string) => Promise<void>;
   setCrossLinkingEnabled: (enabled: boolean) => void;
+  updateAppSettings: (settings: Partial<AppSettings>) => Promise<void>;
 }
 
 export const createSettingsActions: StateCreator<
@@ -183,5 +185,24 @@ export const createSettingsActions: StateCreator<
   },
   setCrossLinkingEnabled: (enabled: boolean) => {
     set({ isCrossLinkingEnabled: enabled });
+  },
+  updateAppSettings: async (newSettings) => {
+    const { recentPaths, nonAnalyzableExtensions } = get();
+    const fullSettings: AppSettings = {
+      recentPaths: newSettings.recentPaths ?? recentPaths,
+      nonAnalyzableExtensions:
+        newSettings.nonAnalyzableExtensions ?? nonAnalyzableExtensions,
+    };
+
+    try {
+      await invoke("update_app_settings", { settings: fullSettings });
+      set({
+        recentPaths: fullSettings.recentPaths,
+        nonAnalyzableExtensions: fullSettings.nonAnalyzableExtensions,
+      });
+    } catch (e) {
+      console.error("Failed to update app settings:", e);
+      message(`Không thể lưu cài đặt: ${e}`, { title: "Lỗi", kind: "error" });
+    }
   },
 });

@@ -21,23 +21,28 @@ lazy_static! {
     // Define sets for files/extensions to skip during content analysis.
     // These files will still be listed, but we won't read their content,
     // count tokens, or analyze dependencies, saving significant time.
-    static ref NON_ANALYZABLE_EXTENSIONS: HashSet<&'static str> = [
+    static ref DEFAULT_NON_ANALYZABLE_EXTENSIONS: HashSet<String> = [
         "sql", "csv", "json", "yaml", "yml", "xml", "toml", "lock",
         "png", "jpg", "jpeg", "gif", "svg", "webp", "ico", "icns", "bmp",
         "woff", "woff2", "ttf", "eot", "otf",
         "pdf", "md", "docx", "pptx", "xlsx",
         "zip", "tar", "gz", "rar", "7z", "iso",
-    ].iter().cloned().collect();
+    ].iter().map(|s| s.to_string()).collect();
 
-    static ref NON_ANALYZABLE_FILENAMES: HashSet<&'static str> = [
+    static ref NON_ANALYZABLE_FILENAMES: HashSet<String> = [
         "Cargo.lock", "yarn.lock", "pnpm-lock.yaml",
-    ].iter().cloned().collect();
+    ].iter().map(|s| s.to_string()).collect();
+}
+
+pub struct ScanOptions {
+    pub user_non_analyzable_extensions: Option<Vec<String>>,
 }
 
 pub fn perform_smart_scan_and_rebuild(
     window: &Window, // <-- THÊM THAM SỐ NÀY
     path: &str,
     old_data: CachedProjectData,
+    options: ScanOptions,
 ) -> Result<CachedProjectData, String> {
     let root_path = Path::new(path);
     let bpe = Arc::new(cl100k_base().map_err(|e| e.to_string())?);
@@ -48,6 +53,13 @@ pub fn perform_smart_scan_and_rebuild(
     let mut new_project_stats = ProjectStats::default();
     let mut new_metadata_cache = BTreeMap::new();
     let mut path_map = BTreeMap::new(); // Dùng để xây dựng cây thư mục
+
+    // --- KẾT HỢP CÀI ĐẶT MẶC ĐỊNH VÀ CỦA NGƯỜI DÙNG ---
+    let mut final_non_analyzable_extensions = DEFAULT_NON_ANALYZABLE_EXTENSIONS.clone();
+    if let Some(user_exts) = options.user_non_analyzable_extensions {
+        final_non_analyzable_extensions.extend(user_exts);
+    }
+    // --- KẾT THÚC THAY ĐỔI ---
     
     let aliases = Arc::new(dependency_analyzer::parse_config_aliases(root_path));
 
@@ -124,6 +136,7 @@ pub fn perform_smart_scan_and_rebuild(
         let aliases = Arc::clone(&aliases);
         let all_valid_files = Arc::clone(&all_valid_files);
         let window = window.clone();
+        let final_non_analyzable_extensions = final_non_analyzable_extensions.clone();
 
         let handle = thread::spawn(move || {
             while let Ok((absolute_path, metadata)) = rx.lock().unwrap().recv() {
@@ -135,8 +148,8 @@ pub fn perform_smart_scan_and_rebuild(
                 let filename = relative_path.file_name().and_then(|s| s.to_str()).unwrap_or("");
                 let extension = relative_path.extension().and_then(|s| s.to_str()).unwrap_or("");
 
-                let should_skip_analysis = NON_ANALYZABLE_FILENAMES.contains(filename)
-                    || NON_ANALYZABLE_EXTENSIONS.contains(extension);
+                let should_skip_analysis = NON_ANALYZABLE_FILENAMES.contains(filename) 
+                    || final_non_analyzable_extensions.contains(extension);
 
                 let current_mtime = metadata
                     .modified()

@@ -21,6 +21,7 @@ pub struct CompilerOptions {
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub recent_paths: Vec<String>,
+    pub non_analyzable_extensions: Option<Vec<String>>,
 }
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 

@@ -14,7 +14,18 @@ pub fn scan_project(window: Window, path: String, profile_name: String) {
         let old_data = file_cache::load_project_data(&app, &path, &profile_name).unwrap_or_default();
         let should_start_watching = old_data.is_watching_files.unwrap_or(false);
 
-        match project_scanner::perform_smart_scan_and_rebuild(&window, &path, old_data) {
+        // --- THÊM LOGIC ĐỌC CÀI ĐẶT ---
+        // Lấy cài đặt ứng dụng để truyền vào scanner
+        let app_settings = super::settings_commands::get_app_settings(app.clone()).unwrap_or_default();
+        
+        match project_scanner::perform_smart_scan_and_rebuild(
+            &window, 
+            &path, 
+            old_data,
+            project_scanner::ScanOptions {
+                user_non_analyzable_extensions: app_settings.non_analyzable_extensions,
+            }
+        ) {
             Ok(new_data) => {
                 if let Err(e) = file_cache::save_project_data(&app, &path, &profile_name, &new_data) {
                     let _ = window.emit("scan_error", e);

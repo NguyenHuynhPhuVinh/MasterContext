@@ -57,6 +57,7 @@ function App() {
     copyProjectToClipboard,
     toggleSidebarVisibility, // <-- Action mới
     _setRecentPaths,
+    updateAppSettings,
   } = useAppActions();
 
   // --- Effect áp dụng theme (giữ nguyên) ---
@@ -72,7 +73,12 @@ function App() {
     const loadSettings = async () => {
       try {
         const settings = await invoke<AppSettings>("get_app_settings");
-        _setRecentPaths(settings.recentPaths || []);
+        // Cập nhật state một lần với tất cả cài đặt
+        _setRecentPaths(settings.recentPaths ?? []);
+        // Dùng set thay vì updateAppSettings để không ghi lại file
+        useAppStore.setState({
+          nonAnalyzableExtensions: settings.nonAnalyzableExtensions ?? [],
+        });
       } catch (e) {
         console.error("Could not load app settings:", e);
       }
@@ -311,7 +317,8 @@ function App() {
     _setGroupUpdateComplete,
     rescanProject,
     _setRecentPaths,
-  ]);
+    updateAppSettings,
+  ]); // <-- Thêm dependency
 
   const renderContent = () => {
     if (isScanning) {

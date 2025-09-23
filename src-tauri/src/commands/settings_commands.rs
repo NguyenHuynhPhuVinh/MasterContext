@@ -118,3 +118,13 @@ pub fn set_recent_paths(app: AppHandle, paths: Vec<String>) -> Result<(), String
     file.write_all(json_string.as_bytes())
         .map_err(|e| e.to_string())
 }
+
+#[command]
+pub fn update_app_settings(app: AppHandle, settings: models::AppSettings) -> Result<(), String> {
+    let settings_path = get_app_settings_path(&app)?;
+    let json_string = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    let mut file = File::create(settings_path).map_err(|e| e.to_string())?;
+    file.write_all(json_string.as_bytes())
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}

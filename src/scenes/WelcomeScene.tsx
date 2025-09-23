@@ -1,11 +1,13 @@
 // src/scenes/WelcomeScene.tsx
-import { Folder, History } from "lucide-react";
+import { useState } from "react";
+import { Folder, History, Cog } from "lucide-react";
 import { FaGithub, FaFacebook } from "react-icons/fa";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AnalysisSettingsDialog } from "@/components/AnalysisSettingsDialog";
 import { useShallow } from "zustand/react/shallow";
 
 // Helper to get the last part of the path
@@ -15,12 +17,15 @@ const getProjectName = (path: string) => {
 };
 
 export function WelcomeScene() {
-  const { selectRootPath } = useAppActions();
-  const { recentPaths } = useAppStore(
+  const { selectRootPath, updateAppSettings } = useAppActions();
+  const { recentPaths, nonAnalyzableExtensions } = useAppStore(
     useShallow((state) => ({
       recentPaths: state.recentPaths,
+      nonAnalyzableExtensions: state.nonAnalyzableExtensions,
     }))
   );
+
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleSelectFolder = async () => {
     try {
@@ -35,6 +40,10 @@ export function WelcomeScene() {
     } catch (error) {
       console.error("Lỗi khi chọn thư mục:", error);
     }
+  };
+
+  const handleSaveSettings = (extensions: string[]) => {
+    updateAppSettings({ nonAnalyzableExtensions: extensions });
   };
 
   return (
@@ -120,6 +129,14 @@ export function WelcomeScene() {
         </p>
       </div>
       <div className="absolute bottom-4 right-4 flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsSettingsOpen(true)}
+          title="Cài đặt"
+        >
+          <Cog className="h-4 w-4" />
+        </Button>
         <Button variant="ghost" size="icon" asChild>
           <a
             href="https://github.com/NguyenHuynhPhuVinh/MasterContext"
@@ -141,6 +158,12 @@ export function WelcomeScene() {
           </a>
         </Button>
       </div>
+      <AnalysisSettingsDialog
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        initialExtensions={nonAnalyzableExtensions}
+        onSave={handleSaveSettings}
+      />
     </div>
   );
 }

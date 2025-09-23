@@ -35,6 +35,7 @@ export const initialState = {
   activeProfile: "default",
   isSidebarVisible: true,
   recentPaths: [],
+  nonAnalyzableExtensions: [],
 };
 
 export type InitialState = typeof initialState;

@@ -62,6 +62,7 @@ export interface AppState {
   activeProfile: string;
   isSidebarVisible: boolean;
   recentPaths: string[];
+  nonAnalyzableExtensions: string[];
 
   actions: ProjectActions &
     GroupActions &

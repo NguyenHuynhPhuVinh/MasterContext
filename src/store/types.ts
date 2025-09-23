@@ -58,4 +58,5 @@ export interface Group {
 
 export interface AppSettings {
   recentPaths: string[];
+  nonAnalyzableExtensions?: string[];
 }
