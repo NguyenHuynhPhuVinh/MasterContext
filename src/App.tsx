@@ -122,7 +122,7 @@ function App() {
           items: [
             await MenuItem.new({
               id: "toggle_sidebar",
-              text: "Bảng điều khiển Hồ sơ & Nhóm",
+              text: "Bảng điều khiển",
               action: toggleSidebarVisibility,
             }),
           ],

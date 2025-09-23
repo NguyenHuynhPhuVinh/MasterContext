@@ -182,7 +182,7 @@ export function SidebarPanel() {
     <>
       <div className="flex flex-col h-full bg-card">
         <header className="flex items-center justify-between p-4 border-b shrink-0">
-          <h1 className="text-xl font-bold">Bảng điều khiển</h1>
+          <h1 className="text-xl font-bold">Dự Án</h1>
           <Button
             variant="outline"
             size="sm"
