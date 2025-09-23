@@ -57,29 +57,26 @@ interface GroupContextResult {
 interface AppState {
   rootPath: string | null;
   selectedPath: string | null;
-  groups: Group[];
-  // --- STATE MỚI ĐỂ ĐIỀU HƯỚNG ---
-  activeScene: "dashboard" | "settings"; // <-- Đơn giản hóa
+  // THAY ĐỔI LỚN 1: Lưu trữ nhóm cho TẤT CẢ các hồ sơ
+  allGroups: Map<string, Group[]>;
+  groups: Group[]; // Đây sẽ là state được suy ra từ allGroups và activeProfile
+  activeScene: "dashboard" | "settings";
   editingGroupId: string | null;
-  // --- STATE MỚI ---
   projectStats: ProjectStats | null;
   isScanning: boolean;
-  scanProgress: ScanProgress; // <-- THÊM STATE MỚI
-  fileTree: FileNode | null; // <-- THÊM STATE MỚI
-  isUpdatingGroupId: string | null; // <-- State loading khi lưu nhóm
-  // --- STATE MỚI ---
-  tempSelectedPaths: Set<string> | null; // State tạm để chỉnh sửa cây thư mục
-  fileMetadataCache: Record<string, FileMetadata> | null; // <-- THÊM STATE NÀY
-  isCrossLinkingEnabled: boolean; // <-- THÊM STATE NÀY
-  // --- STATE MỚI CHO CÀI ĐẶT ĐỒNG BỘ ---
+  scanProgress: ScanProgress;
+  fileTree: FileNode | null;
+  isUpdatingGroupId: string | null;
+  tempSelectedPaths: Set<string> | null;
+  fileMetadataCache: Record<string, FileMetadata> | null;
+  isCrossLinkingEnabled: boolean;
   syncEnabled: boolean;
   syncPath: string | null;
-  customIgnorePatterns: string[]; // <-- THÊM STATE MỚI
-  // --- STATE MỚI CHO HỒ SƠ ---
+  customIgnorePatterns: string[];
   profiles: string[];
   activeProfile: string;
-  isWatchingFiles: boolean; // <-- THÊM STATE MỚI
-  isSidebarVisible: boolean; // <-- STATE MỚI
+  isWatchingFiles: boolean;
+  isSidebarVisible: boolean;
 
   actions: {
     selectRootPath: (path: string) => Promise<void>;
@@ -153,13 +150,14 @@ export const useAppStore = create<AppState>((set, get) => {
 
   // --- PHẦN MỚI: Hàm trợ giúp để cập nhật groups trên backend ---
   const updateGroupsOnBackend = async () => {
-    const { rootPath, groups, activeProfile } = get();
+    const { rootPath, allGroups, activeProfile } = get();
+    const activeGroups = allGroups.get(activeProfile) || [];
     if (rootPath) {
       try {
         await invoke("update_groups_in_project_data", {
           path: rootPath,
           profileName: activeProfile,
-          groups: groups,
+          groups: activeGroups,
         });
       } catch (error) {
         console.error("Lỗi khi cập nhật nhóm trên backend:", error);
@@ -170,56 +168,57 @@ export const useAppStore = create<AppState>((set, get) => {
   return {
     rootPath: null,
     selectedPath: null,
-    groups: [],
-    activeScene: "dashboard", // <-- Giá trị mặc định
+    // THAY ĐỔI LỚN 2: Khởi tạo allGroups là một Map rỗng
+    allGroups: new Map(),
+    groups: [], // Sẽ được suy ra
+    activeScene: "dashboard",
     editingGroupId: null,
-    // --- GIÁ TRỊ MẶC ĐỊNH CHO STATE MỚI ---
     projectStats: null,
     isScanning: false,
-    scanProgress: { currentFile: null }, // <-- GIÁ TRỊ MẶC ĐỊNH
+    scanProgress: { currentFile: null },
     fileTree: null,
     isUpdatingGroupId: null,
-    tempSelectedPaths: null, // Giá trị mặc định
-    fileMetadataCache: null, // <-- Thêm giá trị mặc định
-    isCrossLinkingEnabled: false, // <-- Thêm giá trị mặc định
-    // --- GIÁ TRỊ MẶC ĐỊNH CHO CÀI ĐẶT ĐỒNG BỘ ---
+    tempSelectedPaths: null,
+    fileMetadataCache: null,
+    isCrossLinkingEnabled: false,
     syncEnabled: false,
     syncPath: null,
-    customIgnorePatterns: [], // <-- GIÁ TRỊ MẶC ĐỊNH
-    // --- GIÁ TRỊ MẶC ĐỊNH CHO STATE HỒ SƠ ---
+    customIgnorePatterns: [],
     profiles: ["default"],
     activeProfile: "default",
-    isWatchingFiles: false, // <-- GIÁ TRỊ MẶC ĐỊNH
-    isSidebarVisible: true, // <-- GIÁ TRỊ MẶC ĐỊNH
+    isWatchingFiles: false,
+    isSidebarVisible: true,
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
-        // Dừng watcher cũ trước khi chuyển dự án
-        const { isWatchingFiles } = get();
-        if (isWatchingFiles) {
-          await invoke("stop_file_watching");
-        }
-
         set({
           rootPath: path,
           selectedPath: path,
-          activeScene: "dashboard",
           isScanning: true,
           scanProgress: { currentFile: "Đang tìm các hồ sơ..." },
         });
 
         try {
+          // 1. Lấy danh sách tất cả các hồ sơ
           const profiles = await invoke<string[]>("list_profiles", {
             projectPath: path,
           });
           set({ profiles });
-          // Tải hồ sơ 'default' sau khi chọn một thư mục mới
-          loadProfileData(path, "default");
 
-          // Bắt đầu watcher mới nếu cần
-          if (isWatchingFiles) {
-            await invoke("start_file_watching", { path });
-          }
+          // THAY ĐỔI LỚN 3: Tải danh sách nhóm cho TẤT CẢ các hồ sơ
+          const groupPromises = profiles.map((p) =>
+            invoke<Group[]>("list_groups_for_profile", {
+              projectPath: path,
+              profileName: p,
+            }).then((groups) => [p, groups] as [string, Group[]])
+          );
+
+          const profileGroups = await Promise.all(groupPromises);
+          const newAllGroups = new Map(profileGroups);
+          set({ allGroups: newAllGroups });
+
+          // 2. Tải toàn bộ dữ liệu cho hồ sơ 'default'
+          loadProfileData(path, "default");
         } catch (error) {
           console.error("Lỗi khi lấy danh sách hồ sơ:", error);
           set({
@@ -227,7 +226,7 @@ export const useAppStore = create<AppState>((set, get) => {
             profiles: ["default"],
             activeProfile: "default",
           });
-          await message("Không thể lấy danh sách hồ sơ.", {
+          message("Không thể lấy danh sách hồ sơ.", {
             title: "Lỗi",
             kind: "error",
           });
@@ -265,12 +264,13 @@ export const useAppStore = create<AppState>((set, get) => {
         set({
           rootPath: null,
           selectedPath: null,
+          allGroups: new Map(),
           groups: [],
           activeScene: "dashboard",
           editingGroupId: null,
           profiles: ["default"],
           activeProfile: "default",
-        }), // Reset cả groups
+        }),
 
       // --- CẬP NHẬT: addGroup không còn đổi scene nữa ---
       addGroup: (newGroup) => {
@@ -282,26 +282,50 @@ export const useAppStore = create<AppState>((set, get) => {
           crossSyncEnabled: false,
           tokenLimit: newGroup.tokenLimit || undefined,
         };
-        set((state) => ({
-          groups: [...state.groups, groupWithDefaults],
-          editingGroupId: groupWithDefaults.id, // Chuyển sang chỉnh sửa nhóm mới
-        }));
+        // THAY ĐỔI LỚN 4: Cập nhật allGroups thay vì groups
+        set((state) => {
+          const newAllGroups = new Map(state.allGroups);
+          const currentGroups = newAllGroups.get(state.activeProfile) || [];
+          newAllGroups.set(state.activeProfile, [
+            ...currentGroups,
+            groupWithDefaults,
+          ]);
+          return {
+            allGroups: newAllGroups,
+            groups: newAllGroups.get(state.activeProfile) || [],
+            editingGroupId: groupWithDefaults.id,
+          };
+        });
         get().actions.startEditingGroup(groupWithDefaults.id);
         updateGroupsOnBackend();
       },
       updateGroup: (updatedGroup) => {
-        set((state) => ({
-          groups: state.groups.map((g) =>
+        set((state) => {
+          const newAllGroups = new Map(state.allGroups);
+          const currentGroups = newAllGroups.get(state.activeProfile) || [];
+          const updatedGroups = currentGroups.map((g) =>
             g.id === updatedGroup.id ? { ...g, ...updatedGroup } : g
-          ),
-        }));
-        updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
+          );
+          newAllGroups.set(state.activeProfile, updatedGroups);
+          return {
+            allGroups: newAllGroups,
+            groups: updatedGroups,
+          };
+        });
+        updateGroupsOnBackend();
       },
       deleteGroup: (groupId) => {
-        set((state) => ({
-          groups: state.groups.filter((g) => g.id !== groupId),
-        }));
-        updateGroupsOnBackend(); // <-- GỌI HÀM MỚI
+        set((state) => {
+          const newAllGroups = new Map(state.allGroups);
+          const currentGroups = newAllGroups.get(state.activeProfile) || [];
+          const updatedGroups = currentGroups.filter((g) => g.id !== groupId);
+          newAllGroups.set(state.activeProfile, updatedGroups);
+          return {
+            allGroups: newAllGroups,
+            groups: updatedGroups,
+          };
+        });
+        updateGroupsOnBackend();
       },
 
       // --- CÁC ACTION MỚI ---
@@ -337,25 +361,32 @@ export const useAppStore = create<AppState>((set, get) => {
         set({ scanProgress: { currentFile: file } });
       },
       _setScanComplete: (payload: CachedProjectData) => {
-        set({
-          projectStats: payload.stats,
-          fileTree: payload.file_tree,
-          // --- THAY ĐỔI: Lưu cả file metadata cache ---
-          fileMetadataCache: payload.file_metadata_cache,
-          groups: (payload.groups || []).map((g) => ({
-            ...g,
-            paths: g.paths || [],
-            stats: g.stats || defaultGroupStats(),
-            crossSyncEnabled: (g as any).cross_sync_enabled ?? false, // <-- XỬ LÝ DỮ LIỆU MỚI
-            tokenLimit: g.tokenLimit, // <-- XỬ LÝ DỮ LIỆU MỚI
-          })),
-          isScanning: false,
-          // Cập nhật cài đặt đồng bộ từ file đã tải
-          syncEnabled: payload.sync_enabled ?? false,
-          syncPath: payload.sync_path ?? null,
-          customIgnorePatterns: payload.custom_ignore_patterns ?? [], // <-- CẬP NHẬT STATE
-          isWatchingFiles: payload.is_watching_files ?? false, // <-- CẬP NHẬT STATE TỪ FILE
-          // file_metadata_cache được backend quản lý, frontend không cần lưu
+        const { activeProfile } = get();
+        const loadedGroups = (payload.groups || []).map((g) => ({
+          ...g,
+          paths: g.paths || [],
+          stats: g.stats || defaultGroupStats(),
+          crossSyncEnabled: (g as any).cross_sync_enabled ?? false,
+          tokenLimit: g.tokenLimit,
+        }));
+
+        set((state) => {
+          // THAY ĐỔI LỚN 5: Cập nhật `allGroups` với dữ liệu mới từ backend
+          const newAllGroups = new Map(state.allGroups);
+          newAllGroups.set(activeProfile, loadedGroups);
+
+          return {
+            allGroups: newAllGroups,
+            groups: loadedGroups, // Cập nhật cả state `groups` suy ra
+            projectStats: payload.stats,
+            fileTree: payload.file_tree,
+            fileMetadataCache: payload.file_metadata_cache,
+            isScanning: false,
+            syncEnabled: payload.sync_enabled ?? false,
+            syncPath: payload.sync_path ?? null,
+            customIgnorePatterns: payload.custom_ignore_patterns ?? [],
+            isWatchingFiles: payload.is_watching_files ?? false,
+          };
         });
       },
       _setScanError: (error) => {
@@ -365,16 +396,19 @@ export const useAppStore = create<AppState>((set, get) => {
       },
       // --- ACTIONS MỚI ---
       _setGroupUpdateComplete: ({ groupId, stats, paths }) => {
-        set((state) => ({
-          groups: state.groups.map((g) =>
-            g.id === groupId
-              ? // --- THAY ĐỔI: Sử dụng `paths` trực tiếp từ payload ---
-                { ...g, paths: paths, stats: stats }
-              : g
-          ),
-          isUpdatingGroupId: null, // Tắt loading
-        }));
-        // Quay về màn hình danh sách nhóm bằng cách xóa editingGroupId
+        set((state) => {
+          const newAllGroups = new Map(state.allGroups);
+          const currentGroups = newAllGroups.get(state.activeProfile) || [];
+          const updatedGroups = currentGroups.map((g) =>
+            g.id === groupId ? { ...g, paths: paths, stats: stats } : g
+          );
+          newAllGroups.set(state.activeProfile, updatedGroups);
+          return {
+            allGroups: newAllGroups,
+            groups: updatedGroups,
+            isUpdatingGroupId: null,
+          };
+        });
         get().actions.cancelEditingGroup();
       },
       // --- LOGIC CHỈNH SỬA NHÓM ĐƯỢC TẬP TRUNG TẠI ĐÂY ---
@@ -516,17 +550,23 @@ export const useAppStore = create<AppState>((set, get) => {
 
       // <-- BẮT ĐẦU SỬA LỖI -->
       setGroupCrossSync: async (groupId, enabled) => {
-        const { rootPath, activeProfile } = get(); // <-- Lấy thêm activeProfile
+        const { rootPath, activeProfile } = get();
         if (!rootPath) return;
 
-        set((state) => ({
-          groups: state.groups.map((g) =>
+        set((state) => {
+          const newAllGroups = new Map(state.allGroups);
+          const currentGroups = newAllGroups.get(activeProfile) || [];
+          const updatedGroups = currentGroups.map((g) =>
             g.id === groupId ? { ...g, crossSyncEnabled: enabled } : g
-          ),
-        }));
+          );
+          newAllGroups.set(activeProfile, updatedGroups);
+          return {
+            allGroups: newAllGroups,
+            groups: updatedGroups,
+          };
+        });
 
         try {
-          // <-- Thêm `profileName` vào payload
           await invoke("set_group_cross_sync", {
             path: rootPath,
             profileName: activeProfile,
@@ -534,16 +574,10 @@ export const useAppStore = create<AppState>((set, get) => {
             enabled,
           });
         } catch (error) {
-          console.error("Lỗi khi cập nhật cài đặt đồng bộ chéo:", error);
-          await message(`Không thể cập nhật đồng bộ chéo: ${error}`, {
+          message(`Không thể cập nhật đồng bộ chéo: ${error}`, {
             title: "Lỗi",
             kind: "error",
           });
-          set((state) => ({
-            groups: state.groups.map((g) =>
-              g.id === groupId ? { ...g, crossSyncEnabled: !enabled } : g
-            ),
-          }));
         }
       },
       // <-- KẾT THÚC SỬA LỖI -->
@@ -576,15 +610,13 @@ export const useAppStore = create<AppState>((set, get) => {
       switchProfile: async (profileName: string) => {
         const { rootPath, activeProfile } = get();
         if (!rootPath || profileName === activeProfile) return;
+        // Chỉ cần tải dữ liệu đầy đủ, danh sách nhóm đã có sẵn
         loadProfileData(rootPath, profileName);
       },
       createProfile: async (profileName: string) => {
         const { rootPath, profiles } = get();
         if (!rootPath || profiles.includes(profileName)) {
-          await message("Tên hồ sơ đã tồn tại.", {
-            title: "Lỗi",
-            kind: "error",
-          });
+          message("Tên hồ sơ đã tồn tại.", { title: "Lỗi", kind: "error" });
           return;
         }
         try {
@@ -592,11 +624,18 @@ export const useAppStore = create<AppState>((set, get) => {
             projectPath: rootPath,
             profileName,
           });
-          set({ profiles: [...profiles, profileName] });
+          // THAY ĐỔI LỚN 6: Thêm hồ sơ mới vào `allGroups`
+          set((state) => {
+            const newAllGroups = new Map(state.allGroups);
+            newAllGroups.set(profileName, []); // Khởi tạo với mảng nhóm rỗng
+            return {
+              profiles: [...state.profiles, profileName],
+              allGroups: newAllGroups,
+            };
+          });
           get().actions.switchProfile(profileName);
         } catch (error) {
-          console.error("Lỗi khi tạo hồ sơ:", error);
-          await message(`Không thể tạo hồ sơ: ${error}`, {
+          message(`Không thể tạo hồ sơ: ${error}`, {
             title: "Lỗi",
             kind: "error",
           });
@@ -605,10 +644,7 @@ export const useAppStore = create<AppState>((set, get) => {
       renameProfile: async (oldName: string, newName: string) => {
         const { rootPath, profiles } = get();
         if (!rootPath || profiles.includes(newName)) {
-          await message("Tên hồ sơ mới đã tồn tại.", {
-            title: "Lỗi",
-            kind: "error",
-          });
+          message("Tên hồ sơ mới đã tồn tại.", { title: "Lỗi", kind: "error" });
           return;
         }
         try {
@@ -617,32 +653,46 @@ export const useAppStore = create<AppState>((set, get) => {
             oldName,
             newName,
           });
-          set({
-            profiles: profiles.map((p) => (p === oldName ? newName : p)),
-            activeProfile: newName,
+          set((state) => {
+            const newAllGroups = new Map(state.allGroups);
+            if (newAllGroups.has(oldName)) {
+              newAllGroups.set(newName, newAllGroups.get(oldName)!);
+              newAllGroups.delete(oldName);
+            }
+            return {
+              profiles: state.profiles.map((p) =>
+                p === oldName ? newName : p
+              ),
+              activeProfile: newName,
+              allGroups: newAllGroups,
+            };
           });
         } catch (error) {
-          console.error("Lỗi khi đổi tên hồ sơ:", error);
-          await message(`Không thể đổi tên hồ sơ: ${error}`, {
+          message(`Không thể đổi tên hồ sơ: ${error}`, {
             title: "Lỗi",
             kind: "error",
           });
         }
       },
       deleteProfile: async (profileName: string) => {
-        const { rootPath, profiles } = get();
+        const { rootPath } = get();
         if (!rootPath || profileName === "default") return;
         try {
           await invoke("delete_profile", {
             projectPath: rootPath,
             profileName,
           });
-          set({ profiles: profiles.filter((p) => p !== profileName) });
-          // Chuyển về hồ sơ default sau khi xóa
+          set((state) => {
+            const newAllGroups = new Map(state.allGroups);
+            newAllGroups.delete(profileName);
+            return {
+              profiles: state.profiles.filter((p) => p !== profileName),
+              allGroups: newAllGroups,
+            };
+          });
           get().actions.switchProfile("default");
         } catch (error) {
-          console.error("Lỗi khi xóa hồ sơ:", error);
-          await message(`Không thể xóa hồ sơ: ${error}`, {
+          message(`Không thể xóa hồ sơ: ${error}`, {
             title: "Lỗi",
             kind: "error",
           });

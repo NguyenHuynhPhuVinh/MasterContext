@@ -1,3 +1,4 @@
+// src/hooks/useDashboard.ts
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -5,7 +6,7 @@ import * as z from "zod";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
 import { useShallow } from "zustand/react/shallow";
-// Schema validation cho form nhóm
+
 const groupSchema = z.object({
   name: z.string().min(1, "Tên nhóm không được để trống"),
   description: z.string().optional(),
@@ -20,7 +21,6 @@ const groupSchema = z.object({
 });
 type GroupFormValues = z.infer<typeof groupSchema>;
 
-// --- THÊM SCHEMA CHO FORM HỒ SƠ ---
 const profileSchema = z.object({
   name: z
     .string()
@@ -30,7 +30,6 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function useDashboard() {
-  // --- LẤY STATE VÀ ACTIONS TỪ STORE ---
   const { projectStats, selectedPath, profiles, activeProfile } = useAppStore(
     useShallow((state) => ({
       projectStats: state.projectStats,
@@ -42,28 +41,25 @@ export function useDashboard() {
   const {
     addGroup,
     updateGroup,
-    // selectRootPath, // không cần gọi trực tiếp nữa
-    // rescanProject, // không cần gọi trực tiếp nữa
-    switchProfile, // <-- Action mới
-    createProfile, // <-- Action mới
-    renameProfile, // <-- Action mới
-    deleteProfile, // <-- Action mới
+    switchProfile,
+    createProfile,
+    renameProfile,
+    deleteProfile,
   } = useAppActions();
 
-  // --- STATE CỤC BỘ CỦA SCENE ---
+  // State cục bộ
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
 
-  // Xóa isExporting, isCopying
-
-  // --- STATE MỚI CHO DIALOG HỒ SƠ ---
+  // --- THAY ĐỔI: Thêm state để theo dõi hồ sơ đang được sửa/xóa ---
+  const [editingProfile, setEditingProfile] = useState<string | null>(null);
   const [profileDialogMode, setProfileDialogMode] = useState<
     "create" | "rename" | null
   >(null);
   const [isProfileDeleteDialogOpen, setIsProfileDeleteDialogOpen] =
     useState(false);
 
-  // --- QUẢN LÝ FORM ---
+  // Forms
   const groupForm = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
     defaultValues: { name: "", description: "", tokenLimit: undefined },
@@ -74,9 +70,7 @@ export function useDashboard() {
     defaultValues: { name: "" },
   });
 
-  // Xóa useEffect lắng nghe sự kiện export, vì nó đã được chuyển lên App.tsx
-
-  // --- CÁC HÀM XỬ LÝ SỰ KIỆN (HANDLERS) CHO NHÓM ---
+  // Handlers cho Group
   const handleOpenGroupDialog = (group: Group | null = null) => {
     setEditingGroup(group);
     groupForm.reset(
@@ -110,17 +104,15 @@ export function useDashboard() {
     setIsGroupDialogOpen(false);
   };
 
-  // --- CÁC HÀM XỬ LÝ SỰ KIỆN (HANDLERS) CHO DỰ ÁN ---
-  // XÓA: handleOpenAnotherFolder và handleConfirmRescan
-  // Các hàm này giờ được xử lý toàn cục qua menu
-
-  // Xóa handleExportProject và handleCopyProject vì đã chuyển vào appStore
-
-  // --- CÁC HÀM MỚI ĐỂ XỬ LÝ HỒ SƠ ---
-  const handleOpenProfileDialog = (mode: "create" | "rename") => {
+  // --- THAY ĐỔI: Cập nhật handlers cho Profile ---
+  const handleOpenProfileDialog = (
+    mode: "create" | "rename",
+    profile?: string
+  ) => {
     setProfileDialogMode(mode);
-    if (mode === "rename") {
-      profileForm.setValue("name", activeProfile);
+    setEditingProfile(profile || null); // Lưu hồ sơ mục tiêu
+    if (mode === "rename" && profile) {
+      profileForm.setValue("name", profile);
     } else {
       profileForm.reset({ name: "" });
     }
@@ -129,20 +121,28 @@ export function useDashboard() {
   const onProfileSubmit = async (data: ProfileFormValues) => {
     if (profileDialogMode === "create") {
       await createProfile(data.name);
-    } else if (profileDialogMode === "rename" && activeProfile) {
-      await renameProfile(activeProfile, data.name);
+    } else if (profileDialogMode === "rename" && editingProfile) {
+      // Sử dụng `editingProfile` làm tên cũ
+      await renameProfile(editingProfile, data.name);
     }
     setProfileDialogMode(null);
+    setEditingProfile(null);
+  };
+
+  const handleOpenDeleteDialog = (profile: string) => {
+    setEditingProfile(profile); // Lưu hồ sơ mục tiêu
+    setIsProfileDeleteDialogOpen(true);
   };
 
   const handleConfirmDeleteProfile = async () => {
-    if (activeProfile) {
-      await deleteProfile(activeProfile);
+    if (editingProfile) {
+      // Sử dụng `editingProfile` để xóa
+      await deleteProfile(editingProfile);
     }
     setIsProfileDeleteDialogOpen(false);
+    setEditingProfile(null);
   };
 
-  // --- TRẢ VỀ "API" CHO COMPONENT UI ---
   return {
     // Data
     selectedPath,
@@ -154,6 +154,7 @@ export function useDashboard() {
     editingGroup,
     profileDialogMode,
     isProfileDeleteDialogOpen,
+    editingProfile, // Trả về state mới
     // Forms
     groupForm,
     profileForm,
@@ -161,12 +162,13 @@ export function useDashboard() {
     setIsGroupDialogOpen,
     handleOpenGroupDialog,
     onGroupSubmit,
-    // Profile handlers
+    // Profile handlers đã được cập nhật
     switchProfile,
     handleOpenProfileDialog,
     setProfileDialogMode,
     onProfileSubmit,
     setIsProfileDeleteDialogOpen,
+    handleOpenDeleteDialog, // Trả về handler mới
     handleConfirmDeleteProfile,
   };
 }

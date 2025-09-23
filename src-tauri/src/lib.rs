@@ -34,7 +34,8 @@ pub fn run() {
             commands::rename_profile,
             commands::set_file_watching_setting,
             commands::start_file_watching,
-            commands::stop_file_watching
+            commands::stop_file_watching,
+            commands::list_groups_for_profile
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

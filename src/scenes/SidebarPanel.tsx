@@ -1,5 +1,5 @@
 // src/scenes/SidebarPanel.tsx
-import { useCallback } from "react"; // <-- THÊM IMPORT
+import { useState, useCallback, useEffect } from "react";
 import { useDashboard } from "@/hooks/useDashboard";
 import { GroupManager } from "@/components/GroupManager";
 import { Button } from "@/components/ui/button";
@@ -33,18 +33,27 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, ChevronDown, Edit, Trash2, Plus } from "lucide-react";
+import {
+  PlusCircle,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Plus,
+  FolderOpen,
+  ChevronRight,
+} from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAppStore } from "@/store/appStore";
-import { Group } from "@/store/types";
+import { useShallow } from "zustand/react/shallow";
+import { type Group } from "@/store/types";
+import { cn } from "@/lib/utils";
 
 export function SidebarPanel() {
   const {
@@ -54,6 +63,7 @@ export function SidebarPanel() {
     editingGroup,
     profileDialogMode,
     isProfileDeleteDialogOpen,
+    editingProfile,
     groupForm,
     profileForm,
     setIsGroupDialogOpen,
@@ -63,99 +73,181 @@ export function SidebarPanel() {
     setProfileDialogMode,
     onProfileSubmit,
     setIsProfileDeleteDialogOpen,
+    handleOpenDeleteDialog,
     handleConfirmDeleteProfile,
+    switchProfile,
   } = useDashboard();
 
-  // --- TỐI ƯU HÓA: Ghi nhớ hàm handleEditGroup ---
+  const { allGroups } = useAppStore(
+    useShallow((state) => ({ allGroups: state.allGroups }))
+  );
+
+  // State expandedProfiles vẫn cần thiết để quản lý việc hiển thị các nhóm
+  const [expandedProfiles, setExpandedProfiles] = useState<
+    Record<string, boolean>
+  >({ [activeProfile]: true });
+
   const handleEditGroup = useCallback(
     (group: Group) => {
-      handleOpenGroupDialog(group);
+      if (group.id) {
+        const profileOfGroup = [...allGroups.entries()].find(([, groups]) =>
+          groups.some((g) => g.id === group.id)
+        )?.[0];
+        if (profileOfGroup && profileOfGroup !== activeProfile) {
+          switchProfile(profileOfGroup).then(() => {
+            handleOpenGroupDialog(group);
+          });
+        } else {
+          handleOpenGroupDialog(group);
+        }
+      }
     },
-    [handleOpenGroupDialog]
+    [handleOpenGroupDialog, allGroups, activeProfile, switchProfile]
   );
+
+  const toggleProfileExpansion = (e: React.MouseEvent, profileName: string) => {
+    e.stopPropagation();
+    setExpandedProfiles((prev) => ({
+      ...prev,
+      [profileName]: !prev[profileName],
+    }));
+  };
+
+  // Logic để tạo nhóm mới trong đúng hồ sơ
+  const handleCreateNewGroupInProfile = (profileName: string) => {
+    // Nếu hồ sơ được chọn không phải là hồ sơ đang hoạt động
+    if (profileName !== activeProfile) {
+      // Chuyển sang hồ sơ đó trước, sau đó mở dialog
+      switchProfile(profileName).then(() => {
+        handleOpenGroupDialog(null);
+      });
+    } else {
+      // Nếu đã là hồ sơ hoạt động, chỉ cần mở dialog
+      handleOpenGroupDialog(null);
+    }
+  };
+
+  // Cập nhật state expanded khi hồ sơ active thay đổi
+  useEffect(() => {
+    setExpandedProfiles((prev) => ({ ...prev, [activeProfile]: true }));
+  }, [activeProfile]);
 
   return (
     <>
-      <div className="flex flex-col h-full">
-        {/* --- HEADER --- */}
+      <div className="flex flex-col h-full bg-card">
         <header className="flex items-center justify-between p-4 border-b shrink-0">
-          <div>
-            <h1 className="text-xl font-bold">Hồ sơ & Nhóm</h1>
-            <p className="text-sm text-muted-foreground">
-              Quản lý ngữ cảnh dự án.
-            </p>
-          </div>
+          <h1 className="text-xl font-bold">Bảng điều khiển</h1>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleOpenProfileDialog("create")}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Tạo hồ sơ
+          </Button>
         </header>
 
-        {/* --- ACTIONS BAR --- */}
-        <div className="p-4 border-b shrink-0">
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex-1 min-w-0">
-                  <span className="truncate">{activeProfile}</span>
-                  <ChevronDown className="ml-auto h-4 w-4 shrink-0" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuLabel>Hồ sơ ngữ cảnh</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {profiles.map((profile: string) => (
-                  <DropdownMenuItem
-                    key={profile}
-                    onClick={() =>
-                      useAppStore.getState().actions.switchProfile(profile)
-                    }
-                    className={profile === activeProfile ? "bg-accent" : ""}
-                  >
-                    {profile}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => handleOpenProfileDialog("create")}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Tạo hồ sơ mới
-                </DropdownMenuItem>
-                {activeProfile !== "default" && (
-                  <>
-                    <DropdownMenuItem
-                      onClick={() => handleOpenProfileDialog("rename")}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Đổi tên hồ sơ
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => setIsProfileDeleteDialogOpen(true)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Xóa hồ sơ
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button className="flex-1" onClick={() => handleOpenGroupDialog()}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm
-            </Button>
-          </div>
-        </div>
-
-        {/* --- VÙNG NỘI DUNG CUỘN ĐƯỢC --- */}
         <ScrollArea className="flex-1">
-          <div className="p-4">
-            <GroupManager onEditGroup={handleEditGroup} />{" "}
-            {/* <-- SỬ DỤNG HÀM ĐÃ GHI NHỚ */}
+          <div className="p-2 space-y-1">
+            {profiles.map((profileName) => {
+              const isExpanded = expandedProfiles[profileName] ?? false;
+              const isActive = profileName === activeProfile;
+              return (
+                <div key={profileName}>
+                  <div
+                    onClick={() => switchProfile(profileName)}
+                    // --- THAY ĐỔI 2: Sửa lỗi hover trên hồ sơ đang active ---
+                    className={cn(
+                      "group flex items-center justify-between p-2 rounded-md cursor-pointer",
+                      isActive
+                        ? "bg-primary text-primary-foreground" // Nếu active, dùng màu này và không hover
+                        : "hover:bg-accent" // Nếu không active, mới cho phép hover
+                    )}
+                  >
+                    <div className="flex-1 flex items-center gap-2">
+                      {/* --- THAY ĐỔI LOGIC: Nút này chỉ để mở/đóng --- */}
+                      <div
+                        onClick={(e) => toggleProfileExpansion(e, profileName)}
+                        className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10"
+                      >
+                        <ChevronRight
+                          className={cn(
+                            "h-4 w-4 transition-transform",
+                            isExpanded && "rotate-90"
+                          )}
+                        />
+                      </div>
+                      <FolderOpen className="h-5 w-5" />
+                      <span className="font-semibold">{profileName}</span>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        {/* Ngăn sự kiện click lan ra thẻ div cha */}
+                        <Button
+                          onClick={(e) => e.stopPropagation()}
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-56"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handleCreateNewGroupInProfile(profileName)
+                          }
+                        >
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          <span>Tạo nhóm mới...</span>
+                        </DropdownMenuItem>
+                        {profileName !== "default" && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleOpenProfileDialog("rename", profileName)
+                              }
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>Đổi tên hồ sơ...</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleOpenDeleteDialog(profileName)
+                              }
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              <span>Xóa hồ sơ...</span>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {/* --- THAY ĐỔI 1: Đã xóa mục "Tạo hồ sơ khác..." thừa ở đây --- */}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  {isExpanded && (
+                    <div className="pl-5 pt-1">
+                      <GroupManager
+                        profileName={profileName}
+                        onEditGroup={handleEditGroup}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </ScrollArea>
       </div>
 
-      {/* DIALOGS */}
+      {/* Các Dialog không thay đổi */}
       <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-        {/* ... (Dialog content for creating/editing group is the same) */}
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -241,18 +333,17 @@ export function SidebarPanel() {
         open={profileDialogMode !== null}
         onOpenChange={(open) => !open && setProfileDialogMode(null)}
       >
-        {/* ... (Dialog content for profiles is the same) */}
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
               {profileDialogMode === "rename"
-                ? "Đổi tên hồ sơ"
+                ? `Đổi tên hồ sơ "${editingProfile}"`
                 : "Tạo hồ sơ mới"}
             </DialogTitle>
             <DialogDescription>
               {profileDialogMode === "rename"
-                ? "Nhập tên mới cho hồ sơ ngữ cảnh."
-                : "Nhập tên cho hồ sơ ngữ cảnh mới."}
+                ? "Nhập tên mới cho hồ sơ."
+                : "Nhập tên cho hồ sơ mới."}
             </DialogDescription>
           </DialogHeader>
           <Form {...profileForm}>
@@ -294,18 +385,20 @@ export function SidebarPanel() {
         open={isProfileDeleteDialogOpen}
         onOpenChange={setIsProfileDeleteDialogOpen}
       >
-        {/* ... (Alert dialog for deleting profile is the same) */}
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Xóa hồ sơ</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa hồ sơ "{activeProfile}"? Hành động này
+              Bạn có chắc chắn muốn xóa hồ sơ "{editingProfile}"? Hành động này
               không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDeleteProfile}>
+            <AlertDialogAction
+              onClick={handleConfirmDeleteProfile}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Xóa
             </AlertDialogAction>
           </AlertDialogFooter>

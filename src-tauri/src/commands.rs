@@ -541,3 +541,13 @@ pub fn stop_file_watching() -> Result<(), String> {
     }
     Ok(())
 }
+
+#[command]
+pub fn list_groups_for_profile(
+    app: AppHandle,
+    project_path: String,
+    profile_name: String,
+) -> Result<Vec<models::Group>, String> {
+    let project_data = file_cache::load_project_data(&app, &project_path, &profile_name)?;
+    Ok(project_data.groups)
+}
