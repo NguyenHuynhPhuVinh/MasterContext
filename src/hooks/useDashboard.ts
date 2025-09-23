@@ -5,8 +5,6 @@ import * as z from "zod";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
 import { useShallow } from "zustand/react/shallow";
-import { message } from "@tauri-apps/plugin-dialog"; // <-- THAY ĐỔI IMPORT
-
 // Schema validation cho form nhóm
 const groupSchema = z.object({
   name: z.string().min(1, "Tên nhóm không được để trống"),
@@ -109,10 +107,6 @@ export function useDashboard() {
     } else {
       addGroup(groupData);
     }
-    await message(
-      editingGroup ? "Cập nhật nhóm thành công!" : "Tạo nhóm mới thành công!",
-      { title: "Thành công", kind: "info" }
-    );
     setIsGroupDialogOpen(false);
   };
 

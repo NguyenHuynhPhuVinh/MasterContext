@@ -177,10 +177,6 @@ function App() {
         "group_update_complete",
         async (event) => {
           _setGroupUpdateComplete(event.payload);
-          await message("Lưu nhóm thành công!", {
-            title: "Thành công",
-            kind: "info",
-          });
         }
       )
     );

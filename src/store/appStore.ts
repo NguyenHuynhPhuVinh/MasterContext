@@ -597,10 +597,6 @@ export const useAppStore = create<AppState>((set, get) => {
           });
           set({ profiles: [...profiles, profileName] });
           get().actions.switchProfile(profileName);
-          await message(`Đã tạo và chuyển sang hồ sơ "${profileName}"`, {
-            title: "Thành công",
-            kind: "info",
-          });
         } catch (error) {
           console.error("Lỗi khi tạo hồ sơ:", error);
           await message(`Không thể tạo hồ sơ: ${error}`, {
@@ -628,10 +624,6 @@ export const useAppStore = create<AppState>((set, get) => {
             profiles: profiles.map((p) => (p === oldName ? newName : p)),
             activeProfile: newName,
           });
-          await message(`Đã đổi tên hồ sơ thành "${newName}"`, {
-            title: "Thành công",
-            kind: "info",
-          });
         } catch (error) {
           console.error("Lỗi khi đổi tên hồ sơ:", error);
           await message(`Không thể đổi tên hồ sơ: ${error}`, {
@@ -651,10 +643,6 @@ export const useAppStore = create<AppState>((set, get) => {
           set({ profiles: profiles.filter((p) => p !== profileName) });
           // Chuyển về hồ sơ default sau khi xóa
           get().actions.switchProfile("default");
-          await message(`Đã xóa hồ sơ "${profileName}"`, {
-            title: "Thành công",
-            kind: "info",
-          });
         } catch (error) {
           console.error("Lỗi khi xóa hồ sơ:", error);
           await message(`Không thể xóa hồ sơ: ${error}`, {
