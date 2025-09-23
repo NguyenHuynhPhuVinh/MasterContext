@@ -1,28 +1,10 @@
 // src/hooks/useDashboard.ts
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+// --- BỎ IMPORT CỦA react-hook-form VÀ ZOD CHO GROUP ---
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
 import { useShallow } from "zustand/react/shallow";
 import { message } from "@tauri-apps/plugin-dialog";
-
-const groupSchema = z.object({
-  name: z.string().min(1, "Tên nhóm không được để trống"),
-  description: z.string().optional(),
-  tokenLimit: z
-    .union([z.string(), z.number()])
-    .optional()
-    .refine((val) => {
-      if (val === undefined || val === "") return true;
-      const num = typeof val === "string" ? Number(val) : val;
-      return num > 0;
-    }, "Giới hạn token phải là số dương"),
-});
-type GroupFormValues = z.infer<typeof groupSchema>;
-
-// --- BỎ PROFILE SCHEMA VÌ SẼ VALIDATE THỦ CÔNG ---
 
 export function useDashboard() {
   const { projectStats, selectedPath, profiles, activeProfile } = useAppStore(
@@ -42,80 +24,42 @@ export function useDashboard() {
     deleteProfile,
   } = useAppActions();
 
-  // State cục bộ cho Group Dialog
-  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  // --- BỎ STATE DIALOG CỦA GROUP ---
 
-  // --- THAY ĐỔI: STATE MỚI CHO INLINE EDITING ---
+  // State cho inline editing của Profile
   const [inlineEditingProfile, setInlineEditingProfile] = useState<{
     mode: "create" | "rename";
-    name?: string; // Tên cũ khi rename
+    name?: string;
+  } | null>(null);
+
+  // --- STATE MỚI CHO INLINE EDITING CỦA GROUP ---
+  const [inlineEditingGroup, setInlineEditingGroup] = useState<{
+    mode: "create" | "rename";
+    profileName: string;
+    groupId?: string;
   } | null>(null);
 
   const [isProfileDeleteDialogOpen, setIsProfileDeleteDialogOpen] =
     useState(false);
   const [deletingProfile, setDeletingProfile] = useState<string | null>(null);
 
-  // Form cho Group Dialog
-  const groupForm = useForm<GroupFormValues>({
-    resolver: zodResolver(groupSchema),
-    defaultValues: { name: "", description: "", tokenLimit: undefined },
-  });
+  // --- BỎ GROUP FORM ---
 
-  // --- BỎ PROFILE FORM ---
-
-  // Handlers cho Group
-  const handleOpenGroupDialog = (group: Group | null = null) => {
-    setEditingGroup(group);
-    groupForm.reset(
-      group
-        ? {
-            name: group.name,
-            description: group.description || "",
-            tokenLimit: group.tokenLimit,
-          }
-        : { name: "", description: "", tokenLimit: undefined }
-    );
-    setIsGroupDialogOpen(true);
-  };
-
-  const onGroupSubmit = async (data: GroupFormValues) => {
-    const groupData = {
-      name: data.name,
-      description: data.description || "",
-      tokenLimit:
-        data.tokenLimit === "" || data.tokenLimit === undefined
-          ? undefined
-          : typeof data.tokenLimit === "string"
-          ? Number(data.tokenLimit)
-          : data.tokenLimit,
-    };
-    if (editingGroup) {
-      updateGroup({ ...editingGroup, ...groupData });
-    } else {
-      addGroup(groupData);
-    }
-    setIsGroupDialogOpen(false);
-  };
-
-  // --- CÁC HANDLER MỚI CHO PROFILE INLINE EDITING ---
-
+  // Handlers cho Profile Inline Editing
   const handleStartCreateProfile = () => {
+    setInlineEditingGroup(null); // Đảm bảo chỉ có một inline edit tại một thời điểm
     setInlineEditingProfile({ mode: "create" });
   };
-
   const handleStartRenameProfile = (profile: string) => {
+    setInlineEditingGroup(null);
     setInlineEditingProfile({ mode: "rename", name: profile });
   };
-
   const onCancelProfileEdit = () => {
     setInlineEditingProfile(null);
   };
-
   const onProfileSubmitInline = async (newName: string) => {
+    // ... (logic này giữ nguyên)
     if (!inlineEditingProfile) return;
-
-    // Validation
     if (!newName.trim()) {
       message("Tên hồ sơ không được để trống.", {
         title: "Lỗi",
@@ -130,7 +74,6 @@ export function useDashboard() {
       });
       return;
     }
-
     if (inlineEditingProfile.mode === "create") {
       await createProfile(newName);
     } else if (
@@ -139,8 +82,43 @@ export function useDashboard() {
     ) {
       await renameProfile(inlineEditingProfile.name, newName);
     }
-
     setInlineEditingProfile(null);
+  };
+
+  // --- HANDLERS MỚI CHO GROUP INLINE EDITING ---
+  const handleStartCreateGroup = (profileName: string) => {
+    setInlineEditingProfile(null); // Hủy edit profile nếu có
+    setInlineEditingGroup({ mode: "create", profileName });
+  };
+  const handleStartRenameGroup = (profileName: string, group: Group) => {
+    setInlineEditingProfile(null);
+    setInlineEditingGroup({ mode: "rename", profileName, groupId: group.id });
+  };
+  const onCancelGroupEdit = () => {
+    setInlineEditingGroup(null);
+  };
+  const onGroupSubmitInline = async (newName: string) => {
+    if (!inlineEditingGroup) return;
+
+    if (!newName.trim()) {
+      message("Tên nhóm không được để trống.", { title: "Lỗi", kind: "error" });
+      return;
+    }
+
+    // Chuyển sang profile cần thiết trước khi thực hiện action
+    if (inlineEditingGroup.profileName !== activeProfile) {
+      await switchProfile(inlineEditingGroup.profileName);
+    }
+
+    if (inlineEditingGroup.mode === "create") {
+      addGroup({ name: newName });
+    } else if (
+      inlineEditingGroup.mode === "rename" &&
+      inlineEditingGroup.groupId
+    ) {
+      updateGroup({ id: inlineEditingGroup.groupId, name: newName });
+    }
+    setInlineEditingGroup(null);
   };
 
   const handleOpenDeleteDialog = (profile: string) => {
@@ -158,30 +136,28 @@ export function useDashboard() {
 
   return {
     // Data
-    selectedPath,
     projectStats,
+    selectedPath,
     profiles,
     activeProfile,
-    // Trạng thái UI
-    isGroupDialogOpen,
-    editingGroup,
+    // UI State
     isProfileDeleteDialogOpen,
     deletingProfile,
-    inlineEditingProfile, // State mới
-    // Form
-    groupForm,
-    // Handlers
-    setIsGroupDialogOpen,
-    handleOpenGroupDialog,
-    onGroupSubmit,
+    inlineEditingProfile,
+    inlineEditingGroup, // State mới
+    // Profile Handlers
     switchProfile,
-    setIsProfileDeleteDialogOpen,
     handleOpenDeleteDialog,
     handleConfirmDeleteProfile,
-    // Handlers inline mới
     handleStartCreateProfile,
     handleStartRenameProfile,
     onCancelProfileEdit,
     onProfileSubmitInline,
+    // Group Handlers (mới)
+    handleStartCreateGroup,
+    handleStartRenameGroup,
+    onCancelGroupEdit,
+    onGroupSubmitInline,
+    setIsProfileDeleteDialogOpen,
   };
 }

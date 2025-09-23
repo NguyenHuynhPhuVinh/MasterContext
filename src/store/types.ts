@@ -47,7 +47,6 @@ export interface ScanProgress {
 export interface Group {
   id: string;
   name: string;
-  description: string;
   paths: string[];
   stats: GroupStats;
   crossSyncEnabled?: boolean;

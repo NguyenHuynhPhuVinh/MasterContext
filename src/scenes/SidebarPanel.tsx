@@ -3,15 +3,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useDashboard } from "@/hooks/useDashboard";
 import { GroupManager } from "@/components/GroupManager";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
+// --- XÓA CÁC IMPORT DIALOG CỦA GROUP ---
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,17 +14,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+// --- XÓA CÁC IMPORT FORM ---
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   PlusCircle,
   MoreHorizontal,
@@ -42,6 +25,7 @@ import {
   FolderOpen,
   ChevronRight,
   Folder as FolderIcon,
+  ListChecks,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -51,10 +35,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAppStore } from "@/store/appStore";
-import { useShallow } from "zustand/react/shallow";
 import { type Group } from "@/store/types";
 import { cn } from "@/lib/utils";
+
+// --- Input Inline cho Profile (giữ nguyên) ---
+// ... (component InlineProfileInput ở đây)
 
 // --- COMPONENT MỚI CHO INPUT INLINE ---
 interface InlineProfileInputProps {
@@ -108,19 +93,61 @@ function InlineProfileInput({
   );
 }
 
+// --- Input Inline cho Group (ĐỊNH NGHĨA Ở ĐÂY ĐỂ DÙNG CHUNG) ---
+interface InlineGroupInputProps {
+  defaultValue: string;
+  onConfirm: (newValue: string) => void;
+  onCancel: () => void;
+}
+function InlineGroupInput({
+  defaultValue,
+  onConfirm,
+  onCancel,
+}: InlineGroupInputProps) {
+  const [value, setValue] = useState(defaultValue);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      onConfirm(value);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onCancel();
+    }
+  };
+
+  const handleBlur = () => onCancel();
+
+  return (
+    <div className="flex items-center gap-2 p-2 rounded-md">
+      <ListChecks className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+        className="h-7 text-sm"
+        placeholder="Tên nhóm..."
+      />
+    </div>
+  );
+}
+
 export function SidebarPanel() {
   const {
     profiles,
     activeProfile,
-    isGroupDialogOpen,
-    editingGroup,
     isProfileDeleteDialogOpen,
     deletingProfile,
     inlineEditingProfile,
-    groupForm,
-    setIsGroupDialogOpen,
-    handleOpenGroupDialog,
-    onGroupSubmit,
+    inlineEditingGroup,
     handleOpenDeleteDialog,
     handleConfirmDeleteProfile,
     switchProfile,
@@ -128,35 +155,16 @@ export function SidebarPanel() {
     handleStartRenameProfile,
     onCancelProfileEdit,
     onProfileSubmitInline,
+    handleStartCreateGroup,
+    handleStartRenameGroup,
+    onCancelGroupEdit,
+    onGroupSubmitInline,
     setIsProfileDeleteDialogOpen,
   } = useDashboard();
 
-  const { allGroups } = useAppStore(
-    useShallow((state) => ({ allGroups: state.allGroups }))
-  );
-
-  // State expandedProfiles vẫn cần thiết để quản lý việc hiển thị các nhóm
   const [expandedProfiles, setExpandedProfiles] = useState<
     Record<string, boolean>
   >({ [activeProfile]: true });
-
-  const handleEditGroup = useCallback(
-    (group: Group) => {
-      if (group.id) {
-        const profileOfGroup = [...allGroups.entries()].find(([, groups]) =>
-          groups.some((g) => g.id === group.id)
-        )?.[0];
-        if (profileOfGroup && profileOfGroup !== activeProfile) {
-          switchProfile(profileOfGroup).then(() => {
-            handleOpenGroupDialog(group);
-          });
-        } else {
-          handleOpenGroupDialog(group);
-        }
-      }
-    },
-    [handleOpenGroupDialog, allGroups, activeProfile, switchProfile]
-  );
 
   const toggleProfileExpansion = (e: React.MouseEvent, profileName: string) => {
     e.stopPropagation();
@@ -166,21 +174,6 @@ export function SidebarPanel() {
     }));
   };
 
-  // Logic để tạo nhóm mới trong đúng hồ sơ
-  const handleCreateNewGroupInProfile = (profileName: string) => {
-    // Nếu hồ sơ được chọn không phải là hồ sơ đang hoạt động
-    if (profileName !== activeProfile) {
-      // Chuyển sang hồ sơ đó trước, sau đó mở dialog
-      switchProfile(profileName).then(() => {
-        handleOpenGroupDialog(null);
-      });
-    } else {
-      // Nếu đã là hồ sơ hoạt động, chỉ cần mở dialog
-      handleOpenGroupDialog(null);
-    }
-  };
-
-  // Cập nhật state expanded khi hồ sơ active thay đổi
   useEffect(() => {
     setExpandedProfiles((prev) => ({ ...prev, [activeProfile]: true }));
   }, [activeProfile]);
@@ -194,7 +187,7 @@ export function SidebarPanel() {
             variant="outline"
             size="sm"
             onClick={handleStartCreateProfile}
-            disabled={!!inlineEditingProfile} // Vô hiệu hóa khi đang chỉnh sửa
+            disabled={!!inlineEditingProfile || !!inlineEditingGroup}
           >
             <Plus className="mr-2 h-4 w-4" /> Tạo hồ sơ
           </Button>
@@ -205,12 +198,11 @@ export function SidebarPanel() {
             {profiles.map((profileName) => {
               const isExpanded = expandedProfiles[profileName] ?? false;
               const isActive = profileName === activeProfile;
-              const isEditing =
+              const isEditingProfile =
                 inlineEditingProfile?.mode === "rename" &&
                 inlineEditingProfile.name === profileName;
 
-              // --- LOGIC RENDER MỚI ---
-              if (isEditing) {
+              if (isEditingProfile) {
                 return (
                   <InlineProfileInput
                     key={`${profileName}-editing`}
@@ -264,9 +256,11 @@ export function SidebarPanel() {
                         className="w-56"
                         onClick={(e) => e.stopPropagation()}
                       >
+                        {/* --- SỬA ACTION TẠO NHÓM MỚI --- */}
                         <DropdownMenuItem
-                          onClick={() =>
-                            handleCreateNewGroupInProfile(profileName)
+                          onClick={() => handleStartCreateGroup(profileName)}
+                          disabled={
+                            !!inlineEditingGroup || !!inlineEditingProfile
                           }
                         >
                           <PlusCircle className="mr-2 h-4 w-4" />
@@ -278,6 +272,9 @@ export function SidebarPanel() {
                             <DropdownMenuItem
                               onClick={() =>
                                 handleStartRenameProfile(profileName)
+                              }
+                              disabled={
+                                !!inlineEditingGroup || !!inlineEditingProfile
                               }
                             >
                               <Edit className="mr-2 h-4 w-4" />
@@ -301,15 +298,29 @@ export function SidebarPanel() {
                     <div className="pl-5 pt-1">
                       <GroupManager
                         profileName={profileName}
-                        onEditGroup={handleEditGroup}
+                        inlineEditingGroup={inlineEditingGroup}
+                        onStartRename={(group) =>
+                          handleStartRenameGroup(profileName, group)
+                        }
+                        onConfirmRename={onGroupSubmitInline}
+                        onCancelEdit={onCancelGroupEdit}
                       />
+                      {/* --- HIỂN THỊ INPUT TẠO NHÓM MỚI --- */}
+                      {inlineEditingGroup?.mode === "create" &&
+                        inlineEditingGroup.profileName === profileName && (
+                          <InlineGroupInput
+                            key={`creating-group-in-${profileName}`}
+                            defaultValue=""
+                            onConfirm={onGroupSubmitInline}
+                            onCancel={onCancelGroupEdit}
+                          />
+                        )}
                     </div>
                   )}
                 </div>
               );
             })}
 
-            {/* --- HIỂN THỊ INPUT KHI TẠO MỚI --- */}
             {inlineEditingProfile?.mode === "create" && (
               <InlineProfileInput
                 key="creating-profile"
@@ -322,96 +333,11 @@ export function SidebarPanel() {
         </ScrollArea>
       </div>
 
-      {/* Dialog tạo/sửa nhóm (giữ nguyên) */}
-      <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingGroup ? "Chỉnh sửa nhóm" : "Tạo nhóm mới"}
-            </DialogTitle>
-            <DialogDescription>
-              Điền thông tin chi tiết cho nhóm của bạn.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...groupForm}>
-            <form
-              onSubmit={groupForm.handleSubmit(onGroupSubmit)}
-              className="space-y-4"
-            >
-              <FormField
-                control={groupForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tên nhóm</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ví dụ: Backend APIs" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={groupForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mô tả</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Mô tả ngắn về chức năng của nhóm này..."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={groupForm.control}
-                name="tokenLimit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Giới hạn Token (Tùy chọn)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Ví dụ: 8000"
-                        {...field}
-                        value={field.value ?? ""}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value === "" ? undefined : e.target.value
-                          )
-                        }
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Đặt ngân sách token để nhận cảnh báo nếu nhóm vượt quá.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="ghost">
-                    Hủy
-                  </Button>
-                </DialogClose>
-                <Button type="submit">Lưu</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      {/* --- XÓA HOÀN TOÀN DIALOG CỦA GROUP --- */}
 
-      {/* --- XÓA DIALOG TẠO/SỬA HỒ SƠ --- */}
-
-      {/* Dialog xác nhận xóa (giữ nguyên) */}
       <AlertDialog
         open={isProfileDeleteDialogOpen}
-        onOpenChange={(open) => !open && setIsProfileDeleteDialogOpen(false)}
+        onOpenChange={setIsProfileDeleteDialogOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>

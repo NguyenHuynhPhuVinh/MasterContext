@@ -1,5 +1,5 @@
 // src/components/GroupManager.tsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
@@ -9,6 +9,7 @@ import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +31,9 @@ import {
   Link,
   ClipboardCopy,
   BrainCircuit,
+  Tag,
+  Save,
+  X,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -38,15 +42,120 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useShallow } from "zustand/react/shallow";
 
-interface GroupManagerProps {
-  profileName: string;
-  onEditGroup: (group: Group) => void;
+// --- COMPONENT MỚI: Input inline cho nhóm ---
+interface InlineGroupInputProps {
+  defaultValue: string;
+  onConfirm: (newValue: string) => void;
+  onCancel: () => void;
 }
 
-export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
+function InlineGroupInput({
+  defaultValue,
+  onConfirm,
+  onCancel,
+}: InlineGroupInputProps) {
+  const [value, setValue] = useState(defaultValue);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      onConfirm(value);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onCancel();
+    }
+  };
+
+  const handleBlur = () => onCancel();
+
+  return (
+    <div className="flex items-center gap-2 p-2 rounded-md">
+      <ListChecks className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+        className="h-7 text-sm"
+      />
+    </div>
+  );
+}
+
+// --- COMPONENT MỚI: Input sửa token trong dropdown ---
+function TokenLimitEditor({
+  group,
+  onSave,
+}: {
+  group: Group;
+  onSave: (limit?: number) => void;
+}) {
+  const [limit, setLimit] = useState(group.tokenLimit?.toString() ?? "");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, []);
+
+  const handleSave = () => {
+    const num = limit.trim() === "" ? undefined : parseInt(limit, 10);
+    onSave(isNaN(num as number) ? undefined : num);
+  };
+
+  return (
+    <div className="p-2 space-y-2">
+      <p className="text-xs font-medium text-muted-foreground px-1">
+        Giới hạn Token
+      </p>
+      <div className="flex items-center gap-2">
+        <Input
+          ref={inputRef}
+          type="number"
+          placeholder="Không giới hạn"
+          value={limit}
+          onChange={(e) => setLimit(e.target.value)}
+          className="h-8"
+        />
+        <Button size="icon" className="h-8 w-8" onClick={handleSave}>
+          <Save className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+interface GroupManagerProps {
+  profileName: string;
+  inlineEditingGroup: {
+    mode: "create" | "rename";
+    profileName: string;
+    groupId?: string;
+  } | null;
+  onStartRename: (group: Group) => void;
+  onConfirmRename: (newName: string) => void;
+  onCancelEdit: () => void;
+}
+
+export function GroupManager({
+  profileName,
+  inlineEditingGroup,
+  onStartRename,
+  onConfirmRename,
+  onCancelEdit,
+}: GroupManagerProps) {
   const { groups, activeProfile, rootPath } = useAppStore(
     useShallow((state) => ({
       groups: state.allGroups.get(profileName) || [],
@@ -54,17 +163,17 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
       rootPath: state.rootPath,
     }))
   );
+  const {
+    deleteGroup,
+    editGroupContent,
+    setGroupCrossSync,
+    switchProfile,
+    updateGroup,
+  } = useAppActions();
 
-  const { deleteGroup, editGroupContent, setGroupCrossSync, switchProfile } =
-    useAppActions();
-
+  // ... (state và effects cho việc export/copy giữ nguyên)
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
   const [copyingGroupId, setCopyingGroupId] = useState<string | null>(null);
-  // --- XÓA CÁC STATE LIÊN QUAN ĐẾN DIALOG ---
-  // const [exportOptionsOpen, setExportOptionsOpen] = useState(false);
-  // const [groupToExport, setGroupToExport] = useState<Group | null>(null);
-  // const [useFullTree, setUseFullTree] = useState(false);
-  // const [isConfirmingExport, setIsConfirmingExport] = useState(false);
   const [pendingExportData, setPendingExportData] = useState<{
     context: string;
     group: Group;
@@ -134,26 +243,6 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
     }
   }, [pendingExportData]);
 
-  // --- HÀM XUẤT FILE ĐƯỢC ĐƠN GIẢN HÓA ---
-  const handleExport = (group: Group) => {
-    performActionAfterSwitch(() => {
-      setExportingGroupId(group.id);
-      invoke("start_group_export", {
-        groupId: group.id,
-        rootPathStr: rootPath,
-        profileName: profileName,
-        // Không cần truyền useFullTree nữa
-      }).catch((err) => {
-        message(`Không thể bắt đầu xuất file: ${err}`, {
-          title: "Lỗi",
-          kind: "error",
-        });
-        setExportingGroupId(null);
-      });
-    });
-  };
-
-  // --- LOGIC MỚI: Hàm trợ giúp để thực hiện hành động sau khi chuyển hồ sơ nếu cần ---
   const performActionAfterSwitch = useCallback(
     async (action: () => void) => {
       if (profileName !== activeProfile) {
@@ -164,15 +253,25 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
     [profileName, activeProfile, switchProfile]
   );
 
-  // --- Cập nhật các handler để sử dụng logic mới ---
+  const handleExport = (group: Group) => {
+    performActionAfterSwitch(() => {
+      setExportingGroupId(group.id);
+      invoke("start_group_export", {
+        groupId: group.id,
+        rootPathStr: rootPath,
+        profileName,
+      }).catch((err) => {
+        message(`Không thể bắt đầu xuất file: ${err}`, {
+          title: "Lỗi",
+          kind: "error",
+        });
+        setExportingGroupId(null);
+      });
+    });
+  };
   const handleEditContentClick = (group: Group) => {
     performActionAfterSwitch(() => editGroupContent(group.id));
   };
-
-  const handleEditGroupDetails = (group: Group) => {
-    performActionAfterSwitch(() => onEditGroup(group));
-  };
-
   const handleCopyContext = (group: Group) => {
     performActionAfterSwitch(async () => {
       if (!rootPath) return;
@@ -199,18 +298,24 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
       }
     });
   };
-
   const handleDeleteGroup = (group: Group) => {
     performActionAfterSwitch(() => deleteGroup(group.id));
   };
-
   const handleToggleCrossSync = (group: Group, enabled: boolean) => {
     performActionAfterSwitch(() => setGroupCrossSync(group.id, enabled));
+  };
+  const handleSaveTokenLimit = (group: Group, limit?: number) => {
+    performActionAfterSwitch(() =>
+      updateGroup({ id: group.id, name: group.name, tokenLimit: limit })
+    );
   };
 
   return (
     <>
-      {groups.length === 0 ? (
+      {groups.length === 0 &&
+      (!inlineEditingGroup ||
+        inlineEditingGroup.profileName !== profileName ||
+        inlineEditingGroup.mode !== "create") ? (
         <div className="text-left py-2 px-2">
           <p className="text-sm text-muted-foreground/80">Không có nhóm nào.</p>
         </div>
@@ -219,6 +324,21 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
           {groups.map((group) => {
             const isLoading =
               exportingGroupId === group.id || copyingGroupId === group.id;
+            const isEditing =
+              inlineEditingGroup?.mode === "rename" &&
+              inlineEditingGroup.groupId === group.id;
+
+            if (isEditing) {
+              return (
+                <InlineGroupInput
+                  key={`${group.id}-editing`}
+                  defaultValue={group.name}
+                  onConfirm={onConfirmRename}
+                  onCancel={onCancelEdit}
+                />
+              );
+            }
+
             return (
               <div
                 key={group.id}
@@ -264,13 +384,29 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
                       )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => handleEditGroupDetails(group)}
-                    >
+                  <DropdownMenuContent
+                    align="end"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DropdownMenuItem onClick={() => onStartRename(group)}>
                       <Pencil className="mr-2 h-4 w-4" />
-                      <span>Chỉnh sửa Chi tiết</span>
+                      <span>Đổi tên</span>
                     </DropdownMenuItem>
+
+                    {/* --- TOKEN LIMIT EDITOR MỚI --- */}
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Tag className="mr-2 h-4 w-4" />
+                        <span>Sửa giới hạn Token</span>
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="p-0">
+                        <TokenLimitEditor
+                          group={group}
+                          onSave={(limit) => handleSaveTokenLimit(group, limit)}
+                        />
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => handleCopyContext(group)}>
                       <ClipboardCopy className="mr-2 h-4 w-4" />
@@ -308,7 +444,7 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
                           </AlertDialogTitle>
                           <AlertDialogDescription>
                             Hành động này không thể hoàn tác. Nhóm "{group.name}
-                            " sẽ bị xóa vĩnh viễn khỏi hồ sơ "{profileName}".
+                            " sẽ bị xóa vĩnh viễn.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -329,8 +465,6 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
           })}
         </div>
       )}
-
-      {/* --- XÓA HOÀN TOÀN ALERTDIALOG CHO TÙY CHỌN XUẤT FILE --- */}
     </>
   );
 }

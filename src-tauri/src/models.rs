@@ -45,11 +45,10 @@ pub struct FileNode {
 pub struct Group {
     pub id: String,
     pub name: String,
-    pub description: String,
     pub paths: Vec<String>,
     pub stats: GroupStats,
     pub cross_sync_enabled: Option<bool>,
-    pub token_limit: Option<usize>, // <-- THÊM TRƯỜNG NÀY
+    pub token_limit: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
