@@ -183,7 +183,7 @@ export function SidebarPanel() {
                         profileName={profileName}
                         inlineEditingGroup={inlineEditingGroup}
                         onStartRename={(group) =>
-                          handleStartRenameGroup(profileName, { id: group.id })
+                          handleStartRenameGroup(profileName, group)
                         }
                         onConfirmRename={onGroupSubmitInline}
                         onCancelEdit={onCancelGroupEdit}

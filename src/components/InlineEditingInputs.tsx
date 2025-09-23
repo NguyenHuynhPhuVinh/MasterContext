@@ -1,5 +1,5 @@
 // src/components/InlineEditingInputs.tsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Folder as FolderIcon, ListChecks } from "lucide-react";
 
@@ -28,7 +28,7 @@ export function InlineProfileInput({
     inputRef.current?.select();
   }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       onConfirm(value);
@@ -69,7 +69,7 @@ export function InlineGroupInput({
     inputRef.current?.select();
   }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       onConfirm(value);
