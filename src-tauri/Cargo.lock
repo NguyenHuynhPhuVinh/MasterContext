@@ -2255,7 +2255,7 @@ dependencies = [
 
 [[package]]
 name = "master-context"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "ignore",
  "lazy_static",

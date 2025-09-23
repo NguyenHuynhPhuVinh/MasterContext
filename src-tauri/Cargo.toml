@@ -1,6 +1,6 @@
 [package]
 name = "master-context"
-version = "0.1.1"
+version = "0.1.2"
 description = "Một công cụ mạnh mẽ để quản lý và tạo ngữ cảnh cho các dự án lập trình."
 authors = ["you"]
 edition = "2021"
