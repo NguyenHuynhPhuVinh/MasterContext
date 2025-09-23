@@ -6,18 +6,39 @@ import { save, message } from "@tauri-apps/plugin-dialog"; // <-- THAY ĐỔI IM
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAppStore, useAppActions } from "./store/appStore";
 import { type GroupStats, type CachedProjectData } from "./store/types";
+import { useShallow } from "zustand/react/shallow"; // <-- THÊM IMPORT NÀY
 import { WelcomeScene } from "./scenes/WelcomeScene";
-import { DashboardScene } from "./scenes/DashboardScene";
-import { GroupEditorScene } from "./scenes/GroupEditorScene";
 import { ScanningScene } from "./scenes/ScanningScene";
-import { SettingsScene } from "./scenes/SettingsScene"; // <-- THÊM IMPORT
+import { SettingsScene } from "./scenes/SettingsScene";
+import { SidebarPanel } from "./scenes/SidebarPanel";
+import { MainPanel } from "./scenes/MainPanel";
+import { StatusBar } from "./components/StatusBar";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "./components/ui/resizable";
 import { throttle } from "@/lib/utils";
 import "./App.css";
 
 function App() {
-  const selectedPath = useAppStore((state) => state.selectedPath);
-  const activeScene = useAppStore((state) => state.activeScene);
-  const isScanning = useAppStore((state) => state.isScanning);
+  const {
+    selectedPath,
+    activeScene,
+    isScanning,
+    projectStats,
+    isSidebarVisible,
+  } = useAppStore(
+    // --- SỬA LỖI TẠI ĐÂY ---
+    useShallow((state) => ({
+      selectedPath: state.selectedPath,
+      activeScene: state.activeScene,
+      isScanning: state.isScanning,
+      projectStats: state.projectStats,
+      isSidebarVisible: state.isSidebarVisible,
+    }))
+  );
+
   const {
     _setScanProgress,
     _setScanComplete,
@@ -26,8 +47,9 @@ function App() {
     rescanProject,
     openFolderFromMenu,
     showSettingsScene,
-    exportProject, // <-- Lấy action mới
-    copyProjectToClipboard, // <-- Lấy action mới
+    exportProject,
+    copyProjectToClipboard,
+    toggleSidebarVisibility, // <-- Action mới
   } = useAppActions();
 
   // --- Effect áp dụng theme (giữ nguyên) ---
@@ -94,6 +116,18 @@ function App() {
           action: showSettingsScene,
         });
 
+        // --- MENU MỚI ---
+        const windowSubmenu = await Submenu.new({
+          text: "Cửa sổ",
+          items: [
+            await MenuItem.new({
+              id: "toggle_sidebar",
+              text: "Bảng điều khiển Hồ sơ & Nhóm",
+              action: toggleSidebarVisibility,
+            }),
+          ],
+        });
+
         const optionsSubmenu = await Submenu.new({
           text: "Tùy chọn",
           items: [settingsItem],
@@ -101,7 +135,7 @@ function App() {
         // --- KẾT THÚC THÊM MENU ---
 
         const appMenu = await Menu.new({
-          items: [fileSubmenu, optionsSubmenu], // <-- Thêm menu mới vào đây
+          items: [fileSubmenu, windowSubmenu, optionsSubmenu], // <-- Thêm menu mới vào đây
         });
 
         // Đặt menu cho cửa sổ hiện tại
@@ -144,6 +178,7 @@ function App() {
     showSettingsScene,
     exportProject,
     copyProjectToClipboard,
+    toggleSidebarVisibility,
   ]); // <-- Thêm dependency
 
   const throttledSetScanProgress = useMemo(
@@ -256,15 +291,28 @@ function App() {
         </div>
       );
     }
-    switch (activeScene) {
-      case "groupEditor":
-        return <GroupEditorScene />;
-      case "settings": // <-- THÊM CASE MỚI
-        return <SettingsScene />;
-      case "dashboard":
-      default:
-        return <DashboardScene />;
+
+    if (activeScene === "settings") {
+      return <SettingsScene />;
     }
+
+    // --- RENDER LAYOUT MỚI ---
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="flex-1">
+          {isSidebarVisible && (
+            <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+              <SidebarPanel />
+            </ResizablePanel>
+          )}
+          {isSidebarVisible && <ResizableHandle withHandle />}
+          <ResizablePanel defaultSize={75}>
+            <MainPanel />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+        <StatusBar stats={projectStats} path={selectedPath} />
+      </div>
+    );
   };
 
   return (

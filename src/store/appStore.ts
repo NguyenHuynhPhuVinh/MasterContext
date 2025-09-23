@@ -59,7 +59,7 @@ interface AppState {
   selectedPath: string | null;
   groups: Group[];
   // --- STATE MỚI ĐỂ ĐIỀU HƯỚNG ---
-  activeScene: "dashboard" | "groupEditor" | "settings"; // <-- THÊM MỚI
+  activeScene: "dashboard" | "settings"; // <-- Đơn giản hóa
   editingGroupId: string | null;
   // --- STATE MỚI ---
   projectStats: ProjectStats | null;
@@ -79,6 +79,7 @@ interface AppState {
   profiles: string[];
   activeProfile: string;
   isWatchingFiles: boolean; // <-- THÊM STATE MỚI
+  isSidebarVisible: boolean; // <-- STATE MỚI
 
   actions: {
     selectRootPath: (path: string) => Promise<void>;
@@ -126,6 +127,7 @@ interface AppState {
     setFileWatching: (enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
     exportProject: () => void;
     copyProjectToClipboard: () => Promise<void>;
+    toggleSidebarVisibility: () => void; // <-- ACTION MỚI
   };
 }
 
@@ -188,6 +190,7 @@ export const useAppStore = create<AppState>((set, get) => {
     profiles: ["default"],
     activeProfile: "default",
     isWatchingFiles: false, // <-- GIÁ TRỊ MẶC ĐỊNH
+    isSidebarVisible: true, // <-- GIÁ TRỊ MẶC ĐỊNH
     actions: {
       // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
@@ -269,7 +272,7 @@ export const useAppStore = create<AppState>((set, get) => {
           activeProfile: "default",
         }), // Reset cả groups
 
-      // --- THAY ĐỔI: Chuyển hướng ngay sau khi tạo nhóm ---
+      // --- CẬP NHẬT: addGroup không còn đổi scene nữa ---
       addGroup: (newGroup) => {
         const groupWithDefaults: Group = {
           ...newGroup,
@@ -277,17 +280,13 @@ export const useAppStore = create<AppState>((set, get) => {
           paths: [],
           stats: defaultGroupStats(),
           crossSyncEnabled: false,
-          tokenLimit: newGroup.tokenLimit || undefined, // Đảm bảo trường mới được thêm vào
+          tokenLimit: newGroup.tokenLimit || undefined,
         };
-        // Cập nhật state để thêm nhóm mới và chuyển sang màn hình chỉnh sửa
         set((state) => ({
           groups: [...state.groups, groupWithDefaults],
-          activeScene: "groupEditor",
-          editingGroupId: groupWithDefaults.id,
+          editingGroupId: groupWithDefaults.id, // Chuyển sang chỉnh sửa nhóm mới
         }));
-        // Khởi tạo trạng thái chỉnh sửa cho nhóm mới (ví dụ: tempSelectedPaths)
         get().actions.startEditingGroup(groupWithDefaults.id);
-        // Lưu lại sự thay đổi trên backend
         updateGroupsOnBackend();
       },
       updateGroup: (updatedGroup) => {
@@ -308,7 +307,7 @@ export const useAppStore = create<AppState>((set, get) => {
       // --- CÁC ACTION MỚI ---
       editGroupContent: (groupId) => {
         get().actions.startEditingGroup(groupId);
-        set({ activeScene: "groupEditor", editingGroupId: groupId });
+        set({ editingGroupId: groupId });
       },
       showDashboard: () => {
         set({ activeScene: "dashboard", editingGroupId: null });
@@ -375,9 +374,8 @@ export const useAppStore = create<AppState>((set, get) => {
           ),
           isUpdatingGroupId: null, // Tắt loading
         }));
-        // --- THAY ĐỔI: Gọi cancelEditingGroup để dọn dẹp và navigate ---
+        // Quay về màn hình danh sách nhóm bằng cách xóa editingGroupId
         get().actions.cancelEditingGroup();
-        // Backend đã lưu trong start_group_update, không cần lưu lại
       },
       // --- LOGIC CHỈNH SỬA NHÓM ĐƯỢC TẬP TRUNG TẠI ĐÂY ---
 
@@ -453,7 +451,6 @@ export const useAppStore = create<AppState>((set, get) => {
 
       cancelEditingGroup: () => {
         set({
-          activeScene: "dashboard",
           editingGroupId: null,
           tempSelectedPaths: null,
         });
@@ -721,6 +718,11 @@ export const useAppStore = create<AppState>((set, get) => {
             kind: "error",
           });
         }
+      },
+
+      // --- ACTION MỚI ĐỂ BẬT/TẮT SIDEBAR ---
+      toggleSidebarVisibility: () => {
+        set((state) => ({ isSidebarVisible: !state.isSidebarVisible }));
       },
     },
   };
