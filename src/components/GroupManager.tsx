@@ -1,5 +1,5 @@
 // src/components/GroupManager.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
@@ -49,7 +49,6 @@ interface GroupManagerProps {
 }
 
 export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
-  // Lấy nhóm cho hồ sơ cụ thể này từ state `allGroups`
   const { groups, activeProfile, rootPath } = useAppStore(
     useShallow((state) => ({
       groups: state.allGroups.get(profileName) || [],
@@ -58,7 +57,8 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
     }))
   );
 
-  const { deleteGroup, editGroupContent, setGroupCrossSync } = useAppActions();
+  const { deleteGroup, editGroupContent, setGroupCrossSync, switchProfile } =
+    useAppActions();
 
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
   const [copyingGroupId, setCopyingGroupId] = useState<string | null>(null);
@@ -103,7 +103,6 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
       unlistenError.then((f) => f());
     };
   }, [groups]);
-
   useEffect(() => {
     if (pendingExportData) {
       const showSaveDialog = async () => {
@@ -140,12 +139,6 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
     }
   }, [pendingExportData]);
 
-  const handleOpenExportOptions = (group: Group) => {
-    setGroupToExport(group);
-    setExportOptionsOpen(true);
-    setUseFullTree(false);
-  };
-
   const handleConfirmExport = async () => {
     if (!groupToExport || !rootPath || !activeProfile) return;
     setIsConfirmingExport(true);
@@ -157,46 +150,78 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
       useFullTree: useFullTree,
     });
   };
-
   const handleCloseDialog = () => {
     if (!isConfirmingExport) setExportOptionsOpen(false);
   };
 
-  const handleCopyContext = async (group: Group) => {
-    if (!rootPath || !activeProfile) return;
-    setCopyingGroupId(group.id);
-    try {
-      const context = await invoke<string>("generate_group_context", {
-        groupId: group.id,
-        rootPathStr: rootPath,
-        profileName: activeProfile,
-        useFullTree: true,
-      });
-      await writeText(context);
-      await message(`Đã sao chép ngữ cảnh nhóm "${group.name}"`, {
-        title: "Thành công",
-        kind: "info",
-      });
-    } catch (error) {
-      await message(`Không thể sao chép: ${error}`, {
-        title: "Lỗi",
-        kind: "error",
-      });
-    } finally {
-      setCopyingGroupId(null);
-    }
+  // --- LOGIC MỚI: Hàm trợ giúp để thực hiện hành động sau khi chuyển hồ sơ nếu cần ---
+  const performActionAfterSwitch = useCallback(
+    async (action: () => void) => {
+      if (profileName !== activeProfile) {
+        await switchProfile(profileName);
+      }
+      action();
+    },
+    [profileName, activeProfile, switchProfile]
+  );
+
+  // --- Cập nhật các handler để sử dụng logic mới ---
+  const handleEditContentClick = (group: Group) => {
+    performActionAfterSwitch(() => editGroupContent(group.id));
+  };
+
+  const handleEditGroupDetails = (group: Group) => {
+    performActionAfterSwitch(() => onEditGroup(group));
+  };
+
+  const handleCopyContext = (group: Group) => {
+    performActionAfterSwitch(async () => {
+      if (!rootPath) return;
+      setCopyingGroupId(group.id);
+      try {
+        const context = await invoke<string>("generate_group_context", {
+          groupId: group.id,
+          rootPathStr: rootPath,
+          profileName: profileName,
+          useFullTree: true,
+        });
+        await writeText(context);
+        message(`Đã sao chép ngữ cảnh nhóm "${group.name}"`, {
+          title: "Thành công",
+          kind: "info",
+        });
+      } catch (error) {
+        message(`Không thể sao chép: ${error}`, {
+          title: "Lỗi",
+          kind: "error",
+        });
+      } finally {
+        setCopyingGroupId(null);
+      }
+    });
+  };
+
+  const handleOpenExportOptions = (group: Group) => {
+    performActionAfterSwitch(() => {
+      setGroupToExport(group);
+      setExportOptionsOpen(true);
+      setUseFullTree(false);
+    });
+  };
+
+  const handleDeleteGroup = (group: Group) => {
+    performActionAfterSwitch(() => deleteGroup(group.id));
+  };
+
+  const handleToggleCrossSync = (group: Group, enabled: boolean) => {
+    performActionAfterSwitch(() => setGroupCrossSync(group.id, enabled));
   };
 
   return (
     <>
       {groups.length === 0 ? (
-        <div className="text-center py-10 border-2 border-dashed rounded-lg">
-          <h3 className="text-md font-semibold text-muted-foreground">
-            Chưa có nhóm nào
-          </h3>
-          <p className="text-sm text-muted-foreground/80 mt-1">
-            Hãy tạo một nhóm để bắt đầu.
-          </p>
+        <div className="text-left py-2 px-2">
+          <p className="text-sm text-muted-foreground/80">Không có nhóm nào.</p>
         </div>
       ) : (
         <div className="space-y-1">
@@ -206,15 +231,15 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
             return (
               <div
                 key={group.id}
-                className="group flex items-center justify-between p-2 rounded-md hover:bg-accent"
+                className="group flex items-center justify-between p-2 rounded-md hover:bg-accent/50"
               >
                 <div
-                  className="flex-1 flex items-center gap-3 cursor-pointer"
-                  onClick={() => editGroupContent(group.id)}
+                  className="flex-1 flex items-center gap-2 cursor-pointer"
+                  onClick={() => handleEditContentClick(group)}
                 >
-                  <ListChecks className="h-5 w-5 text-muted-foreground" />
+                  <ListChecks className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{group.name}</p>
+                    <p className="font-normal text-sm truncate">{group.name}</p>
                     <p
                       className={cn(
                         "text-xs text-muted-foreground truncate",
@@ -238,7 +263,7 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 opacity-0 group-hover:opacity-100"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -249,7 +274,9 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEditGroup(group)}>
+                    <DropdownMenuItem
+                      onClick={() => handleEditGroupDetails(group)}
+                    >
                       <Pencil className="mr-2 h-4 w-4" />
                       <span>Chỉnh sửa Chi tiết</span>
                     </DropdownMenuItem>
@@ -268,7 +295,7 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
                     <DropdownMenuCheckboxItem
                       checked={group.crossSyncEnabled ?? false}
                       onCheckedChange={(enabled) =>
-                        setGroupCrossSync(group.id, enabled)
+                        handleToggleCrossSync(group, enabled)
                       }
                     >
                       <Link className="mr-2 h-4 w-4" />
@@ -292,13 +319,13 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
                           </AlertDialogTitle>
                           <AlertDialogDescription>
                             Hành động này không thể hoàn tác. Nhóm "{group.name}
-                            " sẽ bị xóa vĩnh viễn.
+                            " sẽ bị xóa vĩnh viễn khỏi hồ sơ "{profileName}".
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Hủy</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => deleteGroup(group.id)}
+                            onClick={() => handleDeleteGroup(group)}
                             className="bg-destructive hover:bg-destructive/90"
                           >
                             Xóa
@@ -314,7 +341,7 @@ export function GroupManager({ profileName, onEditGroup }: GroupManagerProps) {
         </div>
       )}
 
-      {/* --- DIALOG MỚI CHO TÙY CHỌN XUẤT FILE --- */}
+      {/* DIALOG XUẤT FILE (GIỮ NGUYÊN) */}
       <AlertDialog open={exportOptionsOpen} onOpenChange={handleCloseDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

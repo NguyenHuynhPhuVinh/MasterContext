@@ -593,7 +593,11 @@ export const useAppStore = create<AppState>((set, get) => {
         // Nếu chưa có dữ liệu quét chung, không làm gì cả
         if (!fileTree) return;
 
-        set({ scanProgress: { currentFile: `Đang tải ${profileName}...` } });
+        // Reset lại Main Panel về trạng thái mặc định
+        set({
+          editingGroupId: null,
+          scanProgress: { currentFile: `Đang tải ${profileName}...` },
+        });
         try {
           // Chỉ gọi command để tải dữ liệu, không quét lại
           const profileData = await invoke<CachedProjectData>(
