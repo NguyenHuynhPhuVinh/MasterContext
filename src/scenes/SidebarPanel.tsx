@@ -1,8 +1,11 @@
 // src/scenes/SidebarPanel.tsx
-import { useState, useEffect, useRef } from "react";
-import { useDashboard } from "@/hooks/useDashboard";
+import { useSidebarPanel } from "@/hooks/useSidebarPanel";
 import { GroupManager } from "@/components/GroupManager";
 import { Button } from "@/components/ui/button";
+import {
+  InlineProfileInput,
+  InlineGroupInput,
+} from "@/components/InlineEditingInputs";
 // --- XÓA CÁC IMPORT DIALOG CỦA GROUP ---
 import {
   AlertDialog,
@@ -15,17 +18,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 // --- XÓA CÁC IMPORT FORM ---
-import { Input } from "@/components/ui/input";
 import {
   PlusCircle,
   MoreHorizontal,
   Edit,
   Trash2,
   Plus,
-  FolderOpen,
   ChevronRight,
   Folder as FolderIcon,
-  ListChecks,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -37,108 +37,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-// --- Input Inline cho Profile (giữ nguyên) ---
-// ... (component InlineProfileInput ở đây)
-
-// --- COMPONENT MỚI CHO INPUT INLINE ---
-interface InlineProfileInputProps {
-  defaultValue: string;
-  onConfirm: (newValue: string) => void;
-  onCancel: () => void;
-}
-
-function InlineProfileInput({
-  defaultValue,
-  onConfirm,
-  onCancel,
-}: InlineProfileInputProps) {
-  const [value, setValue] = useState(defaultValue);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    // Tự động focus và chọn toàn bộ text khi component được render
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, []);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      onConfirm(value);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      onCancel();
-    }
-  };
-
-  const handleBlur = () => {
-    // Hủy khi người dùng click ra ngoài
-    onCancel();
-  };
-
-  return (
-    <div className="flex items-center gap-2 p-2">
-      <FolderIcon className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
-      <Input
-        ref={inputRef}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
-        className="h-7 text-sm"
-        placeholder="Tên hồ sơ..."
-      />
-    </div>
-  );
-}
-
-// --- Input Inline cho Group (ĐỊNH NGHĨA Ở ĐÂY ĐỂ DÙNG CHUNG) ---
-interface InlineGroupInputProps {
-  defaultValue: string;
-  onConfirm: (newValue: string) => void;
-  onCancel: () => void;
-}
-function InlineGroupInput({
-  defaultValue,
-  onConfirm,
-  onCancel,
-}: InlineGroupInputProps) {
-  const [value, setValue] = useState(defaultValue);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, []);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      onConfirm(value);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      onCancel();
-    }
-  };
-
-  const handleBlur = () => onCancel();
-
-  return (
-    <div className="flex items-center gap-2 p-2 rounded-md">
-      <ListChecks className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-      <Input
-        ref={inputRef}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
-        className="h-7 text-sm"
-        placeholder="Tên nhóm..."
-      />
-    </div>
-  );
-}
-
 export function SidebarPanel() {
   const {
     profiles,
@@ -147,6 +45,7 @@ export function SidebarPanel() {
     deletingProfile,
     inlineEditingProfile,
     inlineEditingGroup,
+    expandedProfiles,
     handleOpenDeleteDialog,
     handleConfirmDeleteProfile,
     switchProfile,
@@ -159,23 +58,8 @@ export function SidebarPanel() {
     onCancelGroupEdit,
     onGroupSubmitInline,
     setIsProfileDeleteDialogOpen,
-  } = useDashboard();
-
-  const [expandedProfiles, setExpandedProfiles] = useState<
-    Record<string, boolean>
-  >({ [activeProfile]: true });
-
-  const toggleProfileExpansion = (e: React.MouseEvent, profileName: string) => {
-    e.stopPropagation();
-    setExpandedProfiles((prev) => ({
-      ...prev,
-      [profileName]: !prev[profileName],
-    }));
-  };
-
-  useEffect(() => {
-    setExpandedProfiles((prev) => ({ ...prev, [activeProfile]: true }));
-  }, [activeProfile]);
+    toggleProfileExpansion,
+  } = useSidebarPanel();
 
   return (
     <>
@@ -235,7 +119,7 @@ export function SidebarPanel() {
                           )}
                         />
                       </div>
-                      <FolderOpen className="h-5 w-5" />
+                      <FolderIcon className="h-5 w-5" />
                       <span className="font-semibold">{profileName}</span>
                     </div>
 
