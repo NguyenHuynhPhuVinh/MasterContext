@@ -41,14 +41,12 @@ function App() {
         const openFolderItem = await MenuItem.new({
           id: "open_new_folder",
           text: "Mở thư mục mới...",
-          accelerator: "CmdOrCtrl+O",
           action: openFolderFromMenu,
         });
 
         const rescanFolderItem = await MenuItem.new({
           id: "rescan_folder",
           text: "Quét lại thư mục",
-          accelerator: "CmdOrCtrl+R",
           action: () => {
             if (useAppStore.getState().selectedPath) {
               rescanProject();
