@@ -1,7 +1,8 @@
 // src/store/appStore.ts
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import { toast } from "sonner"; // <-- THÊM IMPORT
+import { open } from "@tauri-apps/plugin-dialog"; // <-- THÊM IMPORT
+import { toast } from "sonner";
 import {
   type CachedProjectData,
   type FileNode,
@@ -80,8 +81,8 @@ interface AppState {
   isWatchingFiles: boolean; // <-- THÊM STATE MỚI
 
   actions: {
-    selectRootPath: (path: string) => Promise<void>; // <-- Chuyển thành async
-    // --- THÊM MỚI: Action để quét lại dự án ---
+    selectRootPath: (path: string) => Promise<void>;
+    openFolderFromMenu: () => Promise<void>; // <-- THÊM ACTION MỚI
     rescanProject: () => Promise<void>;
     reset: () => void;
     addGroup: (group: Omit<Group, "id" | "paths" | "stats">) => void;
@@ -220,6 +221,25 @@ export const useAppStore = create<AppState>((set, get) => {
           toast.error("Không thể lấy danh sách hồ sơ.");
         }
       },
+
+      // --- ACTION MỚI ĐỂ XỬ LÝ MENU CLICK ---
+      openFolderFromMenu: async () => {
+        try {
+          const result = await open({
+            directory: true,
+            multiple: false,
+            title: "Chọn một thư mục dự án",
+          });
+          if (typeof result === "string") {
+            // Gọi action đã có để xử lý logic chọn thư mục
+            get().actions.selectRootPath(result);
+          }
+        } catch (error) {
+          console.error("Lỗi khi chọn thư mục từ menu:", error);
+          toast.error("Không thể mở thư mục.");
+        }
+      },
+
       // --- THÊM MỚI: Logic cho action rescanProject ---
       rescanProject: async () => {
         const { rootPath, activeProfile } = get();

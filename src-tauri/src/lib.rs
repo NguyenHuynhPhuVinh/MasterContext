@@ -1,6 +1,6 @@
 // src-tauri/src/lib.rs
 
-// Khai báo các module mới
+// Khai báo các module
 mod commands;
 mod context_generator;
 mod file_cache;
@@ -32,8 +32,7 @@ pub fn run() {
             commands::create_profile,
             commands::delete_profile,
             commands::rename_profile,
-            commands::set_file_watching_setting, // <-- THÊM COMMAND MỚI
-            // --- THÊM 2 COMMAND MỚI VÀO ĐÂY ---
+            commands::set_file_watching_setting,
             commands::start_file_watching,
             commands::stop_file_watching
         ])

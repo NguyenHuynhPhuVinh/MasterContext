@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { save, open } from "@tauri-apps/plugin-dialog";
+import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { toast } from "sonner";
@@ -52,8 +52,8 @@ export function useDashboard() {
   const {
     addGroup,
     updateGroup,
-    selectRootPath,
-    rescanProject,
+    // selectRootPath, // không cần gọi trực tiếp nữa
+    // rescanProject, // không cần gọi trực tiếp nữa
     switchProfile, // <-- Action mới
     createProfile, // <-- Action mới
     renameProfile, // <-- Action mới
@@ -158,20 +158,8 @@ export function useDashboard() {
   };
 
   // --- CÁC HÀM XỬ LÝ SỰ KIỆN (HANDLERS) CHO DỰ ÁN ---
-  const handleOpenAnotherFolder = async () => {
-    try {
-      const result = await open({
-        directory: true,
-        multiple: false,
-        title: "Chọn một thư mục dự án khác",
-      });
-      if (typeof result === "string") {
-        selectRootPath(result);
-      }
-    } catch (error) {
-      console.error("Lỗi khi chọn thư mục khác:", error);
-    }
-  };
+  // XÓA: handleOpenAnotherFolder và handleConfirmRescan
+  // Các hàm này giờ được xử lý toàn cục qua menu
 
   const handleExportProject = () => {
     if (!rootPath || !activeProfile) return;
@@ -200,9 +188,8 @@ export function useDashboard() {
     }
   };
 
-  const handleConfirmRescan = async () => {
-    await rescanProject();
-  };
+  // XÓA: handleConfirmRescan
+  // Hàm này giờ được xử lý toàn cục qua menu
 
   // --- CÁC HÀM MỚI ĐỂ XỬ LÝ HỒ SƠ ---
   const handleOpenProfileDialog = (mode: "create" | "rename") => {
@@ -251,10 +238,8 @@ export function useDashboard() {
     setIsGroupDialogOpen,
     handleOpenGroupDialog,
     onGroupSubmit,
-    handleOpenAnotherFolder,
     handleExportProject,
     handleCopyProject,
-    handleConfirmRescan,
     // Profile handlers
     switchProfile,
     handleOpenProfileDialog,

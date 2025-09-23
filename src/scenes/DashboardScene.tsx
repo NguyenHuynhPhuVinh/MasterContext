@@ -29,7 +29,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Form,
@@ -43,14 +42,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   PlusCircle,
-  FolderSync,
-  RotateCw,
   Settings,
   ChevronDown,
   Edit,
@@ -88,10 +80,8 @@ export function DashboardScene() {
     setIsGroupDialogOpen,
     handleOpenGroupDialog,
     onGroupSubmit,
-    handleOpenAnotherFolder,
     handleExportProject,
     handleCopyProject,
-    handleConfirmRescan,
     handleOpenProfileDialog,
     setProfileDialogMode,
     onProfileSubmit,
@@ -109,55 +99,7 @@ export function DashboardScene() {
             {/* Thay đổi padding p-4 -> p-6 */}
             <div className="flex items-center justify-between px-2">
               <h2 className="text-xl font-bold">Thông tin Dự án</h2>
-              <div className="flex items-center">
-                <AlertDialog>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <RotateCw className="h-5 w-5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Quét lại dự án</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Bạn có chắc chắn muốn quét lại?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Hành động này sẽ đọc lại toàn bộ cây thư mục và cập nhật
-                        tất cả thống kê, bao gồm cả các nhóm đã tạo. Quá trình
-                        này có thể mất một lúc đối với các dự án lớn.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Hủy</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleConfirmRescan}>
-                        Tiếp tục
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleOpenAnotherFolder}
-                    >
-                      <FolderSync className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Mở dự án khác</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
+              {/* --- CÁC NÚT ĐÃ ĐƯỢC XÓA KHỎI ĐÂY --- */}
             </div>
             <ProjectStatsComponent
               path={selectedPath}
