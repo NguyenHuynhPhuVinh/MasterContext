@@ -3,6 +3,7 @@ applyTo: "**"
 ---
 
 LUÔN LUÔN TRẢ LỜI BẰNG TIẾNG VIỆT!
-LUÔN LUÔN ĐỌC FILE TRƯỚC KHI CHỈNH SỬA!
+LUÔN LUÔN ĐỌC TOÀN BỘ FILE TRƯỚC KHI CHỈNH SỬA!
+LUÔN LUÔN CHỈNH SỬA TỪNG PHẦN TRÊN FILE THAY VÌ CỐ GẮNG CHỈNH SỬA TOÀN BỘ!
 ĐẢM BẢO THAY ĐỔI Ở NHỮNG NƠI CẦN THIẾT!
 TRÁNH XÓA CÁC ĐOẠN CODE ĐÃ CÓ!

@@ -620,19 +620,25 @@ export const useAppStore = create<AppState>((set, get) => {
           return;
         }
         try {
-          await invoke("create_profile", {
+          // 1. Gọi command `clone_profile` mới, nhân bản từ "default"
+          await invoke("clone_profile", {
             projectPath: rootPath,
-            profileName,
+            sourceProfileName: "default",
+            newProfileName: profileName,
           });
-          // THAY ĐỔI LỚN 6: Thêm hồ sơ mới vào `allGroups`
+
+          // 2. Cập nhật state ở frontend mà không cần quét lại
           set((state) => {
             const newAllGroups = new Map(state.allGroups);
-            newAllGroups.set(profileName, []); // Khởi tạo với mảng nhóm rỗng
+            newAllGroups.set(profileName, []); // Hồ sơ mới có danh sách nhóm rỗng
             return {
               profiles: [...state.profiles, profileName],
               allGroups: newAllGroups,
             };
           });
+
+          // 3. Kích hoạt hồ sơ mới để tải dữ liệu đã clone vào state
+          //    Lưu ý: Thao tác này giờ sẽ rất nhanh vì dữ liệu đã có sẵn.
           get().actions.switchProfile(profileName);
         } catch (error) {
           message(`Không thể tạo hồ sơ: ${error}`, {
@@ -641,6 +647,7 @@ export const useAppStore = create<AppState>((set, get) => {
           });
         }
       },
+      // --- SỬA LỖI TẠI ĐÂY ---
       renameProfile: async (oldName: string, newName: string) => {
         const { rootPath, profiles } = get();
         if (!rootPath || profiles.includes(newName)) {
@@ -663,7 +670,9 @@ export const useAppStore = create<AppState>((set, get) => {
               profiles: state.profiles.map((p) =>
                 p === oldName ? newName : p
               ),
-              activeProfile: newName,
+              // Logic mới: Chỉ cập nhật activeProfile nếu hồ sơ được đổi tên là hồ sơ đang hoạt động
+              activeProfile:
+                state.activeProfile === oldName ? newName : state.activeProfile,
               allGroups: newAllGroups,
             };
           });
@@ -674,6 +683,7 @@ export const useAppStore = create<AppState>((set, get) => {
           });
         }
       },
+      // --- KẾT THÚC SỬA LỖI ---
       deleteProfile: async (profileName: string) => {
         const { rootPath } = get();
         if (!rootPath || profileName === "default") return;

@@ -551,3 +551,33 @@ pub fn list_groups_for_profile(
     let project_data = file_cache::load_project_data(&app, &project_path, &profile_name)?;
     Ok(project_data.groups)
 }
+
+#[command]
+pub fn clone_profile(
+    app: AppHandle,
+    project_path: String,
+    source_profile_name: String,
+    new_profile_name: String,
+) -> Result<(), String> {
+    // 1. Đọc dữ liệu từ hồ sơ nguồn (ví dụ: "default")
+    let source_data = file_cache::load_project_data(&app, &project_path, &source_profile_name)?;
+
+    // 2. Tạo một cấu trúc dữ liệu mới, kế thừa các phần tốn kém để quét lại
+    let new_data = models::CachedProjectData {
+        // Kế thừa những dữ liệu này
+        stats: source_data.stats,
+        file_tree: source_data.file_tree,
+        file_metadata_cache: source_data.file_metadata_cache,
+        data_hash: source_data.data_hash,
+
+        // Reset (dọn dẹp) các dữ liệu dành riêng cho hồ sơ
+        groups: vec![], // Bắt đầu với danh sách nhóm rỗng
+        sync_enabled: Some(false), // Tắt đồng bộ mặc định
+        sync_path: None,
+        custom_ignore_patterns: Some(vec![]), // Xóa các mẫu ignore tùy chỉnh
+        is_watching_files: Some(false), // Tắt theo dõi file mặc định
+    };
+
+    // 3. Lưu cấu trúc dữ liệu mới này thành hồ sơ mới
+    file_cache::save_project_data(&app, &project_path, &new_profile_name, &new_data)
+}
