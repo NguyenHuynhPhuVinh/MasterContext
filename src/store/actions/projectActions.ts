@@ -31,6 +31,19 @@ export const createProjectActions: StateCreator<
       scanProgress: { currentFile: "Bắt đầu quét dự án..." },
       editingGroupId: null,
     });
+
+    // Update recent paths
+    const { recentPaths } = get();
+    const newRecentPaths = [
+      path,
+      ...recentPaths.filter((p) => p !== path),
+    ].slice(0, 10); // Limit to 10 recent paths
+
+    get().actions._setRecentPaths(newRecentPaths);
+
+    invoke("set_recent_paths", { paths: newRecentPaths }).catch((e) => {
+      console.error("Failed to save recent paths:", e);
+    });
     invoke("scan_project", { path, profileName: "default" });
   },
   openFolderFromMenu: async () => {

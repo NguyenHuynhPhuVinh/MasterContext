@@ -3,9 +3,14 @@ import { useEffect, useMemo } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { Menu, MenuItem, Submenu } from "@tauri-apps/api/menu";
 import { save, message } from "@tauri-apps/plugin-dialog"; // <-- THAY ĐỔI IMPORT
+import { invoke } from "@tauri-apps/api/core";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useAppStore, useAppActions } from "./store/appStore";
-import { type GroupStats, type CachedProjectData } from "./store/types";
+import {
+  type GroupStats,
+  type CachedProjectData,
+  type AppSettings,
+} from "./store/types";
 import { useShallow } from "zustand/react/shallow"; // <-- THÊM IMPORT NÀY
 import { WelcomeScene } from "./scenes/WelcomeScene";
 import { ScanningScene } from "./scenes/ScanningScene";
@@ -50,6 +55,7 @@ function App() {
     exportProject,
     copyProjectToClipboard,
     toggleSidebarVisibility, // <-- Action mới
+    _setRecentPaths,
   } = useAppActions();
 
   // --- Effect áp dụng theme (giữ nguyên) ---
@@ -59,6 +65,19 @@ function App() {
     root.classList.remove("light", "dark");
     root.classList.add(theme);
   }, []);
+
+  // Load app settings on startup
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await invoke<AppSettings>("get_app_settings");
+        _setRecentPaths(settings.recentPaths || []);
+      } catch (e) {
+        console.error("Could not load app settings:", e);
+      }
+    };
+    loadSettings();
+  }, [_setRecentPaths]);
 
   // --- CẬP NHẬT LOGIC TẠO MENU ---
   // Effect này sẽ chạy mỗi khi `selectedPath` hoặc `isScanning` thay đổi
@@ -179,6 +198,7 @@ function App() {
     exportProject,
     copyProjectToClipboard,
     toggleSidebarVisibility,
+    _setRecentPaths,
   ]); // <-- Thêm dependency
 
   const throttledSetScanProgress = useMemo(
@@ -278,6 +298,7 @@ function App() {
     throttledSetScanProgress,
     _setGroupUpdateComplete,
     rescanProject,
+    _setRecentPaths,
   ]);
 
   const renderContent = () => {

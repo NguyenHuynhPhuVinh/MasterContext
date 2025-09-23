@@ -54,3 +54,7 @@ export interface Group {
   crossSyncEnabled?: boolean;
   tokenLimit?: number; // <-- THÊM TRƯỜNG NÀY
 }
+
+export interface AppSettings {
+  recentPaths: string[];
+}

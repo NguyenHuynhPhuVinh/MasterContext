@@ -17,6 +17,13 @@ pub struct CompilerOptions {
 }
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AppSettings {
+    pub recent_paths: Vec<String>,
+}
+// --- KẾT THÚC PHẦN THÊM MỚI ---
+
 #[derive(Serialize, Deserialize, Debug, Default, Clone, Copy)]
 pub struct GroupStats {
     pub total_files: u64,

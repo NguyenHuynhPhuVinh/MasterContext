@@ -14,6 +14,7 @@ export interface UIActions {
       groupId?: string;
     } | null
   ) => void;
+  _setRecentPaths: (paths: string[]) => void;
 }
 
 export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
@@ -42,4 +43,5 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     set((state) => ({ isSidebarVisible: !state.isSidebarVisible }));
   },
   setInlineEditingGroup: (state) => set({ inlineEditingGroup: state }),
+  _setRecentPaths: (paths) => set({ recentPaths: paths }),
 });
