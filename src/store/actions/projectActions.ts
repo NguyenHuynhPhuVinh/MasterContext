@@ -105,6 +105,7 @@ export const createProjectActions: StateCreator<
         isWatchingFiles: payload.is_watching_files ?? false,
         exportUseFullTree: payload.export_use_full_tree ?? false,
         exportWithLineNumbers: payload.export_with_line_numbers ?? true,
+        exportWithoutComments: payload.export_without_comments ?? false,
         alwaysApplyText: payload.always_apply_text ?? null,
       };
     });
@@ -150,13 +151,19 @@ export const createProjectActions: StateCreator<
     });
   },
   copyProjectToClipboard: async () => {
-    const { rootPath, activeProfile, exportWithLineNumbers } = get();
+    const {
+      rootPath,
+      activeProfile,
+      exportWithLineNumbers,
+      exportWithoutComments,
+    } = get();
     if (!rootPath || !activeProfile) return;
     try {
       const context = await invoke<string>("generate_project_context", {
         path: rootPath,
         profileName: activeProfile,
         withLineNumbers: exportWithLineNumbers,
+        withoutComments: exportWithoutComments,
       });
       await writeText(context);
       await message("Đã sao chép ngữ cảnh dự án vào clipboard!", {

@@ -45,6 +45,7 @@ pub fn run() {
             commands::clone_profile,
             commands::set_export_use_full_tree_setting,
             commands::set_export_with_line_numbers_setting,
+            commands::set_export_without_comments_setting, // <-- COMMAND MỚI
             commands::set_always_apply_text_setting,
             commands::get_app_settings,
             commands::set_recent_paths,

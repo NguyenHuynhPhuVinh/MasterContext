@@ -1,9 +1,46 @@
 // src-tauri/src/context_generator.rs
 use crate::models::{FileNode, FsEntry}; // <-- Thêm FileNode
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt::Write as FmtWrite;
 use std::fs;
 use std::path::Path;
+
+lazy_static! {
+    static ref C_STYLE_SINGLE_LINE_COMMENT: Regex = Regex::new(r"//.*").unwrap();
+    static ref C_STYLE_MULTI_LINE_COMMENT: Regex = Regex::new(r"(?s)/\*.*?\*/").unwrap();
+    static ref HASH_COMMENT: Regex = Regex::new(r"#.*").unwrap();
+    static ref HTML_COMMENT: Regex = Regex::new(r"(?s)<!--.*?-->").unwrap();
+}
+
+fn remove_comments_from_content(content: &str, file_rel_path: &str) -> String {
+    let extension = Path::new(file_rel_path)
+        .extension()
+        .and_then(std::ffi::OsStr::to_str)
+        .unwrap_or("");
+
+    let processed_content = match extension {
+        "js" | "jsx" | "ts" | "tsx" | "rs" | "go" | "c" | "cpp" | "h" | "java" | "cs" | "swift" | "kt" | "css" | "scss" | "less" => {
+            let temp = C_STYLE_SINGLE_LINE_COMMENT.replace_all(content, "");
+            C_STYLE_MULTI_LINE_COMMENT.replace_all(&temp, "").to_string()
+        },
+        "py" | "rb" | "sh" | "yml" | "yaml" | "toml" | "dockerfile" | "gitignore" => {
+            HASH_COMMENT.replace_all(content, "").to_string()
+        },
+        "html" | "xml" | "svg" => {
+            HTML_COMMENT.replace_all(content, "").to_string()
+        },
+        _ => content.to_string(), // Giữ nguyên nếu không nhận dạng được
+    };
+
+    // Loại bỏ các dòng trống được tạo ra sau khi xóa comment
+    processed_content
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
 
 fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut String) {
     let mut entries = tree.iter().peekable();
@@ -79,7 +116,8 @@ pub fn generate_context_from_files(
     file_paths: &[String],
     use_full_tree: bool,
     full_project_tree: &Option<FileNode>,
-    with_line_numbers: bool, // <-- THAM SỐ MỚI
+    with_line_numbers: bool,
+    without_comments: bool, // <-- THAM SỐ MỚI
     always_apply_text: &Option<String>,
 ) -> Result<String, String> {
     let root_path = Path::new(root_path_str);
@@ -128,18 +166,23 @@ pub fn generate_context_from_files(
     for file_rel_path in sorted_files {
         let file_path = root_path.join(&file_rel_path);
         if let Ok(content) = fs::read_to_string(&file_path) {
-        let header = format!("================================================\nFILE: {}\n================================================\n", file_rel_path.replace("\\", "/"));
-        file_contents_string.push_str(&header);
-        // --- LOGIC MỚI: DỰA VÀO THAM SỐ ĐỂ THÊM SỐ DÒNG ---
-        if with_line_numbers {
-            for (i, line) in content.lines().enumerate() {
-                let _ = writeln!(file_contents_string, "{}: {}", i + 1, line);
+            let final_content = if without_comments {
+                remove_comments_from_content(&content, &file_rel_path)
+            } else {
+                content
+            };
+
+            let header = format!("================================================\nFILE: {}\n================================================\n", file_rel_path.replace("\\", "/"));
+            file_contents_string.push_str(&header);
+            if with_line_numbers {
+                for (i, line) in final_content.lines().enumerate() {
+                    let _ = writeln!(file_contents_string, "{}: {}", i + 1, line);
+                }
+            } else {
+                file_contents_string.push_str(&final_content);
             }
-        } else {
-            file_contents_string.push_str(&content);
+            file_contents_string.push_str("\n\n");
         }
-        file_contents_string.push_str("\n\n");
-    }
     }
     let final_context = format!(
         "Directory structure:\n{}\n\n{}",

@@ -15,6 +15,7 @@ export interface SettingsActions {
   setFileWatching: (enabled: boolean) => Promise<void>;
   setExportUseFullTree: (enabled: boolean) => Promise<void>;
   setExportWithLineNumbers: (enabled: boolean) => Promise<void>;
+  setExportWithoutComments: (enabled: boolean) => Promise<void>;
   setAlwaysApplyText: (text: string) => Promise<void>;
   setCrossLinkingEnabled: (enabled: boolean) => void;
   updateAppSettings: (settings: Partial<AppSettings>) => Promise<void>;
@@ -164,6 +165,24 @@ export const createSettingsActions: StateCreator<
         kind: "error",
       });
       set((state) => ({ exportWithLineNumbers: !state.exportWithLineNumbers }));
+    }
+  },
+  setExportWithoutComments: async (enabled: boolean) => {
+    const { rootPath, activeProfile } = get();
+    if (!rootPath) return;
+    set({ exportWithoutComments: enabled });
+    try {
+      await invoke("set_export_without_comments_setting", {
+        path: rootPath,
+        profileName: activeProfile,
+        enabled,
+      });
+    } catch (error) {
+      message(`Không thể lưu cài đặt loại bỏ chú thích: ${error}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
+      set((state) => ({ exportWithoutComments: !state.exportWithoutComments }));
     }
   },
   setAlwaysApplyText: async (text: string) => {

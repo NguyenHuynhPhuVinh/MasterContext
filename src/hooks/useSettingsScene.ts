@@ -4,7 +4,7 @@ import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { open, message } from "@tauri-apps/plugin-dialog";
 
-export type SettingsTab = "appearance" | "project" | "profile";
+export type SettingsTab = "appearance" | "project" | "profile" | "export";
 
 export function useSettingsScene() {
   const {
@@ -16,6 +16,7 @@ export function useSettingsScene() {
     rootPath,
     exportUseFullTree,
     exportWithLineNumbers,
+    exportWithoutComments,
     alwaysApplyText,
   } = useAppStore(
     useShallow((state) => ({
@@ -27,6 +28,7 @@ export function useSettingsScene() {
       rootPath: state.rootPath,
       exportUseFullTree: state.exportUseFullTree,
       exportWithLineNumbers: state.exportWithLineNumbers,
+      exportWithoutComments: state.exportWithoutComments,
       alwaysApplyText: state.alwaysApplyText,
     }))
   );
@@ -38,6 +40,7 @@ export function useSettingsScene() {
     showDashboard,
     setExportUseFullTree,
     setExportWithLineNumbers,
+    setExportWithoutComments,
     setAlwaysApplyText,
   } = useAppActions();
 
@@ -100,6 +103,7 @@ export function useSettingsScene() {
     rootPath,
     exportUseFullTree,
     exportWithLineNumbers,
+    exportWithoutComments,
     alwaysApplyText,
     showDashboard,
     setSyncSettings,
@@ -107,6 +111,7 @@ export function useSettingsScene() {
     setFileWatching,
     setExportUseFullTree,
     setExportWithLineNumbers,
+    setExportWithoutComments,
     setAlwaysApplyText,
     handleToggleSync,
     handleChooseSyncPath,

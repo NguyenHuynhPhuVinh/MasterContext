@@ -30,6 +30,7 @@ export const initialState = {
   isWatchingFiles: false,
   exportUseFullTree: false,
   exportWithLineNumbers: true,
+  exportWithoutComments: false,
   alwaysApplyText: null,
   profiles: ["default"],
   activeProfile: "default",

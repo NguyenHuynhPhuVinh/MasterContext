@@ -12,6 +12,7 @@ export interface CachedProjectData {
   is_watching_files?: boolean | null; // <-- THÊM TRƯỜNG MỚI
   export_use_full_tree?: boolean | null; // <-- THÊM TRƯỜNG MỚI NÀY
   export_with_line_numbers?: boolean | null; // <-- THÊM TRƯỜNG MỚI
+  export_without_comments?: boolean | null; // <-- THÊM TRƯỜNG MỚI
   always_apply_text?: string | null;
 }
 

@@ -55,6 +55,7 @@ export interface AppState {
   isWatchingFiles: boolean;
   exportUseFullTree: boolean;
   exportWithLineNumbers: boolean;
+  exportWithoutComments: boolean;
   alwaysApplyText: string | null;
 
   // Quản lý hồ sơ

@@ -24,7 +24,10 @@ export const createProfileActions: StateCreator<
 
     set({
       editingGroupId: null,
-      scanProgress: { currentFile: `Đang tải ${profileName}...` },
+      scanProgress: {
+        currentFile: `Đang tải ${profileName}...`,
+        currentPhase: "scanning",
+      },
     });
     try {
       const profileData = await invoke<CachedProjectData>("load_profile_data", {
@@ -46,8 +49,9 @@ export const createProfileActions: StateCreator<
           isWatchingFiles: profileData.is_watching_files ?? false,
           exportUseFullTree: profileData.export_use_full_tree ?? false,
           exportWithLineNumbers: profileData.export_with_line_numbers ?? true,
+          exportWithoutComments: profileData.export_without_comments ?? false,
           alwaysApplyText: profileData.always_apply_text ?? null,
-          scanProgress: { currentFile: null },
+          scanProgress: { currentFile: null, currentPhase: "scanning" },
         };
       });
     } catch (error) {
@@ -55,7 +59,7 @@ export const createProfileActions: StateCreator<
         title: "Lỗi",
         kind: "error",
       });
-      set({ scanProgress: { currentFile: null } });
+      set({ scanProgress: { currentFile: null, currentPhase: "scanning" } });
     }
   },
   createProfile: async (profileName: string) => {

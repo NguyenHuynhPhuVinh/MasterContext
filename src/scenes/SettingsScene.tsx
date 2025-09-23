@@ -1,13 +1,21 @@
 // src/scenes/SettingsScene.tsx
 import { useSettingsScene } from "@/hooks/useSettingsScene";
 import { Button } from "@/components/ui/button";
-import { FileText, X, Palette, FolderCog, User } from "lucide-react";
+import {
+  FileText,
+  X,
+  Palette,
+  FolderCog,
+  User,
+  FileOutput,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AppearanceTab } from "./settings/AppearanceTab";
 import { ProjectTab } from "./settings/ProjectTab";
 import { ProfileTab } from "./settings/ProfileTab";
+import { ExportTab } from "./settings/ExportTab";
 import { type SettingsTab } from "@/hooks/useSettingsScene";
 
 export function SettingsScene() {
@@ -21,11 +29,13 @@ export function SettingsScene() {
     rootPath,
     exportUseFullTree,
     exportWithLineNumbers,
+    exportWithoutComments,
     alwaysApplyText,
     showDashboard,
     setFileWatching,
     setExportUseFullTree,
     setExportWithLineNumbers,
+    setExportWithoutComments,
     setAlwaysApplyText,
     handleToggleSync,
     handleChooseSyncPath,
@@ -39,6 +49,7 @@ export function SettingsScene() {
     { id: "appearance", label: "Giao diện", icon: Palette },
     { id: "project", label: "Dự án", icon: FolderCog },
     { id: "profile", label: "Hồ sơ", icon: User },
+    { id: "export", label: "Xuất File", icon: FileOutput },
   ];
 
   const renderContent = () => {
@@ -60,16 +71,23 @@ export function SettingsScene() {
       case "profile":
         return (
           <ProfileTab
-            exportUseFullTree={exportUseFullTree}
-            setExportUseFullTree={setExportUseFullTree}
-            exportWithLineNumbers={exportWithLineNumbers}
-            setExportWithLineNumbers={setExportWithLineNumbers}
             syncEnabled={syncEnabled}
             handleToggleSync={handleToggleSync}
             syncPath={syncPath}
             handleChooseSyncPath={handleChooseSyncPath}
             alwaysApplyText={alwaysApplyText}
             setAlwaysApplyText={setAlwaysApplyText}
+          />
+        );
+      case "export":
+        return (
+          <ExportTab
+            exportUseFullTree={exportUseFullTree}
+            setExportUseFullTree={setExportUseFullTree}
+            exportWithLineNumbers={exportWithLineNumbers}
+            setExportWithLineNumbers={setExportWithLineNumbers}
+            exportWithoutComments={exportWithoutComments}
+            setExportWithoutComments={setExportWithoutComments}
           />
         );
       default:
