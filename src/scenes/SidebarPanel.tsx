@@ -1,5 +1,5 @@
 // src/scenes/SidebarPanel.tsx
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useDashboard } from "@/hooks/useDashboard";
 import { GroupManager } from "@/components/GroupManager";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ import {
   Plus,
   FolderOpen,
   ChevronRight,
+  Folder as FolderIcon,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -55,27 +56,79 @@ import { useShallow } from "zustand/react/shallow";
 import { type Group } from "@/store/types";
 import { cn } from "@/lib/utils";
 
+// --- COMPONENT MỚI CHO INPUT INLINE ---
+interface InlineProfileInputProps {
+  defaultValue: string;
+  onConfirm: (newValue: string) => void;
+  onCancel: () => void;
+}
+
+function InlineProfileInput({
+  defaultValue,
+  onConfirm,
+  onCancel,
+}: InlineProfileInputProps) {
+  const [value, setValue] = useState(defaultValue);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Tự động focus và chọn toàn bộ text khi component được render
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      onConfirm(value);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onCancel();
+    }
+  };
+
+  const handleBlur = () => {
+    // Hủy khi người dùng click ra ngoài
+    onCancel();
+  };
+
+  return (
+    <div className="flex items-center gap-2 p-2">
+      <FolderIcon className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+        className="h-7 text-sm"
+        placeholder="Tên hồ sơ..."
+      />
+    </div>
+  );
+}
+
 export function SidebarPanel() {
   const {
     profiles,
     activeProfile,
     isGroupDialogOpen,
     editingGroup,
-    profileDialogMode,
     isProfileDeleteDialogOpen,
-    editingProfile,
+    deletingProfile,
+    inlineEditingProfile,
     groupForm,
-    profileForm,
     setIsGroupDialogOpen,
     handleOpenGroupDialog,
     onGroupSubmit,
-    handleOpenProfileDialog,
-    setProfileDialogMode,
-    onProfileSubmit,
-    setIsProfileDeleteDialogOpen,
     handleOpenDeleteDialog,
     handleConfirmDeleteProfile,
     switchProfile,
+    handleStartCreateProfile,
+    handleStartRenameProfile,
+    onCancelProfileEdit,
+    onProfileSubmitInline,
+    setIsProfileDeleteDialogOpen,
   } = useDashboard();
 
   const { allGroups } = useAppStore(
@@ -140,7 +193,8 @@ export function SidebarPanel() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleOpenProfileDialog("create")}
+            onClick={handleStartCreateProfile}
+            disabled={!!inlineEditingProfile} // Vô hiệu hóa khi đang chỉnh sửa
           >
             <Plus className="mr-2 h-4 w-4" /> Tạo hồ sơ
           </Button>
@@ -151,20 +205,34 @@ export function SidebarPanel() {
             {profiles.map((profileName) => {
               const isExpanded = expandedProfiles[profileName] ?? false;
               const isActive = profileName === activeProfile;
+              const isEditing =
+                inlineEditingProfile?.mode === "rename" &&
+                inlineEditingProfile.name === profileName;
+
+              // --- LOGIC RENDER MỚI ---
+              if (isEditing) {
+                return (
+                  <InlineProfileInput
+                    key={`${profileName}-editing`}
+                    defaultValue={profileName}
+                    onConfirm={onProfileSubmitInline}
+                    onCancel={onCancelProfileEdit}
+                  />
+                );
+              }
+
               return (
                 <div key={profileName}>
                   <div
                     onClick={() => switchProfile(profileName)}
-                    // --- THAY ĐỔI 2: Sửa lỗi hover trên hồ sơ đang active ---
                     className={cn(
                       "group flex items-center justify-between p-2 rounded-md cursor-pointer",
                       isActive
-                        ? "bg-primary text-primary-foreground" // Nếu active, dùng màu này và không hover
-                        : "hover:bg-accent" // Nếu không active, mới cho phép hover
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-accent"
                     )}
                   >
                     <div className="flex-1 flex items-center gap-2">
-                      {/* --- THAY ĐỔI LOGIC: Nút này chỉ để mở/đóng --- */}
                       <div
                         onClick={(e) => toggleProfileExpansion(e, profileName)}
                         className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10"
@@ -182,7 +250,6 @@ export function SidebarPanel() {
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        {/* Ngăn sự kiện click lan ra thẻ div cha */}
                         <Button
                           onClick={(e) => e.stopPropagation()}
                           variant="ghost"
@@ -210,7 +277,7 @@ export function SidebarPanel() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() =>
-                                handleOpenProfileDialog("rename", profileName)
+                                handleStartRenameProfile(profileName)
                               }
                             >
                               <Edit className="mr-2 h-4 w-4" />
@@ -227,7 +294,6 @@ export function SidebarPanel() {
                             </DropdownMenuItem>
                           </>
                         )}
-                        {/* --- THAY ĐỔI 1: Đã xóa mục "Tạo hồ sơ khác..." thừa ở đây --- */}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -242,11 +308,21 @@ export function SidebarPanel() {
                 </div>
               );
             })}
+
+            {/* --- HIỂN THỊ INPUT KHI TẠO MỚI --- */}
+            {inlineEditingProfile?.mode === "create" && (
+              <InlineProfileInput
+                key="creating-profile"
+                defaultValue=""
+                onConfirm={onProfileSubmitInline}
+                onCancel={onCancelProfileEdit}
+              />
+            )}
           </div>
         </ScrollArea>
       </div>
 
-      {/* Các Dialog không thay đổi */}
+      {/* Dialog tạo/sửa nhóm (giữ nguyên) */}
       <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -329,67 +405,19 @@ export function SidebarPanel() {
           </Form>
         </DialogContent>
       </Dialog>
-      <Dialog
-        open={profileDialogMode !== null}
-        onOpenChange={(open) => !open && setProfileDialogMode(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {profileDialogMode === "rename"
-                ? `Đổi tên hồ sơ "${editingProfile}"`
-                : "Tạo hồ sơ mới"}
-            </DialogTitle>
-            <DialogDescription>
-              {profileDialogMode === "rename"
-                ? "Nhập tên mới cho hồ sơ."
-                : "Nhập tên cho hồ sơ mới."}
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...profileForm}>
-            <form
-              onSubmit={profileForm.handleSubmit(onProfileSubmit)}
-              className="space-y-4"
-            >
-              <FormField
-                control={profileForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tên hồ sơ</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ví dụ: development" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Tên chỉ được chứa chữ cái, số, gạch ngang và gạch dưới.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="ghost">
-                    Hủy
-                  </Button>
-                </DialogClose>
-                <Button type="submit">
-                  {profileDialogMode === "rename" ? "Đổi tên" : "Tạo"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+
+      {/* --- XÓA DIALOG TẠO/SỬA HỒ SƠ --- */}
+
+      {/* Dialog xác nhận xóa (giữ nguyên) */}
       <AlertDialog
         open={isProfileDeleteDialogOpen}
-        onOpenChange={setIsProfileDeleteDialogOpen}
+        onOpenChange={(open) => !open && setIsProfileDeleteDialogOpen(false)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Xóa hồ sơ</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa hồ sơ "{editingProfile}"? Hành động này
+              Bạn có chắc chắn muốn xóa hồ sơ "{deletingProfile}"? Hành động này
               không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>

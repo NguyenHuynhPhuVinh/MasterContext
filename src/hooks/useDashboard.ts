@@ -6,6 +6,7 @@ import * as z from "zod";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
 import { useShallow } from "zustand/react/shallow";
+import { message } from "@tauri-apps/plugin-dialog";
 
 const groupSchema = z.object({
   name: z.string().min(1, "Tên nhóm không được để trống"),
@@ -21,13 +22,7 @@ const groupSchema = z.object({
 });
 type GroupFormValues = z.infer<typeof groupSchema>;
 
-const profileSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Tên hồ sơ không được để trống")
-    .regex(/^[a-zA-Z0-9_-]+$/, "Chỉ cho phép chữ, số, gạch dưới và gạch nối"),
-});
-type ProfileFormValues = z.infer<typeof profileSchema>;
+// --- BỎ PROFILE SCHEMA VÌ SẼ VALIDATE THỦ CÔNG ---
 
 export function useDashboard() {
   const { projectStats, selectedPath, profiles, activeProfile } = useAppStore(
@@ -47,28 +42,27 @@ export function useDashboard() {
     deleteProfile,
   } = useAppActions();
 
-  // State cục bộ
+  // State cục bộ cho Group Dialog
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
 
-  // --- THAY ĐỔI: Thêm state để theo dõi hồ sơ đang được sửa/xóa ---
-  const [editingProfile, setEditingProfile] = useState<string | null>(null);
-  const [profileDialogMode, setProfileDialogMode] = useState<
-    "create" | "rename" | null
-  >(null);
+  // --- THAY ĐỔI: STATE MỚI CHO INLINE EDITING ---
+  const [inlineEditingProfile, setInlineEditingProfile] = useState<{
+    mode: "create" | "rename";
+    name?: string; // Tên cũ khi rename
+  } | null>(null);
+
   const [isProfileDeleteDialogOpen, setIsProfileDeleteDialogOpen] =
     useState(false);
+  const [deletingProfile, setDeletingProfile] = useState<string | null>(null);
 
-  // Forms
+  // Form cho Group Dialog
   const groupForm = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
     defaultValues: { name: "", description: "", tokenLimit: undefined },
   });
 
-  const profileForm = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: { name: "" },
-  });
+  // --- BỎ PROFILE FORM ---
 
   // Handlers cho Group
   const handleOpenGroupDialog = (group: Group | null = null) => {
@@ -104,43 +98,62 @@ export function useDashboard() {
     setIsGroupDialogOpen(false);
   };
 
-  // --- THAY ĐỔI: Cập nhật handlers cho Profile ---
-  const handleOpenProfileDialog = (
-    mode: "create" | "rename",
-    profile?: string
-  ) => {
-    setProfileDialogMode(mode);
-    setEditingProfile(profile || null); // Lưu hồ sơ mục tiêu
-    if (mode === "rename" && profile) {
-      profileForm.setValue("name", profile);
-    } else {
-      profileForm.reset({ name: "" });
-    }
+  // --- CÁC HANDLER MỚI CHO PROFILE INLINE EDITING ---
+
+  const handleStartCreateProfile = () => {
+    setInlineEditingProfile({ mode: "create" });
   };
 
-  const onProfileSubmit = async (data: ProfileFormValues) => {
-    if (profileDialogMode === "create") {
-      await createProfile(data.name);
-    } else if (profileDialogMode === "rename" && editingProfile) {
-      // Sử dụng `editingProfile` làm tên cũ
-      await renameProfile(editingProfile, data.name);
+  const handleStartRenameProfile = (profile: string) => {
+    setInlineEditingProfile({ mode: "rename", name: profile });
+  };
+
+  const onCancelProfileEdit = () => {
+    setInlineEditingProfile(null);
+  };
+
+  const onProfileSubmitInline = async (newName: string) => {
+    if (!inlineEditingProfile) return;
+
+    // Validation
+    if (!newName.trim()) {
+      message("Tên hồ sơ không được để trống.", {
+        title: "Lỗi",
+        kind: "error",
+      });
+      return;
     }
-    setProfileDialogMode(null);
-    setEditingProfile(null);
+    if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
+      message("Tên chỉ được chứa chữ, số, gạch dưới và gạch nối.", {
+        title: "Lỗi",
+        kind: "error",
+      });
+      return;
+    }
+
+    if (inlineEditingProfile.mode === "create") {
+      await createProfile(newName);
+    } else if (
+      inlineEditingProfile.mode === "rename" &&
+      inlineEditingProfile.name
+    ) {
+      await renameProfile(inlineEditingProfile.name, newName);
+    }
+
+    setInlineEditingProfile(null);
   };
 
   const handleOpenDeleteDialog = (profile: string) => {
-    setEditingProfile(profile); // Lưu hồ sơ mục tiêu
+    setDeletingProfile(profile);
     setIsProfileDeleteDialogOpen(true);
   };
 
   const handleConfirmDeleteProfile = async () => {
-    if (editingProfile) {
-      // Sử dụng `editingProfile` để xóa
-      await deleteProfile(editingProfile);
+    if (deletingProfile) {
+      await deleteProfile(deletingProfile);
     }
     setIsProfileDeleteDialogOpen(false);
-    setEditingProfile(null);
+    setDeletingProfile(null);
   };
 
   return {
@@ -152,23 +165,23 @@ export function useDashboard() {
     // Trạng thái UI
     isGroupDialogOpen,
     editingGroup,
-    profileDialogMode,
     isProfileDeleteDialogOpen,
-    editingProfile, // Trả về state mới
-    // Forms
+    deletingProfile,
+    inlineEditingProfile, // State mới
+    // Form
     groupForm,
-    profileForm,
     // Handlers
     setIsGroupDialogOpen,
     handleOpenGroupDialog,
     onGroupSubmit,
-    // Profile handlers đã được cập nhật
     switchProfile,
-    handleOpenProfileDialog,
-    setProfileDialogMode,
-    onProfileSubmit,
     setIsProfileDeleteDialogOpen,
-    handleOpenDeleteDialog, // Trả về handler mới
+    handleOpenDeleteDialog,
     handleConfirmDeleteProfile,
+    // Handlers inline mới
+    handleStartCreateProfile,
+    handleStartRenameProfile,
+    onCancelProfileEdit,
+    onProfileSubmitInline,
   };
 }
