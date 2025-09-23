@@ -27,40 +27,34 @@ fn sanitize_group_name(name: &str) -> String {
 // --- CẬP NHẬT: Thêm profile_name vào tất cả các command liên quan đến dữ liệu ---
 
 #[command]
-pub fn open_project(window: Window, path: String, profile_name: String) {
-    let window_clone = window.clone(); // Clone window để dùng trong thread
-    let path_clone = path.clone(); // Clone path để dùng trong thread
-    let app = window.app_handle().clone(); // <-- Lấy AppHandle
+pub fn scan_project(window: Window, path: String, profile_name: String) {
+    let window_clone = window.clone();
+    let path_clone = path.clone();
+    let app = window.app_handle().clone();
 
     std::thread::spawn(move || {
-        // --- CẬP NHẬT: Truyền app handle vào hàm load ---
+        // Luôn load dữ liệu của hồ sơ đang active để thực hiện smart scan
         let old_data = file_cache::load_project_data(&app, &path, &profile_name).unwrap_or_default();
-        let old_hash = old_data.data_hash.clone();
-        
-        // --- LOGIC MỚI: Đọc cài đặt watcher từ file trước khi quét ---
         let should_start_watching = old_data.is_watching_files.unwrap_or(false);
 
-        // --- CẬP NHẬT: Truyền old_data vào hàm quét ---
-        match project_scanner::perform_smart_scan_and_rebuild(&window, &path, old_data) { // <-- SỬA DÒNG NÀY
+        // perform_smart_scan_and_rebuild sẽ trả về dữ liệu quét chung (cây thư mục, cache file)
+        // và các nhóm đã được cập nhật cho hồ sơ hiện tại.
+        match project_scanner::perform_smart_scan_and_rebuild(&window, &path, old_data) {
             Ok(new_data) => {
-                // --- CẬP NHẬT: Truyền app handle vào hàm save ---
+                // Lưu lại dữ liệu cho hồ sơ vừa quét
                 if let Err(e) = file_cache::save_project_data(&app, &path, &profile_name, &new_data) {
                     let _ = window.emit("scan_error", e);
                     return;
                 }
+                
+                // Gửi toàn bộ dữ liệu quét về frontend
                 let _ = window.emit("scan_complete", &new_data);
 
-                // --- LOGIC MỚI: Tự động bắt đầu watcher nếu cài đặt là true ---
+                // Logic watcher giữ nguyên
                 if should_start_watching {
                     if let Err(e) = start_file_watching(window_clone, path_clone) {
                         println!("[Error] Auto-starting watcher failed: {}", e);
                     }
-                }
-
-                let sync_enabled = new_data.sync_enabled.unwrap_or(false);
-                let has_changed = old_hash != new_data.data_hash;
-                if sync_enabled && has_changed && new_data.sync_path.is_some() {
-                    perform_auto_export(&path, &profile_name, &new_data);
                 }
             }
             Err(e) => {
@@ -68,6 +62,15 @@ pub fn open_project(window: Window, path: String, profile_name: String) {
             }
         }
     });
+}
+
+#[command]
+pub fn load_profile_data(
+    app: AppHandle,
+    project_path: String,
+    profile_name: String,
+) -> Result<models::CachedProjectData, String> {
+    file_cache::load_project_data(&app, &project_path, &profile_name)
 }
 
 #[command]

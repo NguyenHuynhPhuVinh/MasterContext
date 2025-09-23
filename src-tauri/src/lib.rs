@@ -15,8 +15,11 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
-            // Các command hiện có (đã được cập nhật chữ ký)
-            commands::open_project,
+            // THAY THẾ DÒNG NÀY
+            // commands::open_project,
+            commands::scan_project, // <-- COMMAND MỚI
+            commands::load_profile_data, // <-- COMMAND MỚI
+            // ... (các command còn lại)
             commands::update_groups_in_project_data,
             commands::start_group_update,
             commands::start_group_export,

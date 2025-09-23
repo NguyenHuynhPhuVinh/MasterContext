@@ -57,97 +57,79 @@ interface GroupContextResult {
 interface AppState {
   rootPath: string | null;
   selectedPath: string | null;
-  // THAY ĐỔI LỚN 1: Lưu trữ nhóm cho TẤT CẢ các hồ sơ
   allGroups: Map<string, Group[]>;
-  groups: Group[]; // Đây sẽ là state được suy ra từ allGroups và activeProfile
+  groups: Group[]; // Derived state
+
+  // Dữ liệu quét chung
+  projectStats: ProjectStats | null;
+  fileTree: FileNode | null;
+  fileMetadataCache: Record<string, FileMetadata> | null;
+
+  // State giao diện
   activeScene: "dashboard" | "settings";
   editingGroupId: string | null;
-  projectStats: ProjectStats | null;
   isScanning: boolean;
   scanProgress: ScanProgress;
-  fileTree: FileNode | null;
   isUpdatingGroupId: string | null;
   tempSelectedPaths: Set<string> | null;
-  fileMetadataCache: Record<string, FileMetadata> | null;
   isCrossLinkingEnabled: boolean;
+
+  // Dữ liệu riêng của hồ sơ active
   syncEnabled: boolean;
   syncPath: string | null;
   customIgnorePatterns: string[];
+  isWatchingFiles: boolean;
+
+  // Quản lý hồ sơ
   profiles: string[];
   activeProfile: string;
-  isWatchingFiles: boolean;
   isSidebarVisible: boolean;
 
   actions: {
     selectRootPath: (path: string) => Promise<void>;
-    openFolderFromMenu: () => Promise<void>; // <-- THÊM ACTION MỚI
+    openFolderFromMenu: () => Promise<void>;
     rescanProject: () => Promise<void>;
     reset: () => void;
     addGroup: (group: Omit<Group, "id" | "paths" | "stats">) => void;
     updateGroup: (group: Omit<Group, "paths" | "stats">) => void;
     deleteGroup: (groupId: string) => void;
-    // --- ACTIONS MỚI ---
     editGroupContent: (groupId: string) => void;
     showDashboard: () => void;
-    showSettingsScene: () => void; // <-- THÊM ACTION MỚI
+    showSettingsScene: () => void;
     updateGroupPaths: (groupId: string, paths: string[]) => void;
-    // --- THÊM CÁC ACTION "NỘI BỘ" ĐỂ XỬ LÝ SỰ KIỆN ---
     _setScanProgress: (file: string) => void;
     _setScanComplete: (payload: CachedProjectData) => void;
     _setScanError: (error: string) => void;
-    // --- ACTIONS MỚI ---
     _setGroupUpdateComplete: (payload: {
       groupId: string;
       stats: GroupStats;
       paths: string[];
     }) => void;
-    // --- ACTIONS MỚI CHO VIỆC CHỈNH SỬA NHÓM ---
     startEditingGroup: (groupId: string) => void;
     toggleEditingPath: (node: FileNode, isSelected: boolean) => void;
     cancelEditingGroup: () => void;
     saveEditingGroup: () => Promise<void>;
-    setCrossLinkingEnabled: (enabled: boolean) => void; // <-- THÊM ACTION NÀY
-    selectAllFiles: () => void; // <-- THÊM ACTION NÀY
-    deselectAllFiles: () => void; // <-- THÊM ACTION NÀY
-    // --- ACTION MỚI CHO CÀI ĐẶT ---
+    setCrossLinkingEnabled: (enabled: boolean) => void;
+    selectAllFiles: () => void;
+    deselectAllFiles: () => void;
     setSyncSettings: (settings: {
       enabled: boolean;
       path: string | null;
     }) => Promise<void>;
-    setGroupCrossSync: (groupId: string, enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
-    setCustomIgnorePatterns: (patterns: string[]) => Promise<void>; // <-- THÊM ACTION MỚI
-    // --- ACTIONS MỚI CHO HỒ SƠ ---
+    setGroupCrossSync: (groupId: string, enabled: boolean) => Promise<void>;
+    setCustomIgnorePatterns: (patterns: string[]) => Promise<void>;
     switchProfile: (profileName: string) => Promise<void>;
     createProfile: (profileName: string) => Promise<void>;
     renameProfile: (oldName: string, newName: string) => Promise<void>;
     deleteProfile: (profileName: string) => Promise<void>;
-    setFileWatching: (enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
+    setFileWatching: (enabled: boolean) => Promise<void>;
     exportProject: () => void;
     copyProjectToClipboard: () => Promise<void>;
-    toggleSidebarVisibility: () => void; // <-- ACTION MỚI
+    toggleSidebarVisibility: () => void;
   };
 }
 
 export const useAppStore = create<AppState>((set, get) => {
-  // --- HÀM HELPER MỚI ĐỂ TẢI DỮ LIỆU CỦA MỘT HỒ SƠ ---
-  const loadProfileData = (path: string, profileName: string) => {
-    set({
-      isScanning: true,
-      activeProfile: profileName,
-      scanProgress: { currentFile: `Đang tải hồ sơ "${profileName}"...` },
-    });
-    try {
-      invoke("open_project", { path, profileName });
-    } catch (error) {
-      console.error(`Lỗi khi tải hồ sơ ${profileName}:`, error);
-      set({ isScanning: false });
-      message(`Không thể tải hồ sơ: ${profileName}.`, {
-        title: "Lỗi",
-        kind: "error",
-      });
-    }
-  };
-
   // --- PHẦN MỚI: Hàm trợ giúp để cập nhật groups trên backend ---
   const updateGroupsOnBackend = async () => {
     const { rootPath, allGroups, activeProfile } = get();
@@ -168,69 +150,38 @@ export const useAppStore = create<AppState>((set, get) => {
   return {
     rootPath: null,
     selectedPath: null,
-    // THAY ĐỔI LỚN 2: Khởi tạo allGroups là một Map rỗng
     allGroups: new Map(),
-    groups: [], // Sẽ được suy ra
+    groups: [],
+    projectStats: null,
+    fileTree: null,
+    fileMetadataCache: null,
     activeScene: "dashboard",
     editingGroupId: null,
-    projectStats: null,
     isScanning: false,
     scanProgress: { currentFile: null },
-    fileTree: null,
     isUpdatingGroupId: null,
     tempSelectedPaths: null,
-    fileMetadataCache: null,
     isCrossLinkingEnabled: false,
     syncEnabled: false,
     syncPath: null,
     customIgnorePatterns: [],
+    isWatchingFiles: false,
     profiles: ["default"],
     activeProfile: "default",
-    isWatchingFiles: false,
     isSidebarVisible: true,
     actions: {
-      // --- CẬP NHẬT selectRootPath ---
       selectRootPath: async (path) => {
         set({
           rootPath: path,
           selectedPath: path,
           isScanning: true,
-          scanProgress: { currentFile: "Đang tìm các hồ sơ..." },
+          scanProgress: { currentFile: "Bắt đầu quét dự án..." },
         });
 
-        try {
-          // 1. Lấy danh sách tất cả các hồ sơ
-          const profiles = await invoke<string[]>("list_profiles", {
-            projectPath: path,
-          });
-          set({ profiles });
+        // Luôn quét profile 'default' khi mở một thư mục mới
+        invoke("scan_project", { path, profileName: "default" });
 
-          // THAY ĐỔI LỚN 3: Tải danh sách nhóm cho TẤT CẢ các hồ sơ
-          const groupPromises = profiles.map((p) =>
-            invoke<Group[]>("list_groups_for_profile", {
-              projectPath: path,
-              profileName: p,
-            }).then((groups) => [p, groups] as [string, Group[]])
-          );
-
-          const profileGroups = await Promise.all(groupPromises);
-          const newAllGroups = new Map(profileGroups);
-          set({ allGroups: newAllGroups });
-
-          // 2. Tải toàn bộ dữ liệu cho hồ sơ 'default'
-          loadProfileData(path, "default");
-        } catch (error) {
-          console.error("Lỗi khi lấy danh sách hồ sơ:", error);
-          set({
-            isScanning: false,
-            profiles: ["default"],
-            activeProfile: "default",
-          });
-          message("Không thể lấy danh sách hồ sơ.", {
-            title: "Lỗi",
-            kind: "error",
-          });
-        }
+        // Sau khi quét xong (trong _setScanComplete), chúng ta sẽ tải các profile khác
       },
 
       // --- ACTION MỚI ĐỂ XỬ LÝ MENU CLICK ---
@@ -254,11 +205,14 @@ export const useAppStore = create<AppState>((set, get) => {
         }
       },
 
-      // --- THÊM MỚI: Logic cho action rescanProject ---
       rescanProject: async () => {
         const { rootPath, activeProfile } = get();
         if (!rootPath) return;
-        loadProfileData(rootPath, activeProfile);
+        set({
+          isScanning: true,
+          scanProgress: { currentFile: "Quét lại dự án..." },
+        });
+        invoke("scan_project", { path: rootPath, profileName: activeProfile });
       },
       reset: () =>
         set({
@@ -360,34 +314,60 @@ export const useAppStore = create<AppState>((set, get) => {
       _setScanProgress: (file) => {
         set({ scanProgress: { currentFile: file } });
       },
-      _setScanComplete: (payload: CachedProjectData) => {
-        const { activeProfile } = get();
-        const loadedGroups = (payload.groups || []).map((g) => ({
-          ...g,
-          paths: g.paths || [],
-          stats: g.stats || defaultGroupStats(),
-          crossSyncEnabled: (g as any).cross_sync_enabled ?? false,
-          tokenLimit: g.tokenLimit,
-        }));
+      _setScanComplete: async (payload: CachedProjectData) => {
+        const { rootPath, activeProfile } = get();
 
+        // 1. Lưu trữ dữ liệu quét chung
+        set({
+          projectStats: payload.stats,
+          fileTree: payload.file_tree,
+          fileMetadataCache: payload.file_metadata_cache,
+          isScanning: false,
+        });
+
+        // 2. Cập nhật dữ liệu cho hồ sơ vừa được quét
+        const loadedGroups = (payload.groups || []).map((g) => ({ ...g }));
         set((state) => {
-          // THAY ĐỔI LỚN 5: Cập nhật `allGroups` với dữ liệu mới từ backend
           const newAllGroups = new Map(state.allGroups);
           newAllGroups.set(activeProfile, loadedGroups);
-
           return {
             allGroups: newAllGroups,
-            groups: loadedGroups, // Cập nhật cả state `groups` suy ra
-            projectStats: payload.stats,
-            fileTree: payload.file_tree,
-            fileMetadataCache: payload.file_metadata_cache,
-            isScanning: false,
+            groups: loadedGroups,
             syncEnabled: payload.sync_enabled ?? false,
             syncPath: payload.sync_path ?? null,
             customIgnorePatterns: payload.custom_ignore_patterns ?? [],
             isWatchingFiles: payload.is_watching_files ?? false,
           };
         });
+
+        // 3. Tải (nhưng không quét) các hồ sơ còn lại
+        if (rootPath) {
+          try {
+            const profiles = await invoke<string[]>("list_profiles", {
+              projectPath: rootPath,
+            });
+            set({ profiles });
+
+            const otherProfiles = profiles.filter((p) => p !== activeProfile);
+            const groupPromises = otherProfiles.map((p) =>
+              invoke<Group[]>("list_groups_for_profile", {
+                projectPath: rootPath,
+                profileName: p,
+              }).then((groups) => [p, groups] as [string, Group[]])
+            );
+
+            const otherProfileGroups = await Promise.all(groupPromises);
+            set((state) => {
+              const newAllGroups = new Map(state.allGroups);
+              otherProfileGroups.forEach(([profileName, groups]) => {
+                newAllGroups.set(profileName, groups);
+              });
+              return { allGroups: newAllGroups };
+            });
+          } catch (e) {
+            console.error("Không thể tải danh sách các hồ sơ khác:", e);
+          }
+        }
       },
       _setScanError: (error) => {
         console.error("Scan error from Rust:", error);
@@ -606,12 +586,49 @@ export const useAppStore = create<AppState>((set, get) => {
           });
         }
       },
-      // --- ACTIONS MỚI CHO HỒ SƠ ---
       switchProfile: async (profileName: string) => {
-        const { rootPath, activeProfile } = get();
+        const { rootPath, activeProfile, fileTree } = get();
         if (!rootPath || profileName === activeProfile) return;
-        // Chỉ cần tải dữ liệu đầy đủ, danh sách nhóm đã có sẵn
-        loadProfileData(rootPath, profileName);
+
+        // Nếu chưa có dữ liệu quét chung, không làm gì cả
+        if (!fileTree) return;
+
+        set({ scanProgress: { currentFile: `Đang tải ${profileName}...` } });
+        try {
+          // Chỉ gọi command để tải dữ liệu, không quét lại
+          const profileData = await invoke<CachedProjectData>(
+            "load_profile_data",
+            {
+              projectPath: rootPath,
+              profileName: profileName,
+            }
+          );
+
+          // Cập nhật state với dữ liệu của hồ sơ mới
+          const loadedGroups = (profileData.groups || []).map((g) => ({
+            ...g,
+          }));
+          set((state) => {
+            const newAllGroups = new Map(state.allGroups);
+            newAllGroups.set(profileName, loadedGroups);
+            return {
+              allGroups: newAllGroups,
+              groups: loadedGroups,
+              activeProfile: profileName,
+              syncEnabled: profileData.sync_enabled ?? false,
+              syncPath: profileData.sync_path ?? null,
+              customIgnorePatterns: profileData.custom_ignore_patterns ?? [],
+              isWatchingFiles: profileData.is_watching_files ?? false,
+              scanProgress: { currentFile: null },
+            };
+          });
+        } catch (error) {
+          message(`Không thể tải hồ sơ ${profileName}: ${error}`, {
+            title: "Lỗi",
+            kind: "error",
+          });
+          set({ scanProgress: { currentFile: null } });
+        }
       },
       createProfile: async (profileName: string) => {
         const { rootPath, profiles } = get();
