@@ -33,7 +33,6 @@ import {
   BrainCircuit,
   Tag,
   Save,
-  X,
 } from "lucide-react";
 import {
   DropdownMenu,

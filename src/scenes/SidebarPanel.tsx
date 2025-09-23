@@ -1,5 +1,5 @@
 // src/scenes/SidebarPanel.tsx
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDashboard } from "@/hooks/useDashboard";
 import { GroupManager } from "@/components/GroupManager";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { type Group } from "@/store/types";
 import { cn } from "@/lib/utils";
 
 // --- Input Inline cho Profile (giữ nguyên) ---
