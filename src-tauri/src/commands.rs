@@ -197,6 +197,7 @@ pub fn start_group_export(
             
             // --- LOGIC MỚI: Tự động đọc cài đặt từ dữ liệu hồ sơ ---
             let use_full_tree = project_data.export_use_full_tree.unwrap_or(false); // Mặc định là false (cây tối giản)
+            let with_line_numbers = project_data.export_with_line_numbers.unwrap_or(true); // Mặc định là true
 
             let root_path = Path::new(&root_path_str);
             let group = project_data
@@ -219,7 +220,7 @@ pub fn start_group_export(
                 &expanded_files,
                 use_full_tree, // <-- Sử dụng giá trị đã đọc
                 &project_data.file_tree,
-                true, // Mặc định true cho group export
+                with_line_numbers, // <-- Sử dụng giá trị đã đọc
             )
         })();
         match result {
@@ -380,13 +381,15 @@ fn save_context_to_path_internal(path: String, content: String) -> Result<(), St
 
 fn perform_auto_export(project_path: &str, _profile_name: &str, data: &models::CachedProjectData) {
     let sync_path_base = PathBuf::from(data.sync_path.as_ref().unwrap());
+    let use_full_tree = data.export_use_full_tree.unwrap_or(false);
+    let with_line_numbers = data.export_with_line_numbers.unwrap_or(true);
     let all_files: Vec<String> = data.file_metadata_cache.keys().cloned().collect();
     if let Ok(proj_context) = context_generator::generate_context_from_files(
         project_path,
         &all_files,
-        true,
+        use_full_tree,
         &data.file_tree,
-        true, // Mặc định true cho auto export
+        with_line_numbers,
     ) {
         let file_name = sync_path_base.join("_PROJECT_CONTEXT.txt");
         let _ =
@@ -402,9 +405,9 @@ fn perform_auto_export(project_path: &str, _profile_name: &str, data: &models::C
             if let Ok(group_context) = context_generator::generate_context_from_files(
                 project_path,
                 &expanded_files,
-                true,
+                use_full_tree,
                 &data.file_tree,
-                true, // Mặc định true cho auto export
+                with_line_numbers,
             ) {
                 let safe_name = sanitize_group_name(&group.name);
                 let file_name = sync_path_base.join(format!("{}_context.txt", safe_name));

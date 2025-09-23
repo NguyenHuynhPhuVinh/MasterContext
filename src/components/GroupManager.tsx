@@ -166,13 +166,15 @@ export function GroupManager({
   onConfirmRename,
   onCancelEdit,
 }: GroupManagerProps) {
-  const { groups, activeProfile, rootPath } = useAppStore(
-    useShallow((state) => ({
-      groups: state.allGroups.get(profileName) || [],
-      activeProfile: state.activeProfile,
-      rootPath: state.rootPath,
-    }))
-  );
+  const { groups, activeProfile, rootPath, exportWithLineNumbers } =
+    useAppStore(
+      useShallow((state) => ({
+        groups: state.allGroups.get(profileName) || [],
+        activeProfile: state.activeProfile,
+        rootPath: state.rootPath,
+        exportWithLineNumbers: state.exportWithLineNumbers,
+      }))
+    );
   const {
     deleteGroup,
     editGroupContent,
@@ -292,6 +294,7 @@ export function GroupManager({
           rootPathStr: rootPath,
           profileName: profileName,
           useFullTree: true,
+          withLineNumbers: exportWithLineNumbers,
         });
         await writeText(context);
         message(`Đã sao chép ngữ cảnh nhóm "${group.name}"`, {
