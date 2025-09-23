@@ -1,6 +1,7 @@
 // src/scenes/settings/ExportTab.tsx
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -13,6 +14,8 @@ interface ExportTabProps {
   setExportWithLineNumbers: (enabled: boolean) => void;
   exportWithoutComments: boolean;
   setExportWithoutComments: (enabled: boolean) => void;
+  exportSuperCompressed: boolean;
+  setExportSuperCompressed: (enabled: boolean) => void;
   exportRemoveDebugLogs: boolean;
   setExportRemoveDebugLogs: (enabled: boolean) => void;
   exportExcludeExtensions: string[];
@@ -26,6 +29,8 @@ export function ExportTab({
   setExportWithLineNumbers,
   exportWithoutComments,
   setExportWithoutComments,
+  exportSuperCompressed,
+  setExportSuperCompressed,
   exportRemoveDebugLogs,
   setExportRemoveDebugLogs,
   exportExcludeExtensions,
@@ -70,7 +75,10 @@ export function ExportTab({
         <div className="flex items-center justify-between pt-4 border-t">
           <Label
             htmlFor="export-lines-toggle"
-            className="flex flex-col items-start gap-1"
+            className={cn(
+              "flex flex-col items-start gap-1",
+              exportSuperCompressed && "opacity-50"
+            )}
           >
             <span>Thêm số dòng vào nội dung file</span>
             <span className="text-xs text-muted-foreground">
@@ -81,6 +89,24 @@ export function ExportTab({
             id="export-lines-toggle"
             checked={exportWithLineNumbers}
             onCheckedChange={setExportWithLineNumbers}
+            disabled={exportSuperCompressed}
+          />
+        </div>
+        <div className="flex items-center justify-between pt-4 border-t">
+          <Label
+            htmlFor="export-super-compressed-toggle"
+            className="flex flex-col items-start gap-1"
+          >
+            <span>Xuất siêu nén</span>
+            <span className="text-xs text-muted-foreground">
+              Nén nội dung file thành một dòng và đặt cạnh tên file trong cây
+              thư mục.
+            </span>
+          </Label>
+          <Switch
+            id="export-super-compressed-toggle"
+            checked={exportSuperCompressed}
+            onCheckedChange={setExportSuperCompressed}
           />
         </div>
         <div className="flex items-center justify-between pt-4 border-t">

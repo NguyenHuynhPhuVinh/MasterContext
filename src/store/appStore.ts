@@ -57,6 +57,7 @@ export interface AppState {
   exportWithLineNumbers: boolean;
   exportWithoutComments: boolean;
   exportRemoveDebugLogs: boolean;
+  exportSuperCompressed: boolean;
   alwaysApplyText: string | null;
   exportExcludeExtensions: string[];
 

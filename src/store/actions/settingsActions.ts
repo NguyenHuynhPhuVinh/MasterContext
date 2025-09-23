@@ -17,6 +17,7 @@ export interface SettingsActions {
   setExportWithLineNumbers: (enabled: boolean) => Promise<void>;
   setExportWithoutComments: (enabled: boolean) => Promise<void>;
   setExportRemoveDebugLogs: (enabled: boolean) => Promise<void>;
+  setExportSuperCompressed: (enabled: boolean) => Promise<void>;
   setAlwaysApplyText: (text: string) => Promise<void>;
   setExportExcludeExtensions: (extensions: string[]) => Promise<void>;
   setCrossLinkingEnabled: (enabled: boolean) => void;
@@ -205,6 +206,24 @@ export const createSettingsActions: StateCreator<
       set((state) => ({
         exportRemoveDebugLogs: !state.exportRemoveDebugLogs,
       }));
+    }
+  },
+  setExportSuperCompressed: async (enabled: boolean) => {
+    const { rootPath, activeProfile } = get();
+    if (!rootPath) return;
+    set({ exportSuperCompressed: enabled });
+    try {
+      await invoke("set_export_super_compressed_setting", {
+        path: rootPath,
+        profileName: activeProfile,
+        enabled,
+      });
+    } catch (error) {
+      message(`Không thể lưu cài đặt xuất siêu nén: ${error}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
+      set((state) => ({ exportSuperCompressed: !state.exportSuperCompressed }));
     }
   },
   setAlwaysApplyText: async (text: string) => {

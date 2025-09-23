@@ -18,6 +18,7 @@ export function useSettingsScene() {
     exportWithLineNumbers,
     exportWithoutComments,
     exportRemoveDebugLogs,
+    exportSuperCompressed,
     alwaysApplyText,
     exportExcludeExtensions,
   } = useAppStore(
@@ -32,6 +33,7 @@ export function useSettingsScene() {
       exportWithLineNumbers: state.exportWithLineNumbers,
       exportWithoutComments: state.exportWithoutComments,
       exportRemoveDebugLogs: state.exportRemoveDebugLogs,
+      exportSuperCompressed: state.exportSuperCompressed,
       alwaysApplyText: state.alwaysApplyText,
       exportExcludeExtensions: state.exportExcludeExtensions,
     }))
@@ -46,6 +48,7 @@ export function useSettingsScene() {
     setExportWithLineNumbers,
     setExportWithoutComments,
     setExportRemoveDebugLogs,
+    setExportSuperCompressed,
     setAlwaysApplyText,
     setExportExcludeExtensions,
   } = useAppActions();
@@ -111,6 +114,7 @@ export function useSettingsScene() {
     exportWithLineNumbers,
     exportWithoutComments,
     exportRemoveDebugLogs,
+    exportSuperCompressed,
     alwaysApplyText,
     exportExcludeExtensions,
     showDashboard,
@@ -121,6 +125,7 @@ export function useSettingsScene() {
     setExportWithLineNumbers,
     setExportWithoutComments,
     setExportRemoveDebugLogs,
+    setExportSuperCompressed,
     setAlwaysApplyText,
     setExportExcludeExtensions,
     handleToggleSync,

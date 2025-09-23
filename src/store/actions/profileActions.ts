@@ -50,6 +50,8 @@ export const createProfileActions: StateCreator<
           exportUseFullTree: profileData.export_use_full_tree ?? false,
           exportWithLineNumbers: profileData.export_with_line_numbers ?? true,
           exportWithoutComments: profileData.export_without_comments ?? false,
+          exportRemoveDebugLogs: profileData.export_remove_debug_logs ?? false,
+          exportSuperCompressed: profileData.export_super_compressed ?? false,
           alwaysApplyText: profileData.always_apply_text ?? null,
           exportExcludeExtensions: profileData.export_exclude_extensions ?? [],
           scanProgress: { currentFile: null, currentPhase: "scanning" },

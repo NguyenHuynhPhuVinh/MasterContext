@@ -31,6 +31,7 @@ export function SettingsScene() {
     exportWithLineNumbers,
     exportWithoutComments,
     exportRemoveDebugLogs,
+    exportSuperCompressed,
     alwaysApplyText,
     exportExcludeExtensions,
     showDashboard,
@@ -39,6 +40,7 @@ export function SettingsScene() {
     setExportWithLineNumbers,
     setExportWithoutComments,
     setExportRemoveDebugLogs,
+    setExportSuperCompressed,
     setAlwaysApplyText,
     setExportExcludeExtensions,
     handleToggleSync,
@@ -92,6 +94,8 @@ export function SettingsScene() {
             setExportWithLineNumbers={setExportWithLineNumbers}
             exportWithoutComments={exportWithoutComments}
             setExportWithoutComments={setExportWithoutComments}
+            exportSuperCompressed={exportSuperCompressed}
+            setExportSuperCompressed={setExportSuperCompressed}
             exportRemoveDebugLogs={exportRemoveDebugLogs}
             setExportRemoveDebugLogs={setExportRemoveDebugLogs}
             exportExcludeExtensions={exportExcludeExtensions}

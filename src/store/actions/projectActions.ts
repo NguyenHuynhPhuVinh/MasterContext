@@ -107,6 +107,7 @@ export const createProjectActions: StateCreator<
         exportWithLineNumbers: payload.export_with_line_numbers ?? true,
         exportWithoutComments: payload.export_without_comments ?? false,
         exportRemoveDebugLogs: payload.export_remove_debug_logs ?? false,
+        exportSuperCompressed: payload.export_super_compressed ?? false,
         alwaysApplyText: payload.always_apply_text ?? null,
         exportExcludeExtensions: payload.export_exclude_extensions ?? [],
       };
@@ -168,6 +169,7 @@ export const createProjectActions: StateCreator<
         withLineNumbers: exportWithLineNumbers,
         withoutComments: exportWithoutComments,
         removeDebugLogs: exportRemoveDebugLogs,
+        superCompressed: false, // Copy should not be compressed
       });
       await writeText(context);
       await message("Đã sao chép ngữ cảnh dự án vào clipboard!", {

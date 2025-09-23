@@ -16,6 +16,7 @@ lazy_static! {
     static ref DEBUG_LOG_REGEX: Regex = Regex::new(
         r"(?m)^\s*(console\.(log|warn|error|info|debug|trace|assert|dir|dirxml|table|time|timeEnd|timeLog|count|countReset|group|groupEnd|groupCollapsed|clear|profile|profileEnd|clear)\s*\(.*\);?|println!\s*\(.*\);|dbg!\s*\(.*\);)\s*\r?\n?"
     ).unwrap();
+    static ref WHITESPACE_REGEX: Regex = Regex::new(r"\s+").unwrap();
 }
 
 fn remove_comments_from_content(content: &str, file_rel_path: &str) -> String {
@@ -51,6 +52,12 @@ fn remove_debug_logs_from_content(content: &str) -> String {
     DEBUG_LOG_REGEX.replace_all(content, "").to_string()
 }
 
+fn compress_content_for_tree(content: &str) -> String {
+    // Replace newlines and tabs with a single space, then collapse multiple spaces.
+    let no_newlines = content.replace(['\n', '\r', '\t'], " ");
+    WHITESPACE_REGEX.replace_all(&no_newlines, " ").trim().to_string()
+}
+
 fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut String) {
     let mut entries = tree.iter().peekable();
     while let Some((name, entry)) = entries.next() {
@@ -64,6 +71,53 @@ fn format_tree(tree: &BTreeMap<String, FsEntry>, prefix: &str, output: &mut Stri
                 let _ = writeln!(output, "{}{}{}/", prefix, connector, name);
                 let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
                 format_tree(children, &new_prefix, output);
+            }
+        }
+    }
+}
+
+fn format_tree_super_compressed(
+    tree: &BTreeMap<String, FsEntry>,
+    prefix: &str,
+    current_path: &Path,
+    root_path: &Path,
+    output: &mut String,
+    without_comments: bool,
+    remove_debug_logs: bool,
+    exclude_extensions_set: &HashSet<&str>,
+) {
+    let mut entries = tree.iter().peekable();
+    while let Some((name, entry)) = entries.next() {
+        let is_last = entries.peek().is_none();
+        let connector = if is_last { "└── " } else { "├── " };
+        let new_path = current_path.join(name);
+
+        match entry {
+            FsEntry::File => {
+                let extension = new_path.extension().and_then(std::ffi::OsStr::to_str).unwrap_or("");
+                if !exclude_extensions_set.contains(extension) {
+                    let full_path = root_path.join(&new_path);
+                    let content_str = if let Ok(mut content) = fs::read_to_string(&full_path) {
+                        let rel_path_str = new_path.to_string_lossy();
+                        if without_comments {
+                            content = remove_comments_from_content(&content, &rel_path_str);
+                        }
+                        if remove_debug_logs {
+                            content = remove_debug_logs_from_content(&content);
+                        }
+                        format!("[{}]", compress_content_for_tree(&content))
+                    } else {
+                        "[KHÔNG THỂ ĐỌC FILE]".to_string()
+                    };
+                    let _ = writeln!(output, "{}{}{} {}", prefix, connector, name, content_str);
+                } else {
+                    let _ = writeln!(output, "{}{}{} [BỊ LOẠI TRỪ]", prefix, connector, name);
+                }
+            }
+            FsEntry::Directory(children) => {
+                let _ = writeln!(output, "{}{}{}/", prefix, connector, name);
+                let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
+                format_tree_super_compressed(children, &new_prefix, &new_path, root_path, output, without_comments, remove_debug_logs, exclude_extensions_set);
             }
         }
     }
@@ -128,6 +182,7 @@ pub fn generate_context_from_files(
     with_line_numbers: bool,
     without_comments: bool,
     remove_debug_logs: bool,
+    super_compressed: bool,
     always_apply_text: &Option<String>,
     exclude_extensions: &Option<Vec<String>>,
 ) -> Result<String, String> {
@@ -167,60 +222,72 @@ pub fn generate_context_from_files(
         }
     }
 
+    let exclude_set: HashSet<_> = exclude_extensions
+        .as_ref()
+        .map(|v| v.iter().map(|s| s.as_str()).collect())
+        .unwrap_or_default();
+
     let mut directory_structure = String::new();
-    format_tree(&tree_builder_root, "", &mut directory_structure);
-
-    // Phần xử lý nội dung file giữ nguyên, không thay đổi
-    let mut file_contents_string = String::new();
-    let mut sorted_files = file_paths.to_vec();
-    sorted_files.sort();
-
-    // --- NEW FILTERING LOGIC ---
-    let final_files: Vec<_> = if let Some(extensions_to_exclude) = exclude_extensions {
-        let exclude_set: HashSet<_> = extensions_to_exclude.iter().map(|s| s.as_str()).collect();
-        sorted_files
-            .into_iter()
-            .filter(|file_rel_path| {
-                let extension = Path::new(file_rel_path)
-                    .extension()
-                    .and_then(std::ffi::OsStr::to_str)
-                    .unwrap_or("");
-                !exclude_set.contains(extension)
-            })
-            .collect()
+    let final_context = if super_compressed {
+        format_tree_super_compressed(
+            &tree_builder_root,
+            "",
+            Path::new(""),
+            root_path,
+            &mut directory_structure,
+            without_comments,
+            remove_debug_logs,
+            &exclude_set,
+        );
+        format!("Directory structure:\n{}", directory_structure)
     } else {
-        sorted_files
-    };
+        format_tree(&tree_builder_root, "", &mut directory_structure);
 
-    for file_rel_path in final_files {
-        let file_path = root_path.join(&file_rel_path);
-        if let Ok(content) = fs::read_to_string(&file_path) {
-            let mut processed_content = content;
-            
-            if without_comments {
-                processed_content = remove_comments_from_content(&processed_content, &file_rel_path);
-            }
+        let mut file_contents_string = String::new();
+        let mut sorted_files = file_paths.to_vec();
+        sorted_files.sort();
 
-            if remove_debug_logs {
-                processed_content = remove_debug_logs_from_content(&processed_content);
-            }
+        let final_files: Vec<_> = sorted_files
+                .into_iter()
+                .filter(|file_rel_path| {
+                    let extension = Path::new(file_rel_path)
+                        .extension()
+                        .and_then(std::ffi::OsStr::to_str)
+                        .unwrap_or("");
+                    !exclude_set.contains(extension)
+                })
+                .collect();
 
-            let header = format!("================================================\nFILE: {}\n================================================\n", file_rel_path.replace("\\", "/"));
-            file_contents_string.push_str(&header);
-            if with_line_numbers {
-                for (i, line) in processed_content.lines().enumerate() {
-                    let _ = writeln!(file_contents_string, "{}: {}", i + 1, line);
+        for file_rel_path in final_files {
+            let file_path = root_path.join(&file_rel_path);
+            if let Ok(content) = fs::read_to_string(&file_path) {
+                let mut processed_content = content;
+                
+                if without_comments {
+                    processed_content = remove_comments_from_content(&processed_content, &file_rel_path);
                 }
-            } else {
-                file_contents_string.push_str(&processed_content);
+
+                if remove_debug_logs {
+                    processed_content = remove_debug_logs_from_content(&processed_content);
+                }
+
+                let header = format!("================================================\nFILE: {}\n================================================\n", file_rel_path.replace("\\", "/"));
+                file_contents_string.push_str(&header);
+                if with_line_numbers {
+                    for (i, line) in processed_content.lines().enumerate() {
+                        let _ = writeln!(file_contents_string, "{}: {}", i + 1, line);
+                    }
+                } else {
+                    file_contents_string.push_str(&processed_content);
+                }
+                file_contents_string.push_str("\n\n");
             }
-            file_contents_string.push_str("\n\n");
         }
-    }
-    let final_context = format!(
-        "Directory structure:\n{}\n\n{}",
-        directory_structure, file_contents_string
-    );
+        format!(
+            "Directory structure:\n{}\n\n{}",
+            directory_structure, file_contents_string
+        )
+    };
 
     let mut final_context_with_suffix = final_context;
 

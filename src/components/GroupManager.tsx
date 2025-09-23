@@ -172,6 +172,7 @@ export function GroupManager({
           withLineNumbers: exportWithLineNumbers, // Sử dụng giá trị từ state
           withoutComments: exportWithoutComments, // Sử dụng giá trị từ state
           removeDebugLogs: exportRemoveDebugLogs, // Sử dụng giá trị từ state
+          superCompressed: false, // Copy should not be compressed
         });
         await writeText(context);
         message(`Đã sao chép ngữ cảnh nhóm "${group.name}"`, {
