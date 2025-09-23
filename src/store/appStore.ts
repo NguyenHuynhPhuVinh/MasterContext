@@ -1,7 +1,8 @@
 // src/store/appStore.ts
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog"; // <-- THÊM IMPORT
+import { open } from "@tauri-apps/plugin-dialog";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { toast } from "sonner";
 import {
   type CachedProjectData,
@@ -124,6 +125,8 @@ interface AppState {
     renameProfile: (oldName: string, newName: string) => Promise<void>;
     deleteProfile: (profileName: string) => Promise<void>;
     setFileWatching: (enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
+    exportProject: () => void;
+    copyProjectToClipboard: () => Promise<void>;
   };
 }
 
@@ -657,6 +660,33 @@ export const useAppStore = create<AppState>((set, get) => {
           );
           // Revert state nếu có lỗi
           set({ isWatchingFiles: !enabled });
+        }
+      },
+      // --- THÊM LOGIC CHO ACTIONS MỚI ---
+      exportProject: () => {
+        const { rootPath, activeProfile } = get();
+        if (!rootPath || !activeProfile) return;
+        toast.info("Bắt đầu xuất ngữ cảnh dự án...");
+        invoke("start_project_export", {
+          path: rootPath,
+          profileName: activeProfile,
+        });
+        // Listener sự kiện trong `useDashboard` sẽ xử lý kết quả
+      },
+      copyProjectToClipboard: async () => {
+        const { rootPath, activeProfile } = get();
+        if (!rootPath || !activeProfile) return;
+        toast.info("Đang tạo ngữ cảnh để sao chép...");
+        try {
+          const context = await invoke<string>("generate_project_context", {
+            path: rootPath,
+            profileName: activeProfile,
+          });
+          await writeText(context);
+          toast.success("Đã sao chép ngữ cảnh dự án vào clipboard!");
+        } catch (error) {
+          console.error("Lỗi khi sao chép ngữ cảnh dự án:", error);
+          toast.error(`Không thể sao chép: ${error}`);
         }
       },
     },

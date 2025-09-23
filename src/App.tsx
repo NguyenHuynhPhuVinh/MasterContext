@@ -2,6 +2,8 @@
 import { useEffect, useMemo } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { Menu, MenuItem, Submenu } from "@tauri-apps/api/menu";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { Toaster, toast } from "sonner";
 import { useAppStore, useAppActions } from "./store/appStore";
 import { type GroupStats, type CachedProjectData } from "./store/types";
@@ -24,7 +26,9 @@ function App() {
     _setGroupUpdateComplete,
     rescanProject,
     openFolderFromMenu,
-    showSettingsScene, // <-- Lấy action mới
+    showSettingsScene,
+    exportProject, // <-- Lấy action mới
+    copyProjectToClipboard, // <-- Lấy action mới
   } = useAppActions();
 
   // --- Effect áp dụng theme (giữ nguyên) ---
@@ -58,9 +62,27 @@ function App() {
           },
         });
 
+        // --- TẠO CÁC MENU ITEM MỚI ---
+        const exportProjectItem = await MenuItem.new({
+          id: "export_project",
+          text: "Xuất ngữ cảnh dự án...",
+          action: exportProject,
+        });
+
+        const copyProjectItem = await MenuItem.new({
+          id: "copy_project",
+          text: "Sao chép ngữ cảnh dự án",
+          action: copyProjectToClipboard,
+        });
+
         const fileSubmenu = await Submenu.new({
-          text: "Thư mục",
-          items: [openFolderItem, rescanFolderItem],
+          text: "Tệp",
+          items: [
+            openFolderItem,
+            rescanFolderItem,
+            exportProjectItem,
+            copyProjectItem,
+          ],
         });
 
         // --- THÊM MENU CÀI ĐẶT ---
@@ -108,7 +130,14 @@ function App() {
       // Nếu không có (đang ở Welcome), thì gỡ menu
       clearMenu();
     }
-  }, [selectedPath, openFolderFromMenu, rescanProject, showSettingsScene]); // <-- Thêm dependency
+  }, [
+    selectedPath,
+    openFolderFromMenu,
+    rescanProject,
+    showSettingsScene,
+    exportProject,
+    copyProjectToClipboard,
+  ]); // <-- Thêm dependency
 
   const throttledSetScanProgress = useMemo(
     () => throttle((file: string) => _setScanProgress(file), 10),
@@ -168,8 +197,30 @@ function App() {
         }
       })
     );
-
-    // --- ĐÃ XÓA LISTENER "tauri://menu" KHỎI ĐÂY ---
+    // Listener cho sự kiện xuất dự án (để hiển thị toast)
+    unlistenFuncs.push(
+      listen<string>("project_export_complete", async (event) => {
+        try {
+          const filePath = await save({
+            title: "Lưu Ngữ cảnh Dự án",
+            defaultPath: "project_context.txt",
+            filters: [{ name: "Text File", extensions: ["txt"] }],
+          });
+          if (filePath) {
+            await writeTextFile(filePath, event.payload);
+            toast.success(`Đã lưu file thành công!`);
+          }
+        } catch (error) {
+          console.error("Lỗi khi lưu file ngữ cảnh dự án:", error);
+          toast.error("Đã xảy ra lỗi khi lưu file.");
+        }
+      })
+    );
+    unlistenFuncs.push(
+      listen<string>("project_export_error", (event) => {
+        toast.error(`Lỗi khi xuất dự án: ${event.payload}`);
+      })
+    );
 
     return () => {
       unlistenFuncs.forEach((unlisten) => {

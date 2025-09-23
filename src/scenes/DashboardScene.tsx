@@ -1,14 +1,7 @@
 // src/scenes/DashboardScene.tsx
-// import { useState } from "react"; // <-- XÓA IMPORT
 import { useDashboard } from "@/hooks/useDashboard";
 
 // Import các component UI cần thiết
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable";
-import { ProjectStats as ProjectStatsComponent } from "@/components/ProjectStats";
 import { GroupManager } from "@/components/GroupManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,16 +34,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  PlusCircle,
-  // Settings, // <-- XÓA IMPORT
-  ChevronDown,
-  Edit,
-  Trash2,
-  Plus,
-} from "lucide-react"; // Thêm icons cho profile
+import { PlusCircle, ChevronDown, Edit, Trash2, Plus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-// import { SettingsDialog } from "@/components/SettingsDialog"; // <-- XÓA IMPORT
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,6 +45,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAppStore } from "@/store/appStore";
+import { StatusBar } from "@/components/StatusBar"; // <-- IMPORT MỚI
 
 export function DashboardScene() {
   // const [isSettingsOpen, setIsSettingsOpen] = useState(false); // <-- XÓA STATE
@@ -70,8 +56,6 @@ export function DashboardScene() {
     profiles,
     activeProfile,
     isGroupDialogOpen,
-    isExporting,
-    isCopying,
     editingGroup,
     profileDialogMode,
     isProfileDeleteDialogOpen,
@@ -80,8 +64,6 @@ export function DashboardScene() {
     setIsGroupDialogOpen,
     handleOpenGroupDialog,
     onGroupSubmit,
-    handleExportProject,
-    handleCopyProject,
     handleOpenProfileDialog,
     setProfileDialogMode,
     onProfileSubmit,
@@ -91,107 +73,80 @@ export function DashboardScene() {
 
   return (
     <>
-      <ResizablePanelGroup direction="horizontal" className="h-full w-full">
-        {/* === SIDEBAR === */}
-        <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-          <div className="flex h-full flex-col gap-4 p-6">
-            {" "}
-            {/* Thay đổi padding p-4 -> p-6 */}
-            <div className="flex items-center justify-between px-2">
-              <h2 className="text-xl font-bold">Thông tin Dự án</h2>
-              {/* --- CÁC NÚT ĐÃ ĐƯỢC XÓA KHỎI ĐÂY --- */}
-            </div>
-            <ProjectStatsComponent
-              path={selectedPath}
-              stats={projectStats}
-              onExportProject={handleExportProject}
-              isExporting={isExporting}
-              onCopyProject={handleCopyProject}
-              isCopying={isCopying}
-              // --- XÓA `wasCopied` ---
-            />
+      <div className="flex flex-col h-full">
+        {/* --- HEADER CỐ ĐỊNH --- */}
+        <header className="flex items-center justify-between p-6 border-b shrink-0">
+          <div>
+            <h1 className="text-3xl font-bold">Phân Nhóm Ngữ Cảnh</h1>
+            <p className="text-muted-foreground">
+              Tạo và quản lý các nhóm ngữ cảnh cho dự án của bạn.
+            </p>
           </div>
-        </ResizablePanel>
-
-        <ResizableHandle withHandle />
-
-        {/* === MAIN CONTENT (CÓ LAYOUT MỚI) === */}
-        <ResizablePanel defaultSize={75}>
-          <div className="flex flex-col h-full">
-            {/* --- HEADER CỐ ĐỊNH --- */}
-            <header className="flex items-center justify-between p-6 border-b">
-              <div>
-                <h1 className="text-3xl font-bold">Phân Nhóm Ngữ Cảnh</h1>
-                <p className="text-muted-foreground">
-                  Tạo và quản lý các nhóm ngữ cảnh cho dự án của bạn.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* --- PROFILE DROPDOWN --- */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="min-w-[120px]">
-                      <span className="truncate">{activeProfile}</span>
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel>Hồ sơ ngữ cảnh</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {profiles.map((profile) => (
-                      <DropdownMenuItem
-                        key={profile}
-                        onClick={() =>
-                          useAppStore.getState().actions.switchProfile(profile)
-                        }
-                        className={profile === activeProfile ? "bg-accent" : ""}
-                      >
-                        {profile}
-                      </DropdownMenuItem>
-                    ))}
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="min-w-[120px]">
+                  <span className="truncate">{activeProfile}</span>
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Hồ sơ ngữ cảnh</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {profiles.map((profile) => (
+                  <DropdownMenuItem
+                    key={profile}
+                    onClick={() =>
+                      useAppStore.getState().actions.switchProfile(profile)
+                    }
+                    className={profile === activeProfile ? "bg-accent" : ""}
+                  >
+                    {profile}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleOpenProfileDialog("create")}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tạo hồ sơ mới
+                </DropdownMenuItem>
+                {activeProfile !== "default" && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => handleOpenProfileDialog("rename")}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Đổi tên hồ sơ
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={() => handleOpenProfileDialog("create")}
+                      onClick={() => setIsProfileDeleteDialogOpen(true)}
+                      className="text-destructive focus:text-destructive"
                     >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Tạo hồ sơ mới
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Xóa hồ sơ
                     </DropdownMenuItem>
-                    {activeProfile !== "default" && (
-                      <>
-                        <DropdownMenuItem
-                          onClick={() => handleOpenProfileDialog("rename")}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Đổi tên hồ sơ
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={handleConfirmDeleteProfile}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Xóa hồ sơ
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button onClick={() => handleOpenGroupDialog()}>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm mới
-                </Button>
-                {/* --- NÚT SETTINGS ĐÃ BỊ XÓA --- */}
-              </div>
-            </header>
-
-            {/* --- VÙNG NỘI DUNG CUỘN ĐƯỢC --- */}
-            <ScrollArea className="flex-1">
-              <div className="p-6">
-                <GroupManager onEditGroup={handleOpenGroupDialog} />
-              </div>
-            </ScrollArea>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button onClick={() => handleOpenGroupDialog()}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Tạo nhóm mới
+            </Button>
           </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        </header>
+
+        {/* --- VÙNG NỘI DUNG CUỘN ĐƯỢC --- */}
+        <ScrollArea className="flex-1">
+          <div className="p-6">
+            <GroupManager onEditGroup={handleOpenGroupDialog} />
+          </div>
+        </ScrollArea>
+
+        {/* --- THANH TRẠNG THÁI MỚI --- */}
+        <StatusBar stats={projectStats} path={selectedPath} />
+      </div>
 
       {/* === DIALOG TẠO/SỬA NHÓM (Không thay đổi) === */}
       <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>

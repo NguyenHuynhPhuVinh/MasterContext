@@ -1,17 +1,12 @@
 // src/hooks/useDashboard.ts
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import { save } from "@tauri-apps/plugin-dialog";
-import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { toast } from "sonner";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
 import { useShallow } from "zustand/react/shallow";
+import { toast } from "sonner";
 
 // Schema validation cho form nhóm
 const groupSchema = z.object({
@@ -39,16 +34,14 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function useDashboard() {
   // --- LẤY STATE VÀ ACTIONS TỪ STORE ---
-  const { rootPath, projectStats, selectedPath, profiles, activeProfile } =
-    useAppStore(
-      useShallow((state) => ({
-        rootPath: state.rootPath,
-        projectStats: state.projectStats,
-        selectedPath: state.selectedPath,
-        profiles: state.profiles,
-        activeProfile: state.activeProfile,
-      }))
-    );
+  const { projectStats, selectedPath, profiles, activeProfile } = useAppStore(
+    useShallow((state) => ({
+      projectStats: state.projectStats,
+      selectedPath: state.selectedPath,
+      profiles: state.profiles,
+      activeProfile: state.activeProfile,
+    }))
+  );
   const {
     addGroup,
     updateGroup,
@@ -63,8 +56,8 @@ export function useDashboard() {
   // --- STATE CỤC BỘ CỦA SCENE ---
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
-  const [isCopying, setIsCopying] = useState(false);
+
+  // Xóa isExporting, isCopying
 
   // --- STATE MỚI CHO DIALOG HỒ SƠ ---
   const [profileDialogMode, setProfileDialogMode] = useState<
@@ -84,41 +77,7 @@ export function useDashboard() {
     defaultValues: { name: "" },
   });
 
-  // --- LOGIC LẮNG NGHE SỰ KIỆN TỪ BACKEND ---
-  useEffect(() => {
-    const unlistenComplete = listen<string>(
-      "project_export_complete",
-      async (event) => {
-        try {
-          const filePath = await save({
-            title: "Lưu Ngữ cảnh Dự án",
-            defaultPath: "project_context.txt",
-            filters: [{ name: "Text File", extensions: ["txt"] }],
-          });
-          if (filePath) {
-            await writeTextFile(filePath, event.payload);
-            toast.success(`Đã lưu file thành công!`);
-          }
-        } catch (error) {
-          console.error("Lỗi khi lưu file ngữ cảnh dự án:", error);
-          toast.error("Đã xảy ra lỗi khi lưu file.");
-        } finally {
-          setIsExporting(false);
-        }
-      }
-    );
-
-    const unlistenError = listen<string>("project_export_error", (event) => {
-      console.error("Lỗi khi xuất dự án:", event.payload);
-      toast.error(`Đã xảy ra lỗi khi xuất file: ${event.payload}`);
-      setIsExporting(false);
-    });
-
-    return () => {
-      unlistenComplete.then((f) => f());
-      unlistenError.then((f) => f());
-    };
-  }, []);
+  // Xóa useEffect lắng nghe sự kiện export, vì nó đã được chuyển lên App.tsx
 
   // --- CÁC HÀM XỬ LÝ SỰ KIỆN (HANDLERS) CHO NHÓM ---
   const handleOpenGroupDialog = (group: Group | null = null) => {
@@ -161,35 +120,7 @@ export function useDashboard() {
   // XÓA: handleOpenAnotherFolder và handleConfirmRescan
   // Các hàm này giờ được xử lý toàn cục qua menu
 
-  const handleExportProject = () => {
-    if (!rootPath || !activeProfile) return;
-    setIsExporting(true);
-    invoke("start_project_export", {
-      path: rootPath,
-      profileName: activeProfile,
-    });
-  };
-
-  const handleCopyProject = async () => {
-    if (!rootPath || !activeProfile) return;
-    setIsCopying(true);
-    try {
-      const context = await invoke<string>("generate_project_context", {
-        path: rootPath,
-        profileName: activeProfile,
-      });
-      await writeText(context);
-      toast.success("Đã sao chép ngữ cảnh dự án vào clipboard!");
-    } catch (error) {
-      console.error("Lỗi khi sao chép ngữ cảnh dự án:", error);
-      toast.error(`Không thể sao chép: ${error}`);
-    } finally {
-      setIsCopying(false);
-    }
-  };
-
-  // XÓA: handleConfirmRescan
-  // Hàm này giờ được xử lý toàn cục qua menu
+  // Xóa handleExportProject và handleCopyProject vì đã chuyển vào appStore
 
   // --- CÁC HÀM MỚI ĐỂ XỬ LÝ HỒ SƠ ---
   const handleOpenProfileDialog = (mode: "create" | "rename") => {
@@ -226,8 +157,6 @@ export function useDashboard() {
     activeProfile,
     // Trạng thái UI
     isGroupDialogOpen,
-    isExporting,
-    isCopying,
     editingGroup,
     profileDialogMode,
     isProfileDeleteDialogOpen,
@@ -238,8 +167,6 @@ export function useDashboard() {
     setIsGroupDialogOpen,
     handleOpenGroupDialog,
     onGroupSubmit,
-    handleExportProject,
-    handleCopyProject,
     // Profile handlers
     switchProfile,
     handleOpenProfileDialog,
