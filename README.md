@@ -94,8 +94,8 @@ Master Context được trang bị một loạt các tính năng mạnh mẽ, đ
 1.  **Clone repository:**
 
     ```bash
-    git clone https://your-repository-url/master-context.git
-    cd master-context
+    https://github.com/NguyenHuynhPhuVinh/MasterContext.git
+    cd MasterContext
     ```
 
 2.  **Cài đặt các gói phụ thuộc cho frontend:**
