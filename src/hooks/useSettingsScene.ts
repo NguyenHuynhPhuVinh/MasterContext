@@ -16,6 +16,7 @@ export function useSettingsScene() {
     rootPath,
     exportUseFullTree,
     exportWithLineNumbers,
+    alwaysApplyText,
   } = useAppStore(
     useShallow((state) => ({
       syncEnabled: state.syncEnabled,
@@ -26,6 +27,7 @@ export function useSettingsScene() {
       rootPath: state.rootPath,
       exportUseFullTree: state.exportUseFullTree,
       exportWithLineNumbers: state.exportWithLineNumbers,
+      alwaysApplyText: state.alwaysApplyText,
     }))
   );
 
@@ -36,6 +38,7 @@ export function useSettingsScene() {
     showDashboard,
     setExportUseFullTree,
     setExportWithLineNumbers,
+    setAlwaysApplyText,
   } = useAppActions();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
@@ -97,12 +100,14 @@ export function useSettingsScene() {
     rootPath,
     exportUseFullTree,
     exportWithLineNumbers,
+    alwaysApplyText,
     showDashboard,
     setSyncSettings,
     setCustomIgnorePatterns,
     setFileWatching,
     setExportUseFullTree,
     setExportWithLineNumbers,
+    setAlwaysApplyText,
     handleToggleSync,
     handleChooseSyncPath,
     ignoreText,

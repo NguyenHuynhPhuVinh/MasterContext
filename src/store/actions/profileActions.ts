@@ -46,6 +46,7 @@ export const createProfileActions: StateCreator<
           isWatchingFiles: profileData.is_watching_files ?? false,
           exportUseFullTree: profileData.export_use_full_tree ?? false,
           exportWithLineNumbers: profileData.export_with_line_numbers ?? true,
+          alwaysApplyText: profileData.always_apply_text ?? null,
           scanProgress: { currentFile: null },
         };
       });

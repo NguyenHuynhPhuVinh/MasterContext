@@ -69,3 +69,15 @@ pub fn set_export_with_line_numbers_setting(
     project_data.export_with_line_numbers = Some(enabled);
     file_cache::save_project_data(&app, &path, &profile_name, &project_data)
 }
+
+#[command]
+pub fn set_always_apply_text_setting(
+    app: AppHandle,
+    path: String,
+    profile_name: String,
+    text: String,
+) -> Result<(), String> {
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+    project_data.always_apply_text = Some(text);
+    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
+}

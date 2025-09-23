@@ -128,6 +128,7 @@ pub fn start_group_export(
             let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
             let use_full_tree = project_data.export_use_full_tree.unwrap_or(false);
             let with_line_numbers = project_data.export_with_line_numbers.unwrap_or(true);
+            let always_apply_text = project_data.always_apply_text;
             let root_path = Path::new(&root_path_str);
             let group = project_data
                 .groups
@@ -148,6 +149,7 @@ pub fn start_group_export(
                 use_full_tree,
                 &project_data.file_tree,
                 with_line_numbers,
+                &always_apply_text,
             )
         })();
         match result {
@@ -174,6 +176,7 @@ pub fn generate_group_context(
     with_line_numbers: bool,
 ) -> Result<String, String> {
     let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
+    let always_apply_text = project_data.always_apply_text;
     let root_path = Path::new(&root_path_str);
     let group = project_data
         .groups
@@ -194,6 +197,7 @@ pub fn generate_group_context(
         use_full_tree,
         &project_data.file_tree,
         with_line_numbers,
+        &always_apply_text,
     )
 }
 

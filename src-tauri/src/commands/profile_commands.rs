@@ -110,6 +110,7 @@ pub fn clone_profile(
         is_watching_files: Some(false),
         export_use_full_tree: Some(false),
         export_with_line_numbers: Some(true),
+        always_apply_text: Some("".to_string()),
     };
 
     file_cache::save_project_data(&app, &project_path, &new_profile_name, &new_data)

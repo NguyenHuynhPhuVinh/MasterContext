@@ -80,6 +80,7 @@ pub fn generate_context_from_files(
     use_full_tree: bool,
     full_project_tree: &Option<FileNode>,
     with_line_numbers: bool, // <-- THAM SỐ MỚI
+    always_apply_text: &Option<String>,
 ) -> Result<String, String> {
     let root_path = Path::new(root_path_str);
     let mut tree_builder_root = BTreeMap::new();
@@ -144,5 +145,17 @@ pub fn generate_context_from_files(
         "Directory structure:\n{}\n\n{}",
         directory_structure, file_contents_string
     );
-    Ok(final_context)
+
+    let mut final_context_with_suffix = final_context;
+
+    if let Some(text) = always_apply_text {
+        if !text.trim().is_empty() {
+            let _ = writeln!(final_context_with_suffix, "\n================================================");
+            let _ = writeln!(final_context_with_suffix, "**ALWAYS APPLY**");
+            let _ = writeln!(final_context_with_suffix, "================================================");
+            let _ = writeln!(final_context_with_suffix, "{}", text);
+        }
+    }
+
+    Ok(final_context_with_suffix)
 }

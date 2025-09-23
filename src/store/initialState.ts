@@ -30,6 +30,7 @@ export const initialState = {
   isWatchingFiles: false,
   exportUseFullTree: false,
   exportWithLineNumbers: true,
+  alwaysApplyText: null,
   profiles: ["default"],
   activeProfile: "default",
   isSidebarVisible: true,

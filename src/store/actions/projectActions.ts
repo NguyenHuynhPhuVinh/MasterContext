@@ -82,6 +82,7 @@ export const createProjectActions: StateCreator<
         isWatchingFiles: payload.is_watching_files ?? false,
         exportUseFullTree: payload.export_use_full_tree ?? false,
         exportWithLineNumbers: payload.export_with_line_numbers ?? true,
+        alwaysApplyText: payload.always_apply_text ?? null,
       };
     });
 

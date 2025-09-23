@@ -14,6 +14,7 @@ export interface SettingsActions {
   setFileWatching: (enabled: boolean) => Promise<void>;
   setExportUseFullTree: (enabled: boolean) => Promise<void>;
   setExportWithLineNumbers: (enabled: boolean) => Promise<void>;
+  setAlwaysApplyText: (text: string) => Promise<void>;
   setCrossLinkingEnabled: (enabled: boolean) => void;
 }
 
@@ -161,6 +162,23 @@ export const createSettingsActions: StateCreator<
         kind: "error",
       });
       set((state) => ({ exportWithLineNumbers: !state.exportWithLineNumbers }));
+    }
+  },
+  setAlwaysApplyText: async (text: string) => {
+    const { rootPath, activeProfile } = get();
+    if (!rootPath) return;
+    set({ alwaysApplyText: text });
+    try {
+      await invoke("set_always_apply_text_setting", {
+        path: rootPath,
+        profileName: activeProfile,
+        text,
+      });
+    } catch (error) {
+      message(`Không thể lưu văn bản: ${error}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
     }
   },
   setCrossLinkingEnabled: (enabled: boolean) => {

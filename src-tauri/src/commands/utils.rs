@@ -19,6 +19,7 @@ pub fn perform_auto_export(project_path: &str, _profile_name: &str, data: &model
     let sync_path_base = PathBuf::from(data.sync_path.as_ref().unwrap());
     let use_full_tree = data.export_use_full_tree.unwrap_or(false);
     let with_line_numbers = data.export_with_line_numbers.unwrap_or(true);
+    let always_apply_text = &data.always_apply_text;
     let all_files: Vec<String> = data.file_metadata_cache.keys().cloned().collect();
 
     if let Ok(proj_context) = context_generator::generate_context_from_files(
@@ -27,6 +28,7 @@ pub fn perform_auto_export(project_path: &str, _profile_name: &str, data: &model
         use_full_tree,
         &data.file_tree,
         with_line_numbers,
+        always_apply_text,
     ) {
         let file_name = sync_path_base.join("_PROJECT_CONTEXT.txt");
         let _ =
@@ -46,6 +48,7 @@ pub fn perform_auto_export(project_path: &str, _profile_name: &str, data: &model
                 use_full_tree,
                 &data.file_tree,
                 with_line_numbers,
+                always_apply_text,
             ) {
                 let safe_name = sanitize_group_name(&group.name);
                 let file_name = sync_path_base.join(format!("{}_context.txt", safe_name));

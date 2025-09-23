@@ -1,8 +1,10 @@
 // src/scenes/settings/ProfileTab.tsx
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { FolderUp } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { FolderUp, Save, Loader2 } from "lucide-react";
 
 interface ProfileTabProps {
   exportUseFullTree: boolean;
@@ -13,6 +15,8 @@ interface ProfileTabProps {
   handleToggleSync: (enabled: boolean) => void;
   syncPath: string | null;
   handleChooseSyncPath: () => void;
+  alwaysApplyText: string | null;
+  setAlwaysApplyText: (text: string) => Promise<void>;
 }
 
 export function ProfileTab({
@@ -24,7 +28,21 @@ export function ProfileTab({
   handleToggleSync,
   syncPath,
   handleChooseSyncPath,
+  alwaysApplyText,
+  setAlwaysApplyText,
 }: ProfileTabProps) {
+  const [localText, setLocalText] = useState("");
+  const [isSavingText, setIsSavingText] = useState(false);
+
+  useEffect(() => {
+    setLocalText(alwaysApplyText || "");
+  }, [alwaysApplyText]);
+
+  const handleSaveText = async () => {
+    setIsSavingText(true);
+    await setAlwaysApplyText(localText);
+    setIsSavingText(false);
+  };
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Cài đặt cho Hồ sơ Hiện tại</h2>
@@ -90,6 +108,34 @@ export function ProfileTab({
             </Button>
           </div>
         </div>
+      </div>
+      <div className="space-y-4 rounded-lg border p-4 flex flex-col">
+        <h3 className="font-semibold">Văn bản Luôn Áp dụng</h3>
+        <div className="space-y-2 flex-grow flex flex-col">
+          <Label htmlFor="always-apply-text">
+            Nội dung này sẽ được thêm vào cuối mỗi file ngữ cảnh được xuất ra.
+          </Label>
+          <Textarea
+            id="always-apply-text"
+            placeholder="Ví dụ: Luôn trả lời bằng tiếng Việt."
+            className="flex-1 resize-y min-h-[120px]"
+            value={localText}
+            onChange={(e) => setLocalText(e.target.value)}
+            disabled={isSavingText}
+          />
+        </div>
+        <Button
+          onClick={handleSaveText}
+          disabled={isSavingText || localText === (alwaysApplyText || "")}
+          className="w-full mt-4"
+        >
+          {isSavingText ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
+          Lưu văn bản
+        </Button>
       </div>
     </div>
   );

@@ -21,10 +21,12 @@ export function SettingsScene() {
     rootPath,
     exportUseFullTree,
     exportWithLineNumbers,
+    alwaysApplyText,
     showDashboard,
     setFileWatching,
     setExportUseFullTree,
     setExportWithLineNumbers,
+    setAlwaysApplyText,
     handleToggleSync,
     handleChooseSyncPath,
     ignoreText,
@@ -66,6 +68,8 @@ export function SettingsScene() {
             handleToggleSync={handleToggleSync}
             syncPath={syncPath}
             handleChooseSyncPath={handleChooseSyncPath}
+            alwaysApplyText={alwaysApplyText}
+            setAlwaysApplyText={setAlwaysApplyText}
           />
         );
       default:
