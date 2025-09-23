@@ -104,6 +104,9 @@ pub fn perform_smart_scan_and_rebuild(
 
     // --- BƯỚC 2: Xử lý thông tin thô để xây dựng metadata cache ---
     for file_info in raw_files {
+        // Gửi sự kiện mới để báo hiệu giai đoạn phân tích nội dung
+        let _ = window.emit("analysis_progress", file_info.relative_path.to_string_lossy());
+
         let relative_path_str = file_info.relative_path.to_string_lossy().replace("\\", "/");
         let current_mtime = file_info
             .metadata

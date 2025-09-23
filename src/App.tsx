@@ -46,6 +46,7 @@ function App() {
 
   const {
     _setScanProgress,
+    _setAnalysisProgress,
     _setScanComplete,
     _setScanError,
     _setGroupUpdateComplete,
@@ -205,6 +206,10 @@ function App() {
     () => throttle((file: string) => _setScanProgress(file), 10),
     [_setScanProgress]
   );
+  const throttledSetAnalysisProgress = useMemo(
+    () => throttle((file: string) => _setAnalysisProgress(file), 10),
+    [_setAnalysisProgress]
+  );
 
   // --- LẮNG NGHE SỰ KIỆN TỪ RUST ---
   useEffect(() => {
@@ -213,6 +218,11 @@ function App() {
     unlistenFuncs.push(
       listen<string>("scan_progress", (event) => {
         throttledSetScanProgress(event.payload);
+      })
+    );
+    unlistenFuncs.push(
+      listen<string>("analysis_progress", (event) => {
+        throttledSetAnalysisProgress(event.payload);
       })
     );
     unlistenFuncs.push(
@@ -293,9 +303,11 @@ function App() {
     };
   }, [
     _setScanProgress,
+    _setAnalysisProgress,
     _setScanComplete,
     _setScanError,
     throttledSetScanProgress,
+    throttledSetAnalysisProgress,
     _setGroupUpdateComplete,
     rescanProject,
     _setRecentPaths,

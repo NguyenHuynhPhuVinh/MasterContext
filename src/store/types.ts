@@ -44,6 +44,7 @@ export interface ProjectStats {
 
 export interface ScanProgress {
   currentFile: string | null;
+  currentPhase: "scanning" | "analyzing";
 }
 
 export interface Group {

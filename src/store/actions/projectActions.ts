@@ -11,6 +11,7 @@ export interface ProjectActions {
   openFolderFromMenu: () => Promise<void>;
   rescanProject: () => Promise<void>;
   _setScanProgress: (file: string) => void;
+  _setAnalysisProgress: (file: string) => void;
   _setScanComplete: (payload: CachedProjectData) => void;
   _setScanError: (error: string) => void;
   exportProject: () => void;
@@ -28,7 +29,10 @@ export const createProjectActions: StateCreator<
       rootPath: path,
       selectedPath: path,
       isScanning: true,
-      scanProgress: { currentFile: "Bắt đầu quét dự án..." },
+      scanProgress: {
+        currentFile: "Bắt đầu quét dự án...",
+        currentPhase: "scanning",
+      },
       editingGroupId: null,
     });
 
@@ -66,12 +70,18 @@ export const createProjectActions: StateCreator<
     if (!rootPath) return;
     set({
       isScanning: true,
-      scanProgress: { currentFile: "Quét lại dự án..." },
+      scanProgress: {
+        currentFile: "Quét lại dự án...",
+        currentPhase: "scanning",
+      },
     });
     invoke("scan_project", { path: rootPath, profileName: activeProfile });
   },
   _setScanProgress: (file) => {
-    set({ scanProgress: { currentFile: file } });
+    set({ scanProgress: { currentFile: file, currentPhase: "scanning" } });
+  },
+  _setAnalysisProgress: (file) => {
+    set({ scanProgress: { currentFile: file, currentPhase: "analyzing" } });
   },
   _setScanComplete: async (payload: CachedProjectData) => {
     const { rootPath, activeProfile } = get();
