@@ -92,7 +92,7 @@ interface AppState {
     rescanProject: () => Promise<void>;
     reset: () => void;
     addGroup: (group: Omit<Group, "id" | "paths" | "stats">) => void;
-    updateGroup: (group: Omit<Group, "paths" | "stats">) => void;
+    updateGroup: (group: Partial<Group> & { id: string }) => void;
     deleteGroup: (groupId: string) => void;
     editGroupContent: (groupId: string) => void;
     showDashboard: () => void;

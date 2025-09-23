@@ -115,6 +115,15 @@ function TokenLimitEditor({
     onSave(isNaN(num as number) ? undefined : num);
   };
 
+  // --- CẢI TIẾN UX: Lưu bằng phím Enter ---
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSave();
+      // Đóng dropdown, cần có cơ chế phức tạp hơn, tạm thời chỉ save
+      e.preventDefault();
+    }
+  };
+
   return (
     <div className="p-2 space-y-2">
       <p className="text-xs font-medium text-muted-foreground px-1">
@@ -127,6 +136,7 @@ function TokenLimitEditor({
           placeholder="Không giới hạn"
           value={limit}
           onChange={(e) => setLimit(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="h-8"
         />
         <Button size="icon" className="h-8 w-8" onClick={handleSave}>
@@ -306,7 +316,8 @@ export function GroupManager({
   };
   const handleSaveTokenLimit = (group: Group, limit?: number) => {
     performActionAfterSwitch(() =>
-      updateGroup({ id: group.id, name: group.name, tokenLimit: limit })
+      // Chỉ gửi ID và trường cần cập nhật
+      updateGroup({ id: group.id, tokenLimit: limit })
     );
   };
 
