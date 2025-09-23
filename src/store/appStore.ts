@@ -280,6 +280,8 @@ export const useAppStore = create<AppState>((set, get) => {
           return {
             allGroups: newAllGroups,
             groups: updatedGroups,
+            editingGroupId:
+              state.editingGroupId === groupId ? null : state.editingGroupId,
           };
         });
         updateGroupsOnBackend();
