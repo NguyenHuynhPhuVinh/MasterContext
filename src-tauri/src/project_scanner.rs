@@ -82,9 +82,9 @@ pub fn recalculate_stats_for_paths(
 // --- THÊM KHỐI MÃ NÀY ---
 // Biên dịch các regex một lần duy nhất để tăng hiệu suất
 lazy_static! {
-    // --- THAY THẾ BẰNG REGEX ĐƠN GIẢN HƠN VÀ MẠNH MẼ HƠN ---
+    // --- FIX 1: Cập nhật Regex để chỉ khớp các đường dẫn tương đối hoặc alias ---
     static ref IMPORT_EXPORT_REGEX: Regex = Regex::new(
-        r#"(?:from|import|require)\s*\(?\s*['"](?P<path>[./@][^'"]+)['"]\s*\)?"#
+        r#"(?:from|import|require)\s*\(?\s*['"](?P<path>(?:\.@/|/|\.\./|\./)[^'"]+)['"]\s*\)?"#
     ).unwrap();
 }
 
@@ -95,19 +95,27 @@ fn resolve_link(
     all_project_files: &HashSet<String>,
     aliases: &BTreeMap<String, String>, // <-- THAM SỐ MỚI
 ) -> Option<String> {
+    // --- FIX 1: Sắp xếp các alias từ dài nhất đến ngắn nhất ---
+    // Điều này đảm bảo alias cụ thể hơn (e.g., "@/components/ui") được khớp trước
+    // alias chung hơn (e.g., "@/components").
+    let mut sorted_aliases: Vec<_> = aliases.iter().collect();
+    sorted_aliases.sort_by(|(a, _), (b, _)| b.len().cmp(&a.len()));
+
     let mut cleaned_path: Option<PathBuf> = None;
 
     // --- BẮT ĐẦU LOGIC PHÂN GIẢI MỚI, LINH HOẠT HƠN ---
     // Trường hợp 1: Kiểm tra xem đường dẫn có khớp với alias nào không
-    for (alias, base_path) in aliases {
-        if let Some(stripped) = link_path_str.strip_prefix(alias) {
-            let full_path = Path::new(base_path).join(stripped);
+    for (alias, base_path) in sorted_aliases {
+        if link_path_str.starts_with(alias.as_str()) {
+            let stripped = &link_path_str[alias.len()..];
+            // --- FIX 1: Loại bỏ dấu gạch chéo ở đầu nếu có ---
+            let stripped_final = stripped.strip_prefix('/').unwrap_or(stripped);
+            // --- FIX 2: Chuẩn hóa dấu gạch chéo cho base_path ---
+            let full_path = Path::new(base_path.replace('\\', "/").as_str()).join(stripped_final);
             cleaned_path = Some(full_path.clean());
-            break; // Tìm thấy alias đầu tiên khớp, thoát khỏi vòng lặp
+            break; 
         }
-    }
-
-    if cleaned_path.is_none() {
+    }    if cleaned_path.is_none() {
         if link_path_str.starts_with('.') {
             // Trường hợp 2: Tương đối (nếu không có alias nào khớp)
             let current_dir = current_file_path.parent().unwrap_or_else(|| Path::new(""));
@@ -122,17 +130,19 @@ fn resolve_link(
     let cleaned_path_str = cleaned_path.unwrap().to_string_lossy().replace("\\", "/");
 
     // Thử tìm file với các extension phổ biến
-    let extensions = ["", ".ts", ".tsx", ".js", ".jsx", ".json"];
+    // --- FIX 2: Mở rộng danh sách extension ---
+    let extensions = ["", ".ts", ".tsx", ".js", ".jsx", ".json", ".css"];
     for ext in extensions.iter() {
-        // Thử trường hợp 1: Đường dẫn chính xác (có thể có hoặc không có extension)
-        // ví dụ: ./utils.ts -> utils.ts
+        // --- FIX 3: Cải thiện logic phân giải ---
+        // Trường hợp A: Đường dẫn trỏ thẳng đến file (có thể thiếu extension)
+        // Ví dụ: './CharacterFrames' -> './CharacterFrames.ts'
         let potential_path = format!("{}{}", cleaned_path_str, ext);
         if all_project_files.contains(&potential_path) {
             return Some(potential_path);
         }
 
-        // Thử trường hợp 2: Đường dẫn là một thư mục, tìm file index bên trong
-        // ví dụ: ./components -> ./components/index.ts
+        // Trường hợp B: Đường dẫn trỏ đến một thư mục, tìm file index bên trong
+        // Ví dụ: './platformer' -> './platformer/index.ts'
         let potential_index_path = format!("{}/index{}", cleaned_path_str, ext);
         if all_project_files.contains(&potential_index_path) {
             return Some(potential_index_path);
@@ -190,7 +200,7 @@ pub fn perform_smart_scan_and_rebuild(
                                     Path::new(&base_url).join(clean_replacement).clean();
                                 aliases.insert(
                                     clean_alias.to_string(),
-                                    full_base_path.to_string_lossy().to_string(),
+                                    full_base_path.to_string_lossy().to_string().replace("\\", "/"),
                                 );
                             }
                         }
@@ -199,12 +209,6 @@ pub fn perform_smart_scan_and_rebuild(
             }
         }
     }
-    // Hard-code alias mặc định nếu không tìm thấy trong tsconfig
-    // Điều này giúp tương thích ngược với các dự án không có cấu hình rõ ràng
-    aliases
-        .entry("@/".to_string())
-        .or_insert_with(|| "src/".to_string());
-    println!("[INFO] Aliases đã phát hiện: {:?}", aliases);
     // --- KẾT THÚC PHẦN PHÂN TÍCH ALIAS ---
 
     // --- CẬP NHẬT: Xây dựng bộ lọc loại trừ ---
@@ -305,16 +309,9 @@ pub fn perform_smart_scan_and_rebuild(
 
                 let mut found_links = HashSet::new();
 
-                // --- BẮT ĐẦU VÙNG DEBUG SÂU ---
-                println!("\n[DEBUG] Đang phân tích file: {}", relative_path_str);
-
                 for cap in IMPORT_EXPORT_REGEX.captures_iter(content) {
-                    // Lấy group có tên "path" hoặc "path2"
-                    let link_path_opt = cap.name("path");
-
-                    if let Some(link_path_match) = link_path_opt {
+                    if let Some(link_path_match) = cap.name("path") {
                         let link_path = link_path_match.as_str();
-                        println!("[DEBUG]   => Regex khớp: '{}'", link_path);
 
                         if let Some(resolved) = resolve_link(
                             &file_info.relative_path,
@@ -322,17 +319,10 @@ pub fn perform_smart_scan_and_rebuild(
                             &all_valid_files,
                             &aliases,
                         ) {
-                            println!("[DEBUG]     => Phân giải thành công: '{}'", resolved);
                             found_links.insert(resolved);
-                        } else {
-                            println!("[DEBUG]     => Phân giải thất bại.");
                         }
-                    } else {
-                        // In ra toàn bộ capture để xem có gì sai không
-                        println!("[DEBUG]   => Regex khớp nhưng không tìm thấy group 'path'. Full capture: {:?}", &cap);
                     }
                 }
-                // --- KẾT THÚC VÙNG DEBUG SÂU ---
 
                 links = found_links.into_iter().collect();
             }
