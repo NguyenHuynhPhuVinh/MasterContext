@@ -80,6 +80,7 @@ interface AppState {
   customIgnorePatterns: string[];
   isWatchingFiles: boolean;
   exportUseFullTree: boolean; // <-- THÊM STATE MỚI
+  exportWithLineNumbers: boolean; // <-- THÊM STATE MỚI
 
   // Quản lý hồ sơ
   profiles: string[];
@@ -125,6 +126,7 @@ interface AppState {
     deleteProfile: (profileName: string) => Promise<void>;
     setFileWatching: (enabled: boolean) => Promise<void>;
     setExportUseFullTree: (enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
+    setExportWithLineNumbers: (enabled: boolean) => Promise<void>; // <-- THÊM ACTION MỚI
     exportProject: () => void;
     copyProjectToClipboard: () => Promise<void>;
     toggleSidebarVisibility: () => void;
@@ -169,6 +171,7 @@ export const useAppStore = create<AppState>((set, get) => {
     customIgnorePatterns: [],
     isWatchingFiles: false,
     exportUseFullTree: false, // <-- Thêm giá trị mặc định
+    exportWithLineNumbers: true, // <-- Thêm giá trị mặc định
     profiles: ["default"],
     activeProfile: "default",
     isSidebarVisible: true,
@@ -343,6 +346,7 @@ export const useAppStore = create<AppState>((set, get) => {
             customIgnorePatterns: payload.custom_ignore_patterns ?? [],
             isWatchingFiles: payload.is_watching_files ?? false,
             exportUseFullTree: payload.export_use_full_tree ?? false, // <-- Tải cài đặt mới
+            exportWithLineNumbers: payload.export_with_line_numbers ?? true, // <-- Tải cài đặt mới
           };
         });
 
@@ -630,6 +634,8 @@ export const useAppStore = create<AppState>((set, get) => {
               customIgnorePatterns: profileData.custom_ignore_patterns ?? [],
               isWatchingFiles: profileData.is_watching_files ?? false,
               exportUseFullTree: profileData.export_use_full_tree ?? false, // <-- Tải cài đặt mới
+              exportWithLineNumbers:
+                profileData.export_with_line_numbers ?? true,
               scanProgress: { currentFile: null },
             };
           });
@@ -797,6 +803,29 @@ export const useAppStore = create<AppState>((set, get) => {
           set((state) => ({ exportUseFullTree: !state.exportUseFullTree })); // Hoàn tác nếu lỗi
         }
       },
+      // --- ACTION MỚI ĐỂ LƯU CÀI ĐẶT XUẤT FILE CÓ SỐ DÒNG ---
+      setExportWithLineNumbers: async (enabled: boolean) => {
+        const { rootPath, activeProfile } = get();
+        if (!rootPath) return;
+
+        set({ exportWithLineNumbers: enabled });
+
+        try {
+          await invoke("set_export_with_line_numbers_setting", {
+            path: rootPath,
+            profileName: activeProfile,
+            enabled,
+          });
+        } catch (error) {
+          message(`Không thể lưu cài đặt số dòng: ${error}`, {
+            title: "Lỗi",
+            kind: "error",
+          });
+          set((state) => ({
+            exportWithLineNumbers: !state.exportWithLineNumbers,
+          }));
+        }
+      },
       // --- THÊM LOGIC CHO ACTIONS MỚI ---
       exportProject: async () => {
         const { rootPath, activeProfile } = get();
@@ -808,12 +837,13 @@ export const useAppStore = create<AppState>((set, get) => {
         // Listener sự kiện trong `useDashboard` sẽ xử lý kết quả
       },
       copyProjectToClipboard: async () => {
-        const { rootPath, activeProfile } = get();
+        const { rootPath, activeProfile, exportWithLineNumbers } = get();
         if (!rootPath || !activeProfile) return;
         try {
           const context = await invoke<string>("generate_project_context", {
             path: rootPath,
             profileName: activeProfile,
+            withLineNumbers: exportWithLineNumbers,
           });
           await writeText(context);
           await message("Đã sao chép ngữ cảnh dự án vào clipboard!", {

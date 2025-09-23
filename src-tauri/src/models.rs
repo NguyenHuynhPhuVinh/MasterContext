@@ -71,6 +71,7 @@ pub struct CachedProjectData {
     pub custom_ignore_patterns: Option<Vec<String>>, // <-- THÊM TRƯỜNG NÀY
     pub is_watching_files: Option<bool>, // <-- THÊM TRƯỜNG MỚI
     pub export_use_full_tree: Option<bool>, // <-- THÊM TRƯỜNG MỚI NÀY
+    pub export_with_line_numbers: Option<bool>, // <-- THÊM TRƯỜNG MỚI
 }
 
 #[derive(Debug, Clone)]

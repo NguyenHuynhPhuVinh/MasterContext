@@ -40,7 +40,8 @@ pub fn run() {
             commands::stop_file_watching,
             commands::list_groups_for_profile,
             commands::clone_profile,
-            commands::set_export_use_full_tree_setting // <-- THÊM DÒNG NÀY
+            commands::set_export_use_full_tree_setting,
+            commands::set_export_with_line_numbers_setting // <-- THÊM DÒNG NÀY
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

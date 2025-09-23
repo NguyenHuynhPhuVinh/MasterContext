@@ -79,6 +79,7 @@ pub fn generate_context_from_files(
     file_paths: &[String],
     use_full_tree: bool,
     full_project_tree: &Option<FileNode>,
+    with_line_numbers: bool, // <-- THAM SỐ MỚI
 ) -> Result<String, String> {
     let root_path = Path::new(root_path_str);
     let mut tree_builder_root = BTreeMap::new();
@@ -128,10 +129,13 @@ pub fn generate_context_from_files(
         if let Ok(content) = fs::read_to_string(&file_path) {
         let header = format!("================================================\nFILE: {}\n================================================\n", file_rel_path.replace("\\", "/"));
         file_contents_string.push_str(&header);
-        // --- THAY ĐỔI LOGIC TẠI ĐÂY ---
-        // Thêm số thứ tự cho mỗi dòng trong nội dung file
-        for (i, line) in content.lines().enumerate() {
-            let _ = writeln!(file_contents_string, "{}: {}", i + 1, line);
+        // --- LOGIC MỚI: DỰA VÀO THAM SỐ ĐỂ THÊM SỐ DÒNG ---
+        if with_line_numbers {
+            for (i, line) in content.lines().enumerate() {
+                let _ = writeln!(file_contents_string, "{}: {}", i + 1, line);
+            }
+        } else {
+            file_contents_string.push_str(&content);
         }
         file_contents_string.push_str("\n\n");
     }

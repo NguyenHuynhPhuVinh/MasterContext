@@ -219,6 +219,7 @@ pub fn start_group_export(
                 &expanded_files,
                 use_full_tree, // <-- Sử dụng giá trị đã đọc
                 &project_data.file_tree,
+                true, // Mặc định true cho group export
             )
         })();
         match result {
@@ -240,6 +241,8 @@ pub fn start_project_export(window: Window, app: AppHandle, path: String, profil
     std::thread::spawn(move || {
         let result: Result<String, String> = (|| {
             let project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+            // Đọc cài đặt từ profile
+            let with_line_numbers = project_data.export_with_line_numbers.unwrap_or(true);
             let all_files: Vec<String> = project_data.file_metadata_cache.keys().cloned().collect();
             if all_files.is_empty() {
                 return Err("Dự án không có file nào để xuất.".to_string());
@@ -249,6 +252,7 @@ pub fn start_project_export(window: Window, app: AppHandle, path: String, profil
                 &all_files,
                 true,
                 &project_data.file_tree,
+                with_line_numbers,
             )
         })();
         match result {
@@ -269,6 +273,7 @@ pub fn generate_group_context(
     root_path_str: String,
     profile_name: String,
     use_full_tree: bool,
+    with_line_numbers: bool, // <-- THAM SỐ MỚI
 ) -> Result<String, String> {
     let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
     let root_path = Path::new(&root_path_str);
@@ -290,11 +295,12 @@ pub fn generate_group_context(
         &expanded_files,
         use_full_tree,
         &project_data.file_tree,
+        with_line_numbers,
     )
 }
 
 #[command]
-pub fn generate_project_context(app: AppHandle, path: String, profile_name: String) -> Result<String, String> {
+pub fn generate_project_context(app: AppHandle, path: String, profile_name: String, with_line_numbers: bool) -> Result<String, String> {
     let project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
     let all_files: Vec<String> = project_data.file_metadata_cache.keys().cloned().collect();
     if all_files.is_empty() {
@@ -305,6 +311,7 @@ pub fn generate_project_context(app: AppHandle, path: String, profile_name: Stri
         &all_files,
         true,
         &project_data.file_tree,
+        with_line_numbers,
     )
 }
 
@@ -379,6 +386,7 @@ fn perform_auto_export(project_path: &str, _profile_name: &str, data: &models::C
         &all_files,
         true,
         &data.file_tree,
+        true, // Mặc định true cho auto export
     ) {
         let file_name = sync_path_base.join("_PROJECT_CONTEXT.txt");
         let _ =
@@ -396,6 +404,7 @@ fn perform_auto_export(project_path: &str, _profile_name: &str, data: &models::C
                 &expanded_files,
                 true,
                 &data.file_tree,
+                true, // Mặc định true cho auto export
             ) {
                 let safe_name = sanitize_group_name(&group.name);
                 let file_name = sync_path_base.join(format!("{}_context.txt", safe_name));
@@ -502,6 +511,14 @@ pub fn set_export_use_full_tree_setting(app: AppHandle, path: String, profile_na
     file_cache::save_project_data(&app, &path, &profile_name, &project_data)
 }
 
+// --- COMMAND MỚI: Lưu cài đặt xuất file có số dòng ---
+#[command]
+pub fn set_export_with_line_numbers_setting(app: AppHandle, path: String, profile_name: String, enabled: bool) -> Result<(), String> {
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+    project_data.export_with_line_numbers = Some(enabled);
+    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
+}
+
 // --- COMMAND MỚI: Bắt đầu theo dõi file ---
 #[command]
 pub fn start_file_watching(window: Window, path: String) -> Result<(), String> {
@@ -592,6 +609,7 @@ pub fn clone_profile(
         custom_ignore_patterns: Some(vec![]), // Xóa các mẫu ignore tùy chỉnh
         is_watching_files: Some(false), // Tắt theo dõi file mặc định
         export_use_full_tree: Some(false), // <-- THÊM giá trị mặc định cho hồ sơ mới
+        export_with_line_numbers: Some(true), // <-- THÊM giá trị mặc định cho hồ sơ mới
     };
 
     // 3. Lưu cấu trúc dữ liệu mới này thành hồ sơ mới

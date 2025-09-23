@@ -17,6 +17,7 @@ import {
   FolderCog,
   User,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge"; // <-- THÊM IMPORT MỚI
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area"; // <-- THÊM IMPORT NÀY
 type SettingsTab = "appearance" | "project" | "profile";
@@ -30,6 +31,7 @@ export function SettingsScene() {
     isWatchingFiles,
     rootPath,
     exportUseFullTree,
+    exportWithLineNumbers, // <-- THÊM STATE MỚI
   } = useAppStore(
     useShallow((state) => ({
       syncEnabled: state.syncEnabled,
@@ -39,6 +41,7 @@ export function SettingsScene() {
       isWatchingFiles: state.isWatchingFiles,
       rootPath: state.rootPath,
       exportUseFullTree: state.exportUseFullTree,
+      exportWithLineNumbers: state.exportWithLineNumbers, // <-- LẤY STATE MỚI
     }))
   );
   const {
@@ -47,6 +50,7 @@ export function SettingsScene() {
     setFileWatching,
     showDashboard, // Dùng để đóng scene
     setExportUseFullTree,
+    setExportWithLineNumbers, // <-- THÊM ACTION MỚI
   } = useAppActions();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
@@ -171,17 +175,9 @@ export function SettingsScene() {
       case "profile":
         return (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">
-                Cài đặt cho Hồ sơ Hiện tại
-              </h2>
-              <div className="flex items-center text-sm text-muted-foreground gap-2 border rounded-full px-3 py-1">
-                <FileText className="h-4 w-4" />
-                <span>
-                  Hồ sơ: <span className="font-semibold">{activeProfile}</span>
-                </span>
-              </div>
-            </div>
+            <h2 className="text-xl font-semibold">
+              Cài đặt cho Hồ sơ Hiện tại
+            </h2>
             <div className="space-y-4 rounded-lg border p-4">
               <h3 className="font-semibold">Cài đặt Xuất File</h3>
               <div className="flex items-center justify-between">
@@ -195,6 +191,19 @@ export function SettingsScene() {
                   id="export-tree-toggle"
                   checked={exportUseFullTree}
                   onCheckedChange={setExportUseFullTree}
+                />
+              </div>
+              <div className="flex items-center justify-between pt-4 border-t">
+                <Label htmlFor="export-lines-toggle" className="flex flex-col">
+                  <span>Thêm số dòng vào nội dung file</span>
+                  <span className="text-xs text-muted-foreground">
+                    Bật để thêm `số_dòng:` vào đầu mỗi dòng code.
+                  </span>
+                </Label>
+                <Switch
+                  id="export-lines-toggle"
+                  checked={exportWithLineNumbers}
+                  onCheckedChange={setExportWithLineNumbers}
                 />
               </div>
             </div>
@@ -242,8 +251,14 @@ export function SettingsScene() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="flex items-center justify-between p-4 border-b shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold">Cài đặt</h1>
+        <div className="flex flex-col">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">Cài đặt</h1>
+            <Badge variant="secondary" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Hồ sơ: <span className="font-semibold">{activeProfile}</span>
+            </Badge>
+          </div>
           <p className="text-muted-foreground">
             Tùy chỉnh các thiết lập cho ứng dụng.
           </p>

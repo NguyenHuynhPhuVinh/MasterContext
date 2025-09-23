@@ -11,6 +11,7 @@ export interface CachedProjectData {
   custom_ignore_patterns?: string[]; // <-- Sửa thành snake_case
   is_watching_files?: boolean | null; // <-- THÊM TRƯỜNG MỚI
   export_use_full_tree?: boolean | null; // <-- THÊM TRƯỜNG MỚI NÀY
+  export_with_line_numbers?: boolean | null; // <-- THÊM TRƯỜNG MỚI
 }
 
 export interface FileNode {
