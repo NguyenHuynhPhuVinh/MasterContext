@@ -1,7 +1,6 @@
 // src/App.tsx
 import { useEffect, useMemo } from "react";
 import { listen } from "@tauri-apps/api/event";
-// --- THÊM CÁC IMPORT MỚI CHO MENU ---
 import { Menu, MenuItem, Submenu } from "@tauri-apps/api/menu";
 import { Toaster, toast } from "sonner";
 import { useAppStore, useAppActions } from "./store/appStore";
@@ -23,10 +22,10 @@ function App() {
     _setScanError,
     _setGroupUpdateComplete,
     rescanProject,
-    openFolderFromMenu, // <-- Vẫn sử dụng action này
+    openFolderFromMenu,
   } = useAppActions();
 
-  // --- Effect áp dụng theme khi khởi động (giữ nguyên) ---
+  // --- Effect áp dụng theme (giữ nguyên) ---
   useEffect(() => {
     const theme = localStorage.getItem("theme") || "light";
     const root = window.document.documentElement;
@@ -34,18 +33,16 @@ function App() {
     root.classList.add(theme);
   }, []);
 
-  // --- BƯỚC QUAN TRỌNG: TẠO MENU BẰNG JAVASCRIPT ---
+  // --- CẬP NHẬT LOGIC TẠO MENU ---
+  // Effect này sẽ chạy mỗi khi `selectedPath` thay đổi
   useEffect(() => {
-    const createMenu = async () => {
+    const setupMenu = async () => {
       try {
         const openFolderItem = await MenuItem.new({
           id: "open_new_folder",
           text: "Mở thư mục mới...",
           accelerator: "CmdOrCtrl+O",
-          action: () => {
-            // Gọi trực tiếp action từ store
-            openFolderFromMenu();
-          },
+          action: openFolderFromMenu,
         });
 
         const rescanFolderItem = await MenuItem.new({
@@ -53,7 +50,6 @@ function App() {
           text: "Quét lại thư mục",
           accelerator: "CmdOrCtrl+R",
           action: () => {
-            // Kiểm tra xem có dự án đang mở không trước khi quét
             if (useAppStore.getState().selectedPath) {
               rescanProject();
             } else {
@@ -71,7 +67,7 @@ function App() {
           items: [fileSubmenu],
         });
 
-        // Đặt menu này làm menu chính của ứng dụng
+        // Đặt menu cho cửa sổ hiện tại
         await appMenu.setAsAppMenu();
       } catch (error) {
         console.error("Failed to create application menu:", error);
@@ -79,8 +75,27 @@ function App() {
       }
     };
 
-    createMenu();
-  }, [openFolderFromMenu, rescanProject]); // Thêm dependencies
+    const clearMenu = async () => {
+      try {
+        // Tạo menu rỗng để gỡ bỏ menu
+        const emptyMenu = await Menu.new({
+          items: [],
+        });
+        await emptyMenu.setAsAppMenu();
+      } catch (error) {
+        console.error("Failed to clear application menu:", error);
+      }
+    };
+
+    // Logic chính:
+    // Nếu có selectedPath (đang ở Dashboard), thì tạo menu
+    if (selectedPath) {
+      setupMenu();
+    } else {
+      // Nếu không có (đang ở Welcome), thì gỡ menu
+      clearMenu();
+    }
+  }, [selectedPath, openFolderFromMenu, rescanProject]); // Phụ thuộc vào selectedPath
 
   const throttledSetScanProgress = useMemo(
     () => throttle((file: string) => _setScanProgress(file), 10),
