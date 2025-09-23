@@ -46,6 +46,11 @@ pub fn scan_project(window: Window, path: String, profile_name: String) {
                     let _ = window.emit("scan_error", e);
                     return;
                 }
+
+                // --- FIX: Kích hoạt auto-export sau khi quét lại nếu cần ---
+                if new_data.sync_enabled.unwrap_or(false) && new_data.sync_path.is_some() {
+                    perform_auto_export(&path, &profile_name, &new_data);
+                }
                 
                 // Gửi toàn bộ dữ liệu quét về frontend
                 let _ = window.emit("scan_complete", &new_data);

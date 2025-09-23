@@ -182,6 +182,7 @@ export const useAppStore = create<AppState>((set, get) => {
           selectedPath: path,
           isScanning: true,
           scanProgress: { currentFile: "Bắt đầu quét dự án..." },
+          editingGroupId: null, // <-- FIX: Reset editor panel
         });
 
         // Luôn quét profile 'default' khi mở một thư mục mới

@@ -111,7 +111,7 @@ export function SettingsScene() {
     switch (activeTab) {
       case "appearance":
         return (
-          <div className="space-y-6">
+          <div key="appearance" className="space-y-6">
             <h2 className="text-xl font-semibold">Cài đặt Giao diện</h2>
             <div className="flex items-center justify-between rounded-lg border p-4">
               <Label htmlFor="theme-toggle" className="text-base">
@@ -123,7 +123,7 @@ export function SettingsScene() {
         );
       case "project":
         return (
-          <div className="space-y-6">
+          <div key="project" className="space-y-6">
             <h2 className="text-xl font-semibold">Cài đặt Toàn cục Dự án</h2>
             <div className="space-y-4 rounded-lg border p-4">
               <h3 className="font-semibold">Theo dõi dự án</h3>
