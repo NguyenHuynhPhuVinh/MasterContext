@@ -15,6 +15,22 @@ pub struct CompilerOptions {
     pub base_url: Option<String>,
     pub paths: Option<BTreeMap<String, Vec<String>>>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRepositoryInfo {
+    pub is_repository: bool,
+    pub remote_url: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GitCommit {
+    pub sha: String,
+    pub author: String,
+    pub date: String,
+    pub message: String,
+}
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]

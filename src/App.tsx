@@ -21,6 +21,7 @@ import { WelcomeScene } from "./scenes/WelcomeScene";
 import { ScanningScene } from "./scenes/ScanningScene";
 import { SettingsScene } from "./scenes/SettingsScene";
 import { SidebarPanel } from "./scenes/SidebarPanel";
+import { GitPanel } from "./components/GitPanel";
 import { MainPanel } from "./scenes/MainPanel";
 import { StatusBar } from "./components/StatusBar";
 import {
@@ -38,6 +39,7 @@ function App() {
     isScanning,
     projectStats,
     isSidebarVisible,
+    isGitPanelVisible,
   } = useAppStore(
     // --- SỬA LỖI TẠI ĐÂY ---
     useShallow((state) => ({
@@ -46,6 +48,7 @@ function App() {
       isScanning: state.isScanning,
       projectStats: state.projectStats,
       isSidebarVisible: state.isSidebarVisible,
+      isGitPanelVisible: state.isGitPanelVisible,
     }))
   );
 
@@ -60,7 +63,8 @@ function App() {
     showSettingsScene,
     exportProject,
     copyProjectToClipboard,
-    toggleSidebarVisibility, // <-- Action mới
+    toggleProjectPanelVisibility,
+    toggleGitPanelVisibility,
     _setRecentPaths,
     updateAppSettings,
   } = useAppActions();
@@ -152,9 +156,14 @@ function App() {
           text: "Cửa sổ",
           items: [
             await MenuItem.new({
-              id: "toggle_sidebar",
-              text: "Bảng điều khiển",
-              action: toggleSidebarVisibility,
+              id: "toggle_project_panel",
+              text: "Bảng điều khiển Dự án",
+              action: toggleProjectPanelVisibility,
+            }),
+            await MenuItem.new({
+              id: "toggle_git_panel",
+              text: "Bảng điều khiển Git",
+              action: toggleGitPanelVisibility,
             }),
           ],
         });
@@ -209,7 +218,8 @@ function App() {
     showSettingsScene,
     exportProject,
     copyProjectToClipboard,
-    toggleSidebarVisibility,
+    toggleProjectPanelVisibility,
+    toggleGitPanelVisibility,
     _setRecentPaths,
   ]); // <-- Thêm dependency
 
@@ -361,12 +371,38 @@ function App() {
       <div className="flex flex-col h-full overflow-hidden">
         <ResizablePanelGroup direction="horizontal" className="flex-1">
           {isSidebarVisible && (
-            <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-              <SidebarPanel />
-            </ResizablePanel>
+            <>
+              <ResizablePanel
+                id="project-panel"
+                order={1}
+                defaultSize={25}
+                minSize={20}
+                maxSize={40}
+              >
+                <SidebarPanel />
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+            </>
           )}
-          {isSidebarVisible && <ResizableHandle withHandle />}
-          <ResizablePanel defaultSize={75}>
+          {isGitPanelVisible && (
+            <>
+              <ResizablePanel
+                id="git-panel"
+                order={2}
+                defaultSize={25}
+                minSize={20}
+                maxSize={40}
+              >
+                <GitPanel />
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+            </>
+          )}
+          {/* Nếu không có panel nào hiển thị, ẩn handle đi */}
+          {!isSidebarVisible && !isGitPanelVisible && (
+            <style>{`[data-slot="resizable-handle"] { display: none; }`}</style>
+          )}
+          <ResizablePanel id="main-panel" order={3} defaultSize={75}>
             <MainPanel />
           </ResizablePanel>
         </ResizablePanelGroup>

@@ -2,6 +2,7 @@
 
 // Khai báo các module
 pub mod commands;
+pub mod git_utils;
 pub mod dependency_analyzer;
 pub mod group_updater;
 mod context_generator;
@@ -52,7 +53,10 @@ pub fn run() {
             commands::set_always_apply_text_setting,
             commands::get_app_settings,
             commands::set_recent_paths,
-            commands::update_app_settings // <-- COMMAND MỚI
+            commands::update_app_settings, // <-- COMMAND MỚI
+            commands::check_git_repository,
+            commands::get_git_commits,
+            commands::get_commit_diff
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

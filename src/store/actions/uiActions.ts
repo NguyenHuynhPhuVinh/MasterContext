@@ -6,7 +6,8 @@ export interface UIActions {
   reset: () => void;
   showDashboard: () => void;
   showSettingsScene: () => void;
-  toggleSidebarVisibility: () => void;
+  toggleProjectPanelVisibility: () => void;
+  toggleGitPanelVisibility: () => void;
   setInlineEditingGroup: (
     state: {
       mode: "create" | "rename";
@@ -39,8 +40,11 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
   showSettingsScene: () => {
     set({ activeScene: "settings" });
   },
-  toggleSidebarVisibility: () => {
+  toggleProjectPanelVisibility: () => {
     set((state) => ({ isSidebarVisible: !state.isSidebarVisible }));
+  },
+  toggleGitPanelVisibility: () => {
+    set((state) => ({ isGitPanelVisible: !state.isGitPanelVisible }));
   },
   setInlineEditingGroup: (state) => set({ inlineEditingGroup: state }),
   _setRecentPaths: (paths) => set({ recentPaths: paths }),

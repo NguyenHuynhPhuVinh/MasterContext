@@ -40,6 +40,12 @@ export const initialState = {
   isSidebarVisible: true,
   recentPaths: [],
   nonAnalyzableExtensions: [],
+  isGitPanelVisible: false,
+  gitRepoInfo: null,
+  gitCommits: [],
+  gitLogState: "idle" as "idle" | "loading_repo" | "loading_commits" | "error",
+  gitCurrentPage: 0,
+  hasMoreCommits: true,
 };
 
 export type InitialState = typeof initialState;

@@ -34,6 +34,13 @@ export const createProjectActions: StateCreator<
         currentPhase: "scanning",
       },
       editingGroupId: null,
+      // Reset Git state khi mở dự án mới
+      isGitPanelVisible: false,
+      gitRepoInfo: null,
+      gitCommits: [],
+      gitLogState: "idle",
+      gitCurrentPage: 0,
+      hasMoreCommits: true,
     });
 
     // Update recent paths

@@ -69,3 +69,17 @@ export interface AppSettings {
   recentPaths: string[];
   nonAnalyzableExtensions?: string[];
 }
+
+export interface GitRepositoryInfo {
+  isRepository: boolean;
+  remoteUrl: string | null;
+}
+
+export interface GitCommit {
+  sha: string;
+  author: string;
+  date: string;
+  message: string;
+}
+
+export type GitLogState = "idle" | "loading_repo" | "loading_commits" | "error";

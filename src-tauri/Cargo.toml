@@ -34,3 +34,7 @@ tauri-plugin-clipboard-manager = "2"
 notify = "8.2.0"
 tauri-plugin-notification = "2"
 num_cpus = "1.17.0"
+
+
+git2 = "0.20.2"
+chrono = { version = "0.4", features = ["serde"] }

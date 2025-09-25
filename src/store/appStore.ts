@@ -6,6 +6,8 @@ import {
   type ScanProgress,
   type Group,
   type FileMetadata,
+  type GitRepositoryInfo,
+  type GitCommit,
 } from "./types";
 import { initialState } from "./initialState";
 import {
@@ -22,6 +24,7 @@ import {
   type SettingsActions,
 } from "./actions/settingsActions";
 import { createUIActions, type UIActions } from "./actions/uiActions";
+import { createGitActions, type GitActions } from "./actions/gitActions";
 
 export interface AppState {
   rootPath: string | null;
@@ -35,7 +38,7 @@ export interface AppState {
   fileMetadataCache: Record<string, FileMetadata> | null;
 
   // State giao diện
-  activeScene: "dashboard" | "settings";
+  activeScene: "dashboard" | "settings"; // Deprecated by activeView
   editingGroupId: string | null;
   inlineEditingGroup: {
     mode: "create" | "rename";
@@ -68,11 +71,20 @@ export interface AppState {
   recentPaths: string[];
   nonAnalyzableExtensions: string[];
 
+  // Git Panel
+  isGitPanelVisible: boolean;
+  gitRepoInfo: GitRepositoryInfo | null;
+  gitCommits: GitCommit[];
+  gitLogState: "idle" | "loading_repo" | "loading_commits" | "error";
+  gitCurrentPage: number;
+  hasMoreCommits: boolean;
+
   actions: ProjectActions &
     GroupActions &
     ProfileActions &
     SettingsActions &
-    UIActions;
+    UIActions &
+    GitActions;
 }
 
 export const useAppStore = create<AppState>()((set, get, store) => ({
@@ -83,6 +95,7 @@ export const useAppStore = create<AppState>()((set, get, store) => ({
     ...createProfileActions(set, get, store),
     ...createSettingsActions(set, get, store),
     ...createUIActions(set, get, store),
+    ...createGitActions(set, get, store),
   },
 }));
 
