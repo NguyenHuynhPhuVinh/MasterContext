@@ -30,12 +30,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export function GitPanel() {
@@ -117,41 +111,6 @@ export function GitPanel() {
       // Sử dụng Fragment để trả về nhiều phần tử, chúng sẽ trở thành con trực tiếp
       // của container `flex flex-col h-full` trong `GitPanel`
       <>
-        {/* Cảnh báo Detached HEAD */}
-        {gitRepoInfo.isRepository &&
-          !gitRepoInfo.currentBranch &&
-          originalGitBranch && (
-            <div className="p-2 border-b flex-shrink-0">
-              <Alert
-                variant="default"
-                className="p-3 border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300"
-              >
-                <AlertTriangle className="h-4 w-4 !text-yellow-600 dark:!text-yellow-400" />
-                <AlertTitle className="font-semibold text-sm">
-                  Đang xem lại quá khứ
-                </AlertTitle>
-                <AlertDescription className="text-xs flex items-center justify-between mt-2">
-                  Bạn đang ở trạng thái "detached HEAD".
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7"
-                        onClick={checkoutLatestBranch}
-                      >
-                        <RotateCcw className="mr-1.5 h-3 w-3" />
-                        Quay về hiện tại
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Checkout nhánh '{originalGitBranch}'</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
         {/* Phần URL, cố định, không cuộn */}
         {gitRepoInfo.remoteUrl && (
           <div className="p-2 border-b flex-shrink-0">
@@ -164,82 +123,101 @@ export function GitPanel() {
         {/* Khu vực danh sách commit, co giãn và có thể cuộn */}
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-2 space-y-2">
-            {gitCommits.map((commit) => (
-              <div
-                key={commit.sha}
-                className={cn(
-                  "p-2 rounded-md border bg-background/50 space-y-2 transition-all",
-                  commit.sha === gitRepoInfo?.currentSha &&
-                    "ring-2 ring-primary/50 bg-primary/5"
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-mono text-xs text-blue-500 dark:text-blue-400 min-w-0 truncate">
-                    {commit.sha.substring(0, 7)}
-                  </p>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => handleCopy(commit.sha)}
-                      className="h-7 w-7"
-                      disabled={copyingSha === commit.sha}
-                      title={
-                        gitExportModeIsContext
-                          ? "Sao chép ngữ cảnh"
-                          : "Sao chép diff"
-                      }
-                    >
-                      {copyingSha === commit.sha ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : copiedSha === commit.sha ? (
-                        <Check className="h-3.5 w-3.5 text-green-500" />
+            {gitCommits.map((commit, index) => {
+              const isLatestCommit = index === 0;
+              const isDetachedHead = !gitRepoInfo?.currentBranch;
+              const isCurrentCommit = commit.sha === gitRepoInfo?.currentSha;
+
+              return (
+                <div
+                  key={commit.sha}
+                  className={cn(
+                    "p-2 rounded-md border bg-background/50 space-y-2 transition-all",
+                    isCurrentCommit && "ring-2 ring-primary/50 bg-primary/5"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-mono text-xs text-blue-500 dark:text-blue-400 min-w-0 truncate">
+                      {commit.sha.substring(0, 7)}
+                    </p>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => handleCopy(commit.sha)}
+                        className="h-7 w-7"
+                        disabled={copyingSha === commit.sha}
+                        title={
+                          gitExportModeIsContext
+                            ? "Sao chép ngữ cảnh"
+                            : "Sao chép diff"
+                        }
+                      >
+                        {copyingSha === commit.sha ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : copiedSha === commit.sha ? (
+                          <Check className="h-3.5 w-3.5 text-green-500" />
+                        ) : (
+                          <Clipboard className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+
+                      {isLatestCommit && isDetachedHead ? (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={checkoutLatestBranch}
+                          className="h-7 w-7 border-primary/50 text-primary hover:bg-primary/10"
+                          title={`Quay về trạng thái mới nhất (nhánh '${originalGitBranch}')`}
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
                       ) : (
-                        <Clipboard className="h-3.5 w-3.5" />
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={() => setCheckoutSha(commit.sha)}
+                          className="h-7 w-7"
+                          disabled={isCurrentCommit}
+                          title="Quay về trạng thái của commit này"
+                        >
+                          <History className="h-3.5 w-3.5" />
+                        </Button>
                       )}
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => setCheckoutSha(commit.sha)}
-                      className="h-7 w-7"
-                      disabled={commit.sha === gitRepoInfo?.currentSha}
-                      title="Quay về trạng thái của commit này"
-                    >
-                      <History className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => exportCommitDiff(commit.sha)}
-                      className="h-7 w-7"
-                      title={
-                        gitExportModeIsContext
-                          ? "Tải về ngữ cảnh"
-                          : "Tải về diff"
-                      }
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </Button>
+
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => exportCommitDiff(commit.sha)}
+                        className="h-7 w-7"
+                        title={
+                          gitExportModeIsContext
+                            ? "Tải về ngữ cảnh"
+                            : "Tải về diff"
+                        }
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <p
+                    className="text-sm font-medium leading-snug"
+                    title={commit.message}
+                  >
+                    <MessageSquare className="inline-block h-3.5 w-3.5 mr-1.5 align-middle text-muted-foreground" />
+                    {commit.message}
+                  </p>
+                  <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground flex-wrap">
+                    <span className="flex items-center" title="Tác giả">
+                      <User className="h-3 w-3 mr-1" /> {commit.author}
+                    </span>
+                    <span className="flex items-center" title="Ngày commit">
+                      <Calendar className="h-3 w-3 mr-1" /> {commit.date}
+                    </span>
                   </div>
                 </div>
-                <p
-                  className="text-sm font-medium leading-snug"
-                  title={commit.message}
-                >
-                  <MessageSquare className="inline-block h-3.5 w-3.5 mr-1.5 align-middle text-muted-foreground" />
-                  {commit.message}
-                </p>
-                <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground flex-wrap">
-                  <span className="flex items-center" title="Tác giả">
-                    <User className="h-3 w-3 mr-1" /> {commit.author}
-                  </span>
-                  <span className="flex items-center" title="Ngày commit">
-                    <Calendar className="h-3 w-3 mr-1" /> {commit.date}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </ScrollArea>
         {/* Phần chân panel, cố định, không cuộn */}
