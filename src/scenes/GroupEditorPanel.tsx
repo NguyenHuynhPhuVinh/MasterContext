@@ -13,10 +13,18 @@ import {
   XCircle,
   Search,
 } from "lucide-react";
+import { Scissors } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 const filterNode = (node: FileNode, searchTerm: string): FileNode | null => {
   const term = searchTerm.toLowerCase();
@@ -46,6 +54,31 @@ const filterNode = (node: FileNode, searchTerm: string): FileNode | null => {
   return null;
 };
 
+// --- HÀM LỌC MỚI: Chỉ giữ lại các file có vùng loại trừ ---
+const filterForExcludedFiles = (
+  node: FileNode,
+  metadataCache: Record<string, any>
+): FileNode | null => {
+  // Trường hợp 1: Node là file
+  if (!node.children) {
+    const meta = metadataCache[node.path];
+    const hasExclusions = meta?.excluded_ranges?.length > 0;
+    return hasExclusions ? node : null;
+  }
+
+  // Trường hợp 2: Node là thư mục
+  const filteredChildren = node.children
+    .map((child) => filterForExcludedFiles(child, metadataCache))
+    .filter(Boolean) as FileNode[];
+
+  // Nếu thư mục này chứa file bị loại trừ, giữ lại thư mục
+  if (filteredChildren.length > 0) {
+    return { ...node, children: filteredChildren };
+  }
+
+  return null;
+};
+
 export function GroupEditorPanel() {
   // <-- Đổi tên component
   const {
@@ -60,6 +93,7 @@ export function GroupEditorPanel() {
     group,
     fileTree,
     isSaving,
+    fileMetadataCache,
     tempSelectedPaths,
     isCrossLinkingEnabled,
   } = useAppStore(
@@ -67,11 +101,13 @@ export function GroupEditorPanel() {
       group: state.groups.find((g) => g.id === state.editingGroupId),
       fileTree: state.fileTree,
       isSaving: state.isUpdatingGroupId === state.editingGroupId,
+      fileMetadataCache: state.fileMetadataCache,
       tempSelectedPaths: state.tempSelectedPaths,
       isCrossLinkingEnabled: state.isCrossLinkingEnabled,
     }))
   );
 
+  const [showOnlyExcluded, setShowOnlyExcluded] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleTogglePath = useCallback(
@@ -82,12 +118,23 @@ export function GroupEditorPanel() {
   );
 
   const filteredFileTree = useMemo(() => {
-    if (!fileTree) return null;
-    if (!searchTerm.trim()) {
-      return fileTree;
+    if (!fileTree || !fileMetadataCache) return null;
+
+    let tree = fileTree;
+
+    // 1. Lọc theo trạng thái "chỉ hiển thị file bị loại trừ" trước
+    if (showOnlyExcluded) {
+      const excludedTree = filterForExcludedFiles(tree, fileMetadataCache);
+      if (!excludedTree) return null; // Trả về null nếu không có file nào
+      tree = excludedTree;
     }
-    return filterNode(fileTree, searchTerm);
-  }, [fileTree, searchTerm]);
+
+    // 2. Sau đó, áp dụng bộ lọc tìm kiếm trên kết quả đã có
+    if (!searchTerm.trim()) {
+      return tree;
+    }
+    return filterNode(tree, searchTerm);
+  }, [fileTree, fileMetadataCache, searchTerm, showOnlyExcluded]);
 
   if (!group || !fileTree || tempSelectedPaths === null) {
     return (
@@ -155,10 +202,32 @@ export function GroupEditorPanel() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Tìm kiếm tệp hoặc thư mục..."
-            className="pl-8"
+            className="pl-8 pr-10" // Thêm padding bên phải cho nút
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "absolute right-1.5 top-1/2 h-7 w-7 -translate-y-1/2",
+                    showOnlyExcluded && "bg-accent text-accent-foreground"
+                  )}
+                  onClick={() => setShowOnlyExcluded(!showOnlyExcluded)}
+                >
+                  <Scissors className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  {showOnlyExcluded ? "Bỏ lọc" : "Lọc file có vùng bị loại trừ"}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
       <main className="flex-1 overflow-hidden">
@@ -171,7 +240,9 @@ export function GroupEditorPanel() {
             />
           ) : (
             <div className="text-center text-muted-foreground p-4">
-              Không tìm thấy kết quả nào khớp với "{searchTerm}".
+              {showOnlyExcluded
+                ? "Không có file nào bị loại trừ."
+                : `Không tìm thấy kết quả nào khớp với "${searchTerm}".`}
             </div>
           )}
         </ScrollArea>
