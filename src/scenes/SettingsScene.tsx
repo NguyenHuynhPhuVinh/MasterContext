@@ -51,6 +51,9 @@ export function SettingsScene() {
     setIgnoreText,
     isSaving,
     handleSaveIgnorePatterns,
+    isDeleteProjectDialogOpen,
+    setIsDeleteProjectDialogOpen,
+    handleConfirmDeleteProjectData,
   } = useSettingsScene();
 
   const TABS = [
@@ -74,6 +77,9 @@ export function SettingsScene() {
             setIgnoreText={setIgnoreText}
             isSaving={isSaving}
             handleSaveIgnorePatterns={handleSaveIgnorePatterns}
+            isDeleteProjectDialogOpen={isDeleteProjectDialogOpen}
+            setIsDeleteProjectDialogOpen={setIsDeleteProjectDialogOpen}
+            handleConfirmDeleteProjectData={handleConfirmDeleteProjectData}
           />
         );
       case "profile":

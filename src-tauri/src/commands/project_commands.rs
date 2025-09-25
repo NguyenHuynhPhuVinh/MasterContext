@@ -3,6 +3,7 @@ use crate::{context_generator, file_cache, project_scanner};
 use tauri::{command, AppHandle, Emitter, Manager, Window};
 use super::start_file_watching;
 use super::utils::perform_auto_export;
+use std::fs;
 
 #[command]
 pub fn scan_project(window: Window, path: String, profile_name: String) {
@@ -115,4 +116,14 @@ pub fn generate_project_context(app: AppHandle, path: String, profile_name: Stri
         &always_apply_text,
         &exclude_extensions,
     )
+}
+
+#[command]
+pub fn delete_project_data(app: AppHandle, path: String) -> Result<(), String> {
+    let project_config_dir = file_cache::get_project_config_dir(&app, &path)?;
+    if project_config_dir.exists() {
+        fs::remove_dir_all(&project_config_dir)
+            .map_err(|e| format!("Không thể xóa dữ liệu dự án: {}", e))?;
+    }
+    Ok(())
 }

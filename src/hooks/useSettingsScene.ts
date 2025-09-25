@@ -54,11 +54,14 @@ export function useSettingsScene() {
     setAlwaysApplyText,
     setExportExcludeExtensions,
     setGitExportMode,
+    deleteCurrentProjectData,
   } = useAppActions();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
   const [ignoreText, setIgnoreText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleteProjectDialogOpen, setIsDeleteProjectDialogOpen] =
+    useState(false);
 
   useEffect(() => {
     setIgnoreText((customIgnorePatterns || []).join("\n"));
@@ -104,6 +107,10 @@ export function useSettingsScene() {
     }
   };
 
+  const handleConfirmDeleteProjectData = async () => {
+    await deleteCurrentProjectData();
+  };
+
   return {
     activeTab,
     setActiveTab,
@@ -139,5 +146,8 @@ export function useSettingsScene() {
     setIgnoreText,
     isSaving,
     handleSaveIgnorePatterns,
+    isDeleteProjectDialogOpen,
+    setIsDeleteProjectDialogOpen,
+    handleConfirmDeleteProjectData,
   };
 }

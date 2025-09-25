@@ -3,7 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ProjectTabProps {
   isWatchingFiles: boolean;
@@ -13,6 +23,9 @@ interface ProjectTabProps {
   setIgnoreText: (text: string) => void;
   isSaving: boolean;
   handleSaveIgnorePatterns: () => void;
+  isDeleteProjectDialogOpen: boolean;
+  setIsDeleteProjectDialogOpen: (isOpen: boolean) => void;
+  handleConfirmDeleteProjectData: () => void;
 }
 
 export function ProjectTab({
@@ -23,6 +36,9 @@ export function ProjectTab({
   setIgnoreText,
   isSaving,
   handleSaveIgnorePatterns,
+  isDeleteProjectDialogOpen,
+  setIsDeleteProjectDialogOpen,
+  handleConfirmDeleteProjectData,
 }: ProjectTabProps) {
   return (
     <div className="space-y-6">
@@ -73,6 +89,52 @@ export function ProjectTab({
           Lưu và Quét lại
         </Button>
       </div>
+
+      <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
+        <h3 className="font-semibold text-destructive flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5" />
+          Vùng nguy hiểm
+        </h3>
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start pr-4">
+            <span>Xóa dữ liệu dự án</span>
+            <span className="text-xs text-muted-foreground">
+              Hành động này sẽ xóa tất cả hồ sơ, nhóm và cài đặt cho dự án này.
+              Không thể hoàn tác.
+            </span>
+          </div>
+          <Button
+            variant="destructive"
+            onClick={() => setIsDeleteProjectDialogOpen(true)}
+          >
+            Xóa dữ liệu
+          </Button>
+        </div>
+      </div>
+
+      <AlertDialog
+        open={isDeleteProjectDialogOpen}
+        onOpenChange={setIsDeleteProjectDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bạn có chắc chắn không?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Toàn bộ dữ liệu của dự án này (bao gồm tất cả các hồ sơ và nhóm)
+              sẽ bị xóa vĩnh viễn. Hành động này không thể được hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={handleConfirmDeleteProjectData}
+            >
+              Tôi hiểu, hãy xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -18,6 +18,7 @@ export interface ProjectActions {
   _setScanError: (error: string) => void;
   exportProject: () => void;
   copyProjectToClipboard: () => Promise<void>;
+  deleteCurrentProjectData: () => Promise<void>;
 }
 
 export const createProjectActions: StateCreator<
@@ -234,6 +235,25 @@ export const createProjectActions: StateCreator<
     } catch (error) {
       console.error("Lỗi khi sao chép ngữ cảnh dự án:", error);
       await message(`Không thể sao chép: ${error}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
+    }
+  },
+  deleteCurrentProjectData: async () => {
+    const { rootPath } = get();
+    if (!rootPath) return;
+
+    try {
+      await invoke("delete_project_data", { path: rootPath });
+      await message("Đã xóa toàn bộ dữ liệu cho dự án này.", {
+        title: "Thành công",
+        kind: "info",
+      });
+      get().actions.reset();
+    } catch (e) {
+      console.error("Failed to delete project data:", e);
+      await message(`Không thể xóa dữ liệu dự án: ${e}`, {
         title: "Lỗi",
         kind: "error",
       });

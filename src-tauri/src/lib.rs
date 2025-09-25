@@ -22,6 +22,7 @@ pub fn run() {
             // THAY THẾ DÒNG NÀY
             // commands::open_project,
             commands::scan_project, // <-- COMMAND MỚI
+            commands::delete_project_data,
             commands::load_profile_data, // <-- COMMAND MỚI
             // ... (các command còn lại)
             commands::update_groups_in_project_data,
