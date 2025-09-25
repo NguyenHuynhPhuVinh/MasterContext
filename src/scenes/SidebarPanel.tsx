@@ -64,7 +64,7 @@ export function SidebarPanel() {
   return (
     <>
       <div className="flex flex-col h-full bg-card">
-        <header className="flex items-center justify-between p-4 border-b shrink-0">
+        <header className="flex items-center justify-between p-4 border-b flex-shrink-0">
           <h1 className="text-xl font-bold">Dự Án</h1>
           <Button
             variant="outline"
@@ -76,7 +76,8 @@ export function SidebarPanel() {
           </Button>
         </header>
 
-        <ScrollArea className="flex-1">
+        {/* Áp dụng logic tương tự GitPanel: ScrollArea chiếm không gian còn lại */}
+        <ScrollArea className="flex-1 min-h-0">
           <div className="p-2 space-y-1">
             {profiles.map((profileName) => {
               const isExpanded = expandedProfiles[profileName] ?? false;

@@ -4,6 +4,7 @@ import { AppState } from "../appStore";
 import { type GitRepositoryInfo, type GitCommit } from "../types";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { message } from "@tauri-apps/plugin-dialog";
 
@@ -12,7 +13,9 @@ const COMMITS_PER_PAGE = 20;
 export interface GitActions {
   checkGitRepo: () => Promise<void>;
   fetchGitCommits: (loadMore?: boolean) => Promise<void>;
+  reloadGitCommits: () => Promise<void>;
   exportCommitDiff: (commitSha: string) => Promise<void>;
+  copyCommitDiff: (commitSha: string) => Promise<boolean>;
 }
 
 export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
@@ -67,6 +70,10 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
     }
   },
 
+  reloadGitCommits: async () => {
+    get().actions.fetchGitCommits(false);
+  },
+
   exportCommitDiff: async (commitSha: string) => {
     const { rootPath } = get();
     if (!rootPath) return;
@@ -79,13 +86,39 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
 
       const filePath = await save({
         title: `Lưu diff cho commit ${commitSha.substring(0, 7)}`,
-        defaultPath: `${commitSha.substring(0, 7)}.diff`,
+        defaultPath: `${commitSha.substring(0, 7)}.diff.txt`,
         filters: [{ name: "Diff File", extensions: ["diff", "patch"] }],
       });
 
-      if (filePath) await writeTextFile(filePath, diffContent);
+      if (filePath) {
+        await writeTextFile(filePath, diffContent);
+        await message(
+          `Đã lưu diff của commit ${commitSha.substring(0, 7)} vào file.`,
+          { title: "Thành công", kind: "info" }
+        );
+      }
     } catch (e) {
       message(`Không thể tạo file diff: ${e}`, { title: "Lỗi", kind: "error" });
+    }
+  },
+
+  copyCommitDiff: async (commitSha: string): Promise<boolean> => {
+    const { rootPath } = get();
+    if (!rootPath) return false;
+
+    try {
+      const diffContent = await invoke<string>("get_commit_diff", {
+        path: rootPath,
+        commitSha,
+      });
+      await writeText(diffContent);
+      return true;
+    } catch (e) {
+      message(`Không thể sao chép diff: ${e}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
+      return false;
     }
   },
 });
