@@ -11,11 +11,25 @@ lazy_static! {
     static ref C_STYLE_SINGLE_LINE_COMMENT: Regex = Regex::new(r"//.*").unwrap();
     static ref C_STYLE_MULTI_LINE_COMMENT: Regex = Regex::new(r"(?s)/\*.*?\*/").unwrap();
     static ref HASH_COMMENT: Regex = Regex::new(r"#.*").unwrap();
-    static ref HTML_COMMENT: Regex = Regex::new(r"(?s)<!--.*?-->").unwrap();
-    // Regex to find common debug logging statements
-    static ref DEBUG_LOG_REGEX: Regex = Regex::new(
-        r"(?m)^\s*(console\.(log|warn|error|info|debug|trace|assert|dir|dirxml|table|time|timeEnd|timeLog|count|countReset|group|groupEnd|groupCollapsed|clear|profile|profileEnd|clear)\s*\(.*\);?|println!\s*\(.*\);|dbg!\s*\(.*\);)\s*\r?\n?"
-    ).unwrap();
+    static ref HTML_XML_COMMENT: Regex = Regex::new(r"(?s)<!--.*?-->").unwrap();
+    static ref SQL_LUA_COMMENT: Regex = Regex::new(r"--.*").unwrap();
+    static ref VBNET_COMMENT: Regex = Regex::new(r"'.*").unwrap();
+    static ref LISP_COMMENT: Regex = Regex::new(r";.*").unwrap();
+    static ref ERLANG_COMMENT: Regex = Regex::new(r"%.*").unwrap();
+
+    // Regex toàn diện để tìm các câu lệnh ghi log gỡ lỗi phổ biến trên nhiều ngôn ngữ
+    static ref DEBUG_LOG_REGEX: Regex = Regex::new(concat!(
+        r"(?im)^\s*(?:",
+        r"console\.(?:log|warn|error|info|debug|trace|assert|dir|dirxml|table|time(?:End|Log)?|count(?:Reset)?|group(?:End|Collapsed)?|clear|profile(?:End)?)\s*\(.*\);?", // JS/TS
+        r"|println!\s*\(.*\);?|dbg!\s*\(.*\);?", // Rust
+        r"|print\s*\(.*\)", // Python, Swift
+        r"|(?:var_dump|print_r)\s*\(.*\);?", // PHP
+        r"|System\.out\.println\s*\(.*\);?", // Java
+        r"|Console\.WriteLine\s*\(.*\);?", // C#
+        r"|fmt\.Println\s*\(.*\)", // Go
+        r"|(?:puts|p|pp)\s+.*", // Ruby
+        r")\s*\r?\n?"
+    )).unwrap();
     static ref WHITESPACE_REGEX: Regex = Regex::new(r"\s+").unwrap();
 }
 
@@ -26,17 +40,47 @@ fn remove_comments_from_content(content: &str, file_rel_path: &str) -> String {
         .unwrap_or("");
 
     let processed_content = match extension {
-        "js" | "jsx" | "ts" | "tsx" | "rs" | "go" | "c" | "cpp" | "h" | "java" | "cs" | "swift" | "kt" | "css" | "scss" | "less" => {
+        // Chú thích kiểu C (// và /* */)
+        "js" | "jsx" | "ts" | "tsx" | "rs" | "go" | "c" | "cpp" | "h" | "java" | "cs" | "swift" | "kt" | "css" | "scss" | "less" | "jsonc" | "glsl" | "dart" | "gd" => {
             let temp = C_STYLE_SINGLE_LINE_COMMENT.replace_all(content, "");
             C_STYLE_MULTI_LINE_COMMENT.replace_all(&temp, "").to_string()
         },
-        "py" | "rb" | "sh" | "yml" | "yaml" | "toml" | "dockerfile" | "gitignore" => {
+        // Chú thích bằng dấu thăng (#)
+        "py" | "rb" | "sh" | "yml" | "yaml" | "toml" | "dockerfile" | "gitignore" | "r" | "pl" | "pm" | "ps1" | "el" => {
             HASH_COMMENT.replace_all(content, "").to_string()
         },
-        "html" | "xml" | "svg" => {
-            HTML_COMMENT.replace_all(content, "").to_string()
+        // Chú thích kiểu HTML/XML (<!-- -->)
+        "html" | "xml" | "svg" | "md" => {
+            HTML_XML_COMMENT.replace_all(content, "").to_string()
         },
-        _ => content.to_string(), // Giữ nguyên nếu không nhận dạng được
+        // Chú thích kiểu SQL/Lua (--)
+        "sql" | "lua" | "hs" | "ada" => {
+             SQL_LUA_COMMENT.replace_all(content, "").to_string()
+        },
+        // Chú thích kiểu Lisp (;)
+        "lisp" | "cl" | "scm" => {
+            LISP_COMMENT.replace_all(content, "").to_string()
+        },
+        // Chú thích kiểu Erlang (%)
+        "erl" | "hrl" => {
+            ERLANG_COMMENT.replace_all(content, "").to_string()
+        },
+        // Chú thích kiểu VB (')
+        "vb" | "vbs" => {
+            VBNET_COMMENT.replace_all(content, "").to_string()
+        },
+        // Ngôn ngữ hỗn hợp
+        "php" => {
+            let temp1 = C_STYLE_MULTI_LINE_COMMENT.replace_all(content, "");
+            let temp2 = C_STYLE_SINGLE_LINE_COMMENT.replace_all(&temp1, "");
+            HASH_COMMENT.replace_all(&temp2, "").to_string()
+        },
+        "vue" | "astro" => {
+            let temp = HTML_XML_COMMENT.replace_all(content, "");
+            let temp2 = C_STYLE_MULTI_LINE_COMMENT.replace_all(&temp, "");
+            C_STYLE_SINGLE_LINE_COMMENT.replace_all(&temp2, "").to_string()
+        }
+        _ => content.to_string(),
     };
 
     // Loại bỏ các dòng trống được tạo ra sau khi xóa comment
