@@ -33,7 +33,12 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
       const info = await invoke<GitRepositoryInfo>("check_git_repository", {
         path: rootPath,
       });
-      set({ gitRepoInfo: info, originalGitBranch: info.currentBranch });
+      set((state) => ({
+        gitRepoInfo: info,
+        // Chỉ đặt originalGitBranch nếu nó chưa được đặt.
+        // Điều này bảo toàn tên nhánh ban đầu qua các lần checkout.
+        originalGitBranch: state.originalGitBranch ?? info.currentBranch,
+      }));
       if (info.isRepository) {
         get().actions.fetchGitCommits();
       } else {
