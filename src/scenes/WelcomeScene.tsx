@@ -6,6 +6,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { AnalysisSettingsDialog } from "@/components/AnalysisSettingsDialog";
 import { useShallow } from "zustand/react/shallow";
 import iconSrc from "@/assets/icon.png";
@@ -17,15 +18,18 @@ const getProjectName = (path: string) => {
 };
 
 export function WelcomeScene() {
-  const { selectRootPath, updateAppSettings } = useAppActions();
+  const { selectRootPath, cloneAndOpenProject, updateAppSettings } =
+    useAppActions();
   const { recentPaths, nonAnalyzableExtensions } = useAppStore(
     useShallow((state) => ({
       recentPaths: state.recentPaths,
       nonAnalyzableExtensions: state.nonAnalyzableExtensions,
     }))
   );
+  const isScanning = useAppStore((state) => state.isScanning);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [gitUrl, setGitUrl] = useState("");
 
   const handleSelectFolder = async () => {
     try {
@@ -39,6 +43,12 @@ export function WelcomeScene() {
       }
     } catch (error) {
       console.error("Lỗi khi chọn thư mục:", error);
+    }
+  };
+
+  const handleCloneProject = async () => {
+    if (gitUrl.trim()) {
+      await cloneAndOpenProject(gitUrl.trim());
     }
   };
 
@@ -56,10 +66,33 @@ export function WelcomeScene() {
         </p>
 
         <div className="flex w-full max-w-xs flex-col items-center gap-6">
-          <Button size="lg" onClick={handleSelectFolder} className="w-full">
+          <Button
+            size="lg"
+            onClick={handleSelectFolder}
+            className="w-full"
+            disabled={isScanning}
+          >
             <Folder className="mr-2 h-5 w-5" />
             Mở một dự án...
           </Button>
+
+          <div className="flex w-full items-center gap-2">
+            <Input
+              placeholder="Hoặc dán URL kho Git để clone..."
+              value={gitUrl}
+              onChange={(e) => setGitUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCloneProject();
+              }}
+              disabled={isScanning}
+            />
+            <Button
+              onClick={handleCloneProject}
+              disabled={!gitUrl.trim() || isScanning}
+            >
+              Clone
+            </Button>
+          </div>
 
           {recentPaths.length > 0 && (
             <>
@@ -69,7 +102,7 @@ export function WelcomeScene() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-muted/30 px-2 text-muted-foreground">
-                    Hoặc
+                    Hoặc mở gần đây
                   </span>
                 </div>
               </div>

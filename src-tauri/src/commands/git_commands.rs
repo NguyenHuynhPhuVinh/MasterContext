@@ -400,3 +400,12 @@ pub fn checkout_branch(path: String, branch: String) -> Result<(), String> {
 
     Ok(())
 }
+
+#[command]
+pub fn clone_git_repository(url: String, path: String) -> Result<(), String> {
+    // The path is the full destination path.
+    // The `git2::Repository::clone` function will create this directory.
+    // It will fail if the directory already exists and is not empty.
+    Repository::clone(&url, &path).map_err(|e| format!("Không thể clone kho Git: {}", e.message()))?;
+    Ok(())
+}

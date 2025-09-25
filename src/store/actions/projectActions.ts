@@ -5,10 +5,12 @@ import { type CachedProjectData, type Group } from "../types";
 import { invoke } from "@tauri-apps/api/core";
 import { open, message } from "@tauri-apps/plugin-dialog";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { join } from "@tauri-apps/api/path";
 
 export interface ProjectActions {
   selectRootPath: (path: string) => Promise<void>;
   openFolderFromMenu: () => Promise<void>;
+  cloneAndOpenProject: (url: string) => Promise<void>;
   rescanProject: () => Promise<void>;
   _setScanProgress: (file: string) => void;
   _setAnalysisProgress: (file: string) => void;
@@ -71,6 +73,47 @@ export const createProjectActions: StateCreator<
     } catch (error) {
       console.error("Lỗi khi chọn thư mục từ menu:", error);
       await message("Không thể mở thư mục.", { title: "Lỗi", kind: "error" });
+    }
+  },
+  cloneAndOpenProject: async (url: string) => {
+    // 1. Ask user for parent directory
+    const parentDir = await open({
+      directory: true,
+      multiple: false,
+      title: "Chọn thư mục để clone dự án vào",
+    });
+
+    if (typeof parentDir !== "string") {
+      return; // User cancelled
+    }
+
+    // 2. Derive repo name and construct full path
+    try {
+      const repoName =
+        url.split("/").pop()?.replace(".git", "") || "cloned-repo";
+      const destPath = await join(parentDir, repoName);
+
+      // 3. Show loading state
+      set({
+        isScanning: true,
+        scanProgress: {
+          currentFile: `Đang clone từ ${url}...`,
+          currentPhase: "scanning",
+        },
+      });
+
+      // 4. Call backend command
+      await invoke("clone_git_repository", { url, path: destPath });
+
+      // 5. If successful, open the project
+      await get().actions.selectRootPath(destPath);
+    } catch (e) {
+      console.error("Lỗi khi clone dự án:", e);
+      await message(`Không thể clone dự án: ${e}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
+      set({ isScanning: false });
     }
   },
   rescanProject: async () => {
