@@ -15,6 +15,7 @@ export interface GitActions {
   fetchGitCommits: (loadMore?: boolean) => Promise<void>;
   reloadGitCommits: () => Promise<void>;
   exportCommitDiff: (commitSha: string) => Promise<void>;
+  exportCommitContext: (commitSha: string) => Promise<void>;
   copyCommitDiff: (commitSha: string) => Promise<boolean>;
 }
 
@@ -119,6 +120,37 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
         kind: "error",
       });
       return false;
+    }
+  },
+
+  exportCommitContext: async (commitSha: string) => {
+    const { rootPath } = get();
+    if (!rootPath) return;
+
+    try {
+      const contextContent = await invoke<string>("generate_commit_context", {
+        path: rootPath,
+        commitSha,
+      });
+
+      const filePath = await save({
+        title: `Lưu Ngữ cảnh Commit ${commitSha.substring(0, 7)}`,
+        defaultPath: `commit_${commitSha.substring(0, 7)}_context.txt`,
+        filters: [{ name: "Text File", extensions: ["txt"] }],
+      });
+
+      if (filePath) {
+        await writeTextFile(filePath, contextContent);
+        await message(
+          `Đã lưu ngữ cảnh của commit ${commitSha.substring(0, 7)} vào file.`,
+          { title: "Thành công", kind: "info" }
+        );
+      }
+    } catch (e) {
+      message(`Không thể tạo file ngữ cảnh commit: ${e}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
     }
   },
 });

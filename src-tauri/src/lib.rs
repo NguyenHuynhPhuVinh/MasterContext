@@ -56,7 +56,8 @@ pub fn run() {
             commands::update_app_settings, // <-- COMMAND MỚI
             commands::check_git_repository,
             commands::get_git_commits,
-            commands::get_commit_diff
+            commands::get_commit_diff,
+            commands::generate_commit_context
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
