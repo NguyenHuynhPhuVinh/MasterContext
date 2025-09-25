@@ -16,6 +16,8 @@ export interface GitActions {
   reloadGitCommits: () => Promise<void>;
   exportCommitDiff: (commitSha: string) => Promise<void>;
   copyCommitDiff: (commitSha: string) => Promise<boolean>;
+  checkoutCommit: (commitSha: string) => Promise<void>;
+  checkoutLatestBranch: () => Promise<void>;
 }
 
 export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
@@ -31,7 +33,7 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
       const info = await invoke<GitRepositoryInfo>("check_git_repository", {
         path: rootPath,
       });
-      set({ gitRepoInfo: info });
+      set({ gitRepoInfo: info, originalGitBranch: info.currentBranch });
       if (info.isRepository) {
         get().actions.fetchGitCommits();
       } else {
@@ -141,6 +143,61 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
         kind: "error",
       });
       return false;
+    }
+  },
+
+  checkoutCommit: async (commitSha: string) => {
+    const { rootPath } = get();
+    if (!rootPath) return;
+
+    try {
+      await invoke("checkout_commit", {
+        path: rootPath,
+        commitSha,
+      });
+
+      await message(
+        `Đã checkout thành công commit ${commitSha.substring(
+          0,
+          7
+        )}. Bắt đầu quét lại toàn bộ dự án.`,
+        { title: "Thành công", kind: "info" }
+      );
+
+      // Trigger a full rescan to update the app state to the new file contents
+      get().actions.rescanProject();
+    } catch (e) {
+      await message(`Không thể checkout commit: ${e}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
+    }
+  },
+
+  checkoutLatestBranch: async () => {
+    const { rootPath, originalGitBranch } = get();
+    if (!rootPath || !originalGitBranch) {
+      await message("Không thể xác định nhánh ban đầu để quay về.", {
+        title: "Lỗi",
+        kind: "error",
+      });
+      return;
+    }
+    try {
+      await invoke("checkout_branch", {
+        path: rootPath,
+        branch: originalGitBranch,
+      });
+      await message(
+        `Đã quay về nhánh '${originalGitBranch}'. Đang quét lại dự án.`,
+        { title: "Thành công", kind: "info" }
+      );
+      get().actions.rescanProject();
+    } catch (e) {
+      await message(`Không thể checkout nhánh: ${e}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
     }
   },
 });

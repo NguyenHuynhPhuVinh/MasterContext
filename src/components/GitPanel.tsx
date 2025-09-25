@@ -14,10 +14,28 @@ import {
   RefreshCw,
   Clipboard,
   Check,
+  History,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "./ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function GitPanel() {
   const {
@@ -26,23 +44,33 @@ export function GitPanel() {
     exportCommitDiff,
     reloadGitCommits,
     copyCommitDiff,
+    checkoutCommit,
+    checkoutLatestBranch,
   } = useAppActions();
-  const { rootPath, gitRepoInfo, gitCommits, gitLogState, hasMoreCommits } =
-    useAppStore(
-      useShallow((state) => ({
-        rootPath: state.rootPath,
-        gitRepoInfo: state.gitRepoInfo,
-        gitCommits: state.gitCommits,
-        gitLogState: state.gitLogState,
-        hasMoreCommits: state.hasMoreCommits,
-      }))
-    );
+  const {
+    rootPath,
+    gitRepoInfo,
+    gitCommits,
+    gitLogState,
+    hasMoreCommits,
+    originalGitBranch,
+  } = useAppStore(
+    useShallow((state) => ({
+      rootPath: state.rootPath,
+      gitRepoInfo: state.gitRepoInfo,
+      gitCommits: state.gitCommits,
+      gitLogState: state.gitLogState,
+      hasMoreCommits: state.hasMoreCommits,
+      originalGitBranch: state.originalGitBranch,
+    }))
+  );
   const gitExportModeIsContext = useAppStore(
     (state) => state.gitExportModeIsContext
   );
 
   const [copyingSha, setCopyingSha] = useState<string | null>(null);
   const [copiedSha, setCopiedSha] = useState<string | null>(null);
+  const [checkoutSha, setCheckoutSha] = useState<string | null>(null);
 
   const handleCopy = async (sha: string) => {
     setCopyingSha(sha);
@@ -88,6 +116,38 @@ export function GitPanel() {
       // Sử dụng Fragment để trả về nhiều phần tử, chúng sẽ trở thành con trực tiếp
       // của container `flex flex-col h-full` trong `GitPanel`
       <>
+        {/* Cảnh báo Detached HEAD */}
+        {gitRepoInfo.isRepository &&
+          !gitRepoInfo.currentBranch &&
+          originalGitBranch && (
+            <div className="p-2 border-b flex-shrink-0">
+              <Alert variant="destructive" className="p-3">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle className="font-semibold text-sm">
+                  Đang xem lại quá khứ
+                </AlertTitle>
+                <AlertDescription className="text-xs flex items-center justify-between mt-2">
+                  Bạn đang ở trạng thái "detached HEAD".
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7"
+                        onClick={checkoutLatestBranch}
+                      >
+                        <RotateCcw className="mr-1.5 h-3 w-3" />
+                        Quay về hiện tại
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Checkout nhánh '{originalGitBranch}'</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
         {/* Phần URL, cố định, không cuộn */}
         {gitRepoInfo.remoteUrl && (
           <div className="p-2 border-b flex-shrink-0">
@@ -129,6 +189,15 @@ export function GitPanel() {
                       ) : (
                         <Clipboard className="h-3.5 w-3.5" />
                       )}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setCheckoutSha(commit.sha)}
+                      className="h-7 w-7"
+                      title="Quay về trạng thái của commit này"
+                    >
+                      <History className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       size="icon"
@@ -210,6 +279,35 @@ export function GitPanel() {
       </header>
       {/* Nội dung được render ở đây, là con trực tiếp của container flexbox */}
       {renderContent()}
+
+      <AlertDialog
+        open={!!checkoutSha}
+        onOpenChange={(open) => !open && setCheckoutSha(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận Checkout Commit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hành động này sẽ đưa dự án của bạn về trạng thái của commit{" "}
+              <strong>{checkoutSha?.substring(0, 7)}</strong>.
+              <br />
+              <strong className="text-destructive">Cảnh báo:</strong> Điều này
+              sẽ đặt bạn vào trạng thái "detached HEAD". Mọi thay đổi chưa được
+              commit sẽ bị mất. Hãy chắc chắn rằng bạn đã commit hoặc stash các
+              thay đổi của mình.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => checkoutSha && checkoutCommit(checkoutSha)}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Xác nhận và Checkout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

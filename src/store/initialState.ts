@@ -47,6 +47,7 @@ export const initialState = {
   gitLogState: "idle" as "idle" | "loading_repo" | "loading_commits" | "error",
   gitCurrentPage: 0,
   hasMoreCommits: true,
+  originalGitBranch: null,
 };
 
 export type InitialState = typeof initialState;

@@ -4,6 +4,7 @@ use crate::models::{self, FsEntry};
 use std::path::Path;
 use tauri::command;
 use std::collections::BTreeMap;
+use git2::Repository;
 use std::fmt::Write as FmtWrite;
 
 #[command]
@@ -294,4 +295,65 @@ pub fn generate_commit_context(path: String, commit_sha: String) -> Result<Strin
     let final_context = format!("Directory structure of changed files:\n{}\n{}", tree_structure, final_content_string);
 
     Ok(final_context)
+}
+
+#[command]
+pub fn checkout_commit(path: String, commit_sha: String) -> Result<(), String> {
+    let repo = Repository::open(&path).map_err(|e| format!("Failed to open repository: {}", e))?;
+
+    // Check for uncommitted changes first to be safe. This provides a user-friendly error.
+    let statuses = repo.statuses(Some(
+        git2::StatusOptions::new()
+            .include_untracked(true)
+            .recurse_untracked_dirs(true)
+    )).map_err(|e| format!("Failed to get repository status: {}", e))?;
+
+    if !statuses.is_empty() {
+        return Err(
+            "You have uncommitted changes or untracked files. Please commit, stash, or clean your working directory before checking out a commit."
+            .to_string()
+        );
+    }
+
+    let oid = git2::Oid::from_str(&commit_sha).map_err(|e| format!("Invalid commit SHA: {}", e))?;
+    
+    // Set HEAD to point to the commit, which results in a detached HEAD state.
+    repo.set_head_detached(oid).map_err(|e| format!("Failed to set detached HEAD: {}", e))?;
+
+    // Now, checkout the new HEAD to update the working directory files.
+    // We use `force` here because we've already confirmed the working directory is clean.
+    // This ensures files are correctly overwritten to match the commit's state.
+    repo.checkout_head(Some(
+        git2::build::CheckoutBuilder::new().force()
+    )).map_err(|e| format!("Failed to update working directory to match commit: {}", e))?;
+
+    Ok(())
+}
+
+#[command]
+pub fn checkout_branch(path: String, branch: String) -> Result<(), String> {
+    let repo = Repository::open(&path).map_err(|e| format!("Không thể mở kho Git: {}", e))?;
+
+    // Luôn kiểm tra các thay đổi chưa commit để đảm bảo an toàn
+    let statuses = repo.statuses(Some(
+        git2::StatusOptions::new()
+            .include_untracked(true)
+            .recurse_untracked_dirs(true)
+    )).map_err(|e| format!("Không thể lấy trạng thái kho Git: {}", e))?;
+
+    if !statuses.is_empty() {
+        return Err(
+            "Bạn có các thay đổi chưa được commit. Vui lòng commit, stash, hoặc dọn dẹp thư mục làm việc của bạn trước."
+            .to_string()
+        );
+    }
+
+    // Checkout nhánh
+    repo.set_head(&format!("refs/heads/{}", branch)).map_err(|e| format!("Không thể set HEAD cho nhánh '{}': {}", branch, e))?;
+
+    repo.checkout_head(Some(
+        git2::build::CheckoutBuilder::new().force()
+    )).map_err(|e| format!("Không thể checkout nhánh '{}': {}", branch, e))?;
+
+    Ok(())
 }

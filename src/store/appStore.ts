@@ -79,6 +79,7 @@ export interface AppState {
   gitLogState: "idle" | "loading_repo" | "loading_commits" | "error";
   gitCurrentPage: number;
   hasMoreCommits: boolean;
+  originalGitBranch: string | null; // <-- THÊM STATE MỚI
 
   actions: ProjectActions &
     GroupActions &
