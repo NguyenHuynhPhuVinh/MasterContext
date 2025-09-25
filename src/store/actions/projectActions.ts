@@ -41,6 +41,7 @@ export const createProjectActions: StateCreator<
       gitLogState: "idle",
       gitCurrentPage: 0,
       hasMoreCommits: true,
+      originalGitBranch: null, // QUAN TRỌNG: Reset khi mở dự án mới
     });
 
     // Update recent paths

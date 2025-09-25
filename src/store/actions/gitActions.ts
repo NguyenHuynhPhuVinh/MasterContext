@@ -35,8 +35,8 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
       });
       set((state) => ({
         gitRepoInfo: info,
-        // Chỉ đặt originalGitBranch nếu nó chưa được đặt.
-        // Điều này bảo toàn tên nhánh ban đầu qua các lần checkout.
+        // Chốt tên nhánh ban đầu. Chỉ đặt lần đầu tiên khi nó còn null.
+        // Điều này giúp nó tồn tại qua các lần checkout và rescan.
         originalGitBranch: state.originalGitBranch ?? info.currentBranch,
       }));
       if (info.isRepository) {
