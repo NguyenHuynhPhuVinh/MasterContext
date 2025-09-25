@@ -158,6 +158,7 @@ pub fn start_group_export(
                 super_compressed,
                 &always_apply_text,
                 &exclude_extensions,
+                &project_data.file_metadata_cache,
             )
         })();
         match result {
@@ -214,6 +215,7 @@ pub fn generate_group_context(
         super_compressed,
         &always_apply_text,
         &exclude_extensions,
+        &project_data.file_metadata_cache,
     )
 }
 

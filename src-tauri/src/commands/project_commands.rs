@@ -1,6 +1,6 @@
 // src-tauri/src/commands/project_commands.rs
-use crate::{context_generator, file_cache, project_scanner};
-use tauri::{command, AppHandle, Emitter, Manager, Window};
+use crate::{context_generator, file_cache, models, project_scanner};
+use tauri::{command, AppHandle, Emitter, Manager, Window}; // Add models
 use super::start_file_watching;
 use super::utils::perform_auto_export;
 use std::fs;
@@ -82,6 +82,7 @@ pub fn start_project_export(window: Window, app: AppHandle, path: String, profil
                 super_compressed,
                 &always_apply_text,
                 &exclude_extensions,
+                &project_data.file_metadata_cache,
             )
         })();
         match result {
@@ -115,6 +116,7 @@ pub fn generate_project_context(app: AppHandle, path: String, profile_name: Stri
         super_compressed,
         &always_apply_text,
         &exclude_extensions,
+        &project_data.file_metadata_cache,
     )
 }
 
@@ -133,4 +135,32 @@ pub fn get_file_content(root_path_str: String, file_rel_path: String) -> Result<
     let root_path = std::path::Path::new(&root_path_str);
     let full_path = root_path.join(file_rel_path);
     fs::read_to_string(full_path).map_err(|e| format!("Không thể đọc file: {}", e))
+}
+#[command]
+pub fn update_file_exclusions(
+    app: AppHandle,
+    path: String,
+    profile_name: String,
+    file_rel_path: String,
+    ranges: Vec<(usize, usize)>,
+) -> Result<models::FileMetadata, String> {
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+
+    let updated_metadata: models::FileMetadata;
+
+    if let Some(metadata) = project_data.file_metadata_cache.get_mut(&file_rel_path)
+    {
+        metadata.excluded_ranges = if ranges.is_empty() { None } else { Some(ranges) };
+        updated_metadata = metadata.clone();
+    } else {
+        // This case should ideally not happen if the frontend is correct
+        return Err(format!(
+            "File '{}' not found in metadata cache.",
+            file_rel_path
+        ));
+    }
+
+    file_cache::save_project_data(&app, &path, &profile_name, &project_data)?;
+
+    Ok(updated_metadata)
 }

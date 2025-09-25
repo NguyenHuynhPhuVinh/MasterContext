@@ -55,6 +55,7 @@ export interface AppState {
   activeEditorFile: string | null;
   activeEditorFileContent: string | null;
   isEditorLoading: boolean;
+  activeEditorFileExclusions: [number, number][] | null;
 
   // Dữ liệu riêng của hồ sơ active
   syncEnabled: boolean;

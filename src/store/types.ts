@@ -38,6 +38,7 @@ export interface FileMetadata {
   mtime: number;
   token_count: number;
   links: string[];
+  excluded_ranges?: [number, number][];
 }
 
 export interface ProjectStats {

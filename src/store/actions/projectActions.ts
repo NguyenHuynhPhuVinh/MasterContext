@@ -1,7 +1,11 @@
 // src/store/actions/projectActions.ts
 import { StateCreator } from "zustand";
 import { AppState } from "../appStore";
-import { type CachedProjectData, type Group } from "../types";
+import {
+  type CachedProjectData,
+  type Group,
+  type FileMetadata,
+} from "../types";
 import { invoke } from "@tauri-apps/api/core";
 import { open, message } from "@tauri-apps/plugin-dialog";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -16,6 +20,7 @@ export interface ProjectActions {
   _setAnalysisProgress: (file: string) => void;
   _setScanComplete: (payload: CachedProjectData) => void;
   _setScanError: (error: string) => void;
+  _updateFileMetadata: (filePath: string, newMetadata: FileMetadata) => void;
   exportProject: () => void;
   copyProjectToClipboard: () => Promise<void>;
   deleteCurrentProjectData: () => Promise<void>;
@@ -200,6 +205,18 @@ export const createProjectActions: StateCreator<
   _setScanError: (error) => {
     console.error("Scan error from Rust:", error);
     set({ isScanning: false });
+  },
+  _updateFileMetadata: (filePath, newMetadata) => {
+    set((state) => {
+      if (!state.fileMetadataCache) return {};
+      const newCache = {
+        ...state.fileMetadataCache,
+        [filePath]: newMetadata,
+      };
+      return {
+        fileMetadataCache: newCache,
+      };
+    });
   },
   exportProject: async () => {
     const { rootPath, activeProfile } = get();

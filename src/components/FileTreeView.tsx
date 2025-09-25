@@ -1,7 +1,7 @@
 // src/components/FileTreeView.tsx
 import { useState, useEffect, useRef } from "react"; // <-- Thêm useEffect, useRef
-import { ChevronRight, Folder, File as FileIcon } from "lucide-react";
-import { useAppActions } from "@/store/appStore";
+import { ChevronRight, Folder, File as FileIcon, Scissors } from "lucide-react";
+import { useAppActions, useAppStore } from "@/store/appStore";
 import { cn } from "@/lib/utils";
 
 export interface FileNode {
@@ -59,9 +59,16 @@ export function FileTreeView({
   level = 0,
 }: FileTreeViewProps) {
   const { openFileInEditor } = useAppActions();
+  const fileMetadataCache = useAppStore((state) => state.fileMetadataCache);
   const checkboxRef = useRef<HTMLInputElement>(null);
   const isDirectory = Array.isArray(node.children);
   const [isOpen, setIsOpen] = useState(level < 2);
+
+  const hasExclusions =
+    !isDirectory &&
+    fileMetadataCache &&
+    node.path in fileMetadataCache &&
+    (fileMetadataCache[node.path]?.excluded_ranges?.length ?? 0) > 0;
 
   const selectionState = isDirectory
     ? getNodeSelectionState(node, selectedPaths)
@@ -116,9 +123,14 @@ export function FileTreeView({
               <Folder className="h-4 w-4 mr-2 text-yellow-500" />
             </>
           ) : (
-            <FileIcon className="h-4 w-4 mr-2 text-blue-500" />
+            <>
+              <FileIcon className="h-4 w-4 mr-2 text-blue-500 shrink-0" />
+              {hasExclusions && (
+                <Scissors className="h-3.5 w-3.5 text-destructive shrink-0" />
+              )}
+            </>
           )}
-          <span>{node.name}</span>
+          <span className="ml-2 truncate">{node.name}</span>
         </div>
       </div>
       {isDirectory && isOpen && node.children && (

@@ -31,6 +31,7 @@ pub fn run() {
             commands::start_group_export,
             commands::start_project_export,
             commands::calculate_group_stats_from_cache,
+            commands::update_file_exclusions,
             commands::update_sync_settings,
             commands::set_group_cross_sync,
             commands::generate_group_context,

@@ -84,6 +84,7 @@ pub struct FileMetadata {
     pub mtime: u64,
     pub token_count: usize,
     pub links: Vec<String>,
+    pub excluded_ranges: Option<Vec<(usize, usize)>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]

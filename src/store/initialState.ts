@@ -29,6 +29,7 @@ export const initialState = {
   activeEditorFile: null,
   activeEditorFileContent: null,
   isEditorLoading: false,
+  activeEditorFileExclusions: null,
   syncEnabled: false,
   syncPath: null,
   customIgnorePatterns: [],

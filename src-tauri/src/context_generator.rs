@@ -229,6 +229,7 @@ pub fn generate_context_from_files(
     super_compressed: bool,
     always_apply_text: &Option<String>,
     exclude_extensions: &Option<Vec<String>>,
+    metadata_cache: &BTreeMap<String, crate::models::FileMetadata>,
 ) -> Result<String, String> {
     let root_path = Path::new(root_path_str);
     let mut tree_builder_root = BTreeMap::new();
@@ -304,7 +305,28 @@ pub fn generate_context_from_files(
 
         for file_rel_path in final_files {
             let file_path = root_path.join(&file_rel_path);
-            if let Ok(content) = fs::read_to_string(&file_path) {
+            if let Ok(mut content) = fs::read_to_string(&file_path) {
+                
+                // --- NEW LOGIC: APPLY EXCLUSIONS FIRST ---
+                if let Some(metadata) = metadata_cache.get(&file_rel_path) {
+                    if let Some(ranges) = &metadata.excluded_ranges {
+                        if !ranges.is_empty() {
+                            let mut final_content = String::with_capacity(content.len());
+                            let mut last_index = 0;
+                            for (start, end) in ranges {
+                                if *start >= last_index {
+                                    final_content.push_str(&content[last_index..*start]);
+                                }
+                                last_index = *end;
+                            }
+                            if last_index < content.len() {
+                                final_content.push_str(&content[last_index..]);
+                            }
+                            content = final_content;
+                        }
+                    }
+                }
+                
                 let mut processed_content = content;
                 
                 if without_comments {

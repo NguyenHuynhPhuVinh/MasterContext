@@ -154,12 +154,14 @@ pub fn perform_smart_scan_and_rebuild(
 
                 let mut token_count = 0;
                 let mut links = Vec::new();
+                let mut excluded_ranges = None;
 
                 // Kiểm tra cache trước
                 if let Some(cached_meta) = old_metadata_cache.get(&relative_path_str) {
                     if cached_meta.size == metadata.len() && cached_meta.mtime == current_mtime {
                         token_count = cached_meta.token_count;
                         links = cached_meta.links.clone();
+                        excluded_ranges = cached_meta.excluded_ranges.clone();
                     }
                 }
 
@@ -182,6 +184,7 @@ pub fn perform_smart_scan_and_rebuild(
                     mtime: current_mtime,
                     token_count,
                     links,
+                    excluded_ranges,
                 };
 
                 tx.send((relative_path_str, file_meta)).unwrap();
