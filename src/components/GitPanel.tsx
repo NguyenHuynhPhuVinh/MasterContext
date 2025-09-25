@@ -203,7 +203,7 @@ export function GitPanel() {
                     </div>
                   </div>
                   <p
-                    className="text-sm font-medium leading-snug"
+                    className="text-sm font-medium leading-snug break-all"
                     title={commit.message}
                   >
                     <MessageSquare className="inline-block h-3.5 w-3.5 mr-1.5 align-middle text-muted-foreground" />
