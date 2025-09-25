@@ -78,7 +78,8 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
   },
 
   reloadGitCommits: async () => {
-    get().actions.fetchGitCommits(false);
+    // SỬA LỖI: Gọi checkGitRepo để làm mới cả trạng thái và danh sách commit
+    get().actions.checkGitRepo();
   },
 
   exportCommitDiff: async (commitSha: string) => {
