@@ -1,7 +1,12 @@
 // src/App.tsx
 import { useEffect, useMemo } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { Menu, MenuItem, Submenu } from "@tauri-apps/api/menu";
+import {
+  Menu,
+  MenuItem,
+  Submenu,
+  PredefinedMenuItem,
+} from "@tauri-apps/api/menu";
 import { save, message } from "@tauri-apps/plugin-dialog"; // <-- THAY ĐỔI IMPORT
 import { invoke } from "@tauri-apps/api/core";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
@@ -69,6 +74,7 @@ function App() {
     toggleGitPanelVisibility,
     _setRecentPaths,
     updateAppSettings,
+    reset,
   } = useAppActions();
 
   // --- Effect áp dụng theme (giữ nguyên) ---
@@ -136,6 +142,12 @@ function App() {
           action: copyProjectToClipboard,
         });
 
+        const closeProjectItem = await MenuItem.new({
+          id: "close_project",
+          text: "Đóng dự án",
+          action: reset,
+        });
+
         const fileSubmenu = await Submenu.new({
           text: "Tệp",
           items: [
@@ -143,6 +155,8 @@ function App() {
             rescanFolderItem,
             exportProjectItem,
             copyProjectItem,
+            await PredefinedMenuItem.new({ item: "Separator" }),
+            closeProjectItem,
           ],
         });
 
@@ -223,6 +237,7 @@ function App() {
     toggleProjectPanelVisibility,
     toggleGitPanelVisibility,
     _setRecentPaths,
+    reset,
   ]); // <-- Thêm dependency
 
   const throttledSetScanProgress = useMemo(
