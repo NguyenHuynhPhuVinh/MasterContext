@@ -1,5 +1,6 @@
 // src/components/InlineEditingInputs.tsx
 import { useState, useEffect, useRef, type KeyboardEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Folder as FolderIcon, ListChecks } from "lucide-react";
 
@@ -20,6 +21,7 @@ export function InlineProfileInput({
   onConfirm,
   onCancel,
 }: InlineProfileInputProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState(defaultValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -50,7 +52,7 @@ export function InlineProfileInput({
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
         className="h-7 text-sm"
-        placeholder="Tên hồ sơ..."
+        placeholder={t("inlineInputs.profilePlaceholder")}
       />
     </div>
   );
@@ -61,6 +63,7 @@ export function InlineGroupInput({
   onConfirm,
   onCancel,
 }: InlineGroupInputProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState(defaultValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -91,7 +94,7 @@ export function InlineGroupInput({
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
         className="h-7 text-sm"
-        placeholder="Tên nhóm..."
+        placeholder={t("inlineInputs.groupPlaceholder")}
       />
     </div>
   );

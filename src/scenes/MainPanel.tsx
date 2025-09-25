@@ -1,5 +1,6 @@
 // src/scenes/MainPanel.tsx
 import { useAppStore } from "@/store/appStore";
+import { useTranslation } from "react-i18next";
 import { GroupEditorPanel } from "./GroupEditorPanel";
 import { EditorPanel } from "@/components/EditorPanel";
 import {
@@ -11,6 +12,7 @@ import { LayoutGrid, ListChecks, FileCode } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
 export function MainPanel() {
+  const { t } = useTranslation();
   const {
     editingGroupId,
     activeEditorFile,
@@ -28,8 +30,9 @@ export function MainPanel() {
   if (!isGroupEditorPanelVisible && !isEditorPanelVisible) {
     return (
       <Placeholder
-        message="Chọn một nhóm để chỉnh sửa hoặc nhấp vào một file để xem trước"
+        message={t("mainPanel.selectGroupOrFile")}
         icon={LayoutGrid}
+        t={t}
       />
     );
   }
@@ -42,8 +45,9 @@ export function MainPanel() {
             <GroupEditorPanel />
           ) : (
             <Placeholder
-              message="Chưa có nhóm nào được chọn để chỉnh sửa"
+              message={t("mainPanel.noGroupSelected")}
               icon={ListChecks}
+              t={t}
             />
           )}
         </ResizablePanel>
@@ -57,8 +61,9 @@ export function MainPanel() {
             <EditorPanel />
           ) : (
             <Placeholder
-              message="Chưa có file nào được chọn để xem"
+              message={t("mainPanel.noFileSelected")}
               icon={FileCode}
+              t={t}
             />
           )}
         </ResizablePanel>
@@ -70,13 +75,15 @@ export function MainPanel() {
 const Placeholder = ({
   message,
   icon: Icon,
+  t,
 }: {
   message: string;
   icon: React.ElementType;
+  t: (key: string) => string;
 }) => (
   <div className="flex flex-col items-center justify-center h-full text-center bg-muted/40 p-4">
     <Icon className="h-16 w-16 text-muted-foreground mb-4" />
-    <h2 className="text-xl font-semibold">Bảng điều khiển Chính</h2>
+    <h2 className="text-xl font-semibold">{t("mainPanel.mainPanelTitle")}</h2>
     <p className="text-muted-foreground mt-2 max-w-md">{message}</p>
   </div>
 );

@@ -1,5 +1,6 @@
 // src/components/TokenLimitEditor.tsx
 import { useState, useEffect, useRef, type KeyboardEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { type Group } from "@/store/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ interface TokenLimitEditorProps {
 }
 
 export function TokenLimitEditor({ group, onSave }: TokenLimitEditorProps) {
+  const { t } = useTranslation();
   const [limit, setLimit] = useState(group.tokenLimit?.toString() ?? "");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -33,13 +35,13 @@ export function TokenLimitEditor({ group, onSave }: TokenLimitEditorProps) {
   return (
     <div className="p-2 space-y-2">
       <p className="text-xs font-medium text-muted-foreground px-1">
-        Giới hạn Token
+        {t("tokenLimitEditor.limitLabel")}
       </p>
       <div className="flex items-center gap-2">
         <Input
           ref={inputRef}
           type="number"
-          placeholder="Không giới hạn"
+          placeholder={t("tokenLimitEditor.noLimitPlaceholder")}
           value={limit}
           onChange={(e) => setLimit(e.target.value)}
           onKeyDown={handleKeyDown}

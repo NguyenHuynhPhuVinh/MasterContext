@@ -42,7 +42,7 @@ pub fn get_project_config_path(
         .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
         .collect();
     if sanitized_name.is_empty() {
-        return Err("Tên hồ sơ không hợp lệ.".to_string());
+        return Err("profile.invalid_name".to_string());
     }
     Ok(config_dir.join(format!("data_{}.json", sanitized_name)))
 }

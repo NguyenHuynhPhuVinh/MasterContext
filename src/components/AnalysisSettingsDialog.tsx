@@ -1,5 +1,6 @@
 // src/components/AnalysisSettingsDialog.tsx
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ export function AnalysisSettingsDialog({
   initialExtensions,
   onSave,
 }: AnalysisSettingsDialogProps) {
+  const { t } = useTranslation();
   const [extensionsText, setExtensionsText] = useState("");
 
   useEffect(() => {
@@ -47,32 +49,33 @@ export function AnalysisSettingsDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Cài đặt Phân tích Nội dung</DialogTitle>
+          <DialogTitle>{t("analysisSettings.title")}</DialogTitle>
           <DialogDescription>
-            Các tệp có phần mở rộng dưới đây sẽ không được đọc nội dung để đếm
-            token hoặc phân tích liên kết, giúp tăng tốc độ quét.
+            {t("analysisSettings.description")}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid w-full gap-1.5">
-            <Label htmlFor="extensions">Các phần mở rộng cần bỏ qua</Label>
+            <Label htmlFor="extensions">
+              {t("analysisSettings.extensionsLabel")}
+            </Label>
             <Input
               id="extensions"
-              placeholder="png, svg, lock, jpg..."
+              placeholder={t("analysisSettings.extensionsPlaceholder")}
               value={extensionsText}
               onChange={(e) => setExtensionsText(e.target.value)}
             />
             <p className="text-sm text-muted-foreground">
-              Phân cách các phần mở rộng bằng dấu phẩy (,).
+              {t("analysisSettings.extensionsHint")}
             </p>
           </div>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
-            Hủy
+            {t("common.cancel")}
           </Button>
           <Button type="submit" onClick={handleSave}>
-            Lưu thay đổi
+            {t("common.saveChanges")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,6 @@
 // src/components/GroupItem.tsx
 import { type Group } from "@/store/types";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -68,6 +69,7 @@ export function GroupItem({
   onSaveTokenLimit,
   onDelete,
 }: GroupItemProps) {
+  const { t } = useTranslation();
   if (isEditing) {
     return (
       <InlineGroupInput
@@ -101,7 +103,7 @@ export function GroupItem({
             {group.tokenLimit
               ? ` / ${group.tokenLimit.toLocaleString()}`
               : ""}{" "}
-            tokens
+            {t("groupItem.tokens")}
           </p>
         </div>
       </div>
@@ -124,12 +126,12 @@ export function GroupItem({
         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
           <DropdownMenuItem onClick={() => onStartRename(group)}>
             <Pencil className="mr-2 h-4 w-4" />
-            <span>Đổi tên</span>
+            <span>{t("groupItem.menu.rename")}</span>
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <Tag className="mr-2 h-4 w-4" />
-              <span>Sửa giới hạn Token</span>
+              <span>{t("groupItem.menu.editTokenLimit")}</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="p-0">
               <TokenLimitEditor
@@ -141,11 +143,11 @@ export function GroupItem({
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => onCopyContext(group)}>
             <ClipboardCopy className="mr-2 h-4 w-4" />
-            <span>Sao chép Ngữ cảnh</span>
+            <span>{t("groupItem.menu.copyContext")}</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onExport(group)}>
             <Download className="mr-2 h-4 w-4" />
-            <span>Xuất Ngữ cảnh</span>
+            <span>{t("groupItem.menu.exportContext")}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuCheckboxItem
@@ -153,7 +155,7 @@ export function GroupItem({
             onCheckedChange={(enabled) => onToggleCrossSync(group, enabled)}
           >
             <Link className="mr-2 h-4 w-4" />
-            <span>Đồng bộ chéo</span>
+            <span>{t("groupItem.menu.crossSync")}</span>
           </DropdownMenuCheckboxItem>
           <DropdownMenuSeparator />
           <AlertDialog>
@@ -163,24 +165,27 @@ export function GroupItem({
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                <span>Xóa nhóm</span>
+                <span>{t("groupItem.menu.delete")}</span>
               </DropdownMenuItem>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {t("groupItem.deleteDialog.title")}
+                </AlertDialogTitle>
                 <AlertDialogDescription>
-                  Hành động này không thể hoàn tác. Nhóm "{group.name}" sẽ bị
-                  xóa vĩnh viễn.
+                  {t("groupItem.deleteDialog.description", {
+                    name: group.name,
+                  })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => onDelete(group)}
                   className="bg-destructive hover:bg-destructive/90"
                 >
-                  Xóa
+                  {t("common.delete")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

@@ -47,13 +47,13 @@ pub fn create_profile(app: AppHandle, project_path: String, profile_name: String
 #[command]
 pub fn delete_profile(app: AppHandle, project_path: String, profile_name: String) -> Result<(), String> {
     if profile_name == "default" {
-        return Err("Không thể xóa hồ sơ 'default'.".to_string());
+        return Err("profile.cannot_delete_default".to_string());
     }
     let config_path = file_cache::get_project_config_path(&app, &project_path, &profile_name)?;
     if config_path.exists() {
         fs::remove_file(config_path).map_err(|e| e.to_string())
     } else {
-        Err("Hồ sơ không tồn tại.".to_string())
+        Err("profile.not_exist".to_string())
     }
 }
 
@@ -65,15 +65,15 @@ pub fn rename_profile(
     new_name: String,
 ) -> Result<(), String> {
     if old_name == "default" {
-        return Err("Không thể đổi tên hồ sơ 'default'.".to_string());
+        return Err("profile.cannot_rename_default".to_string());
     }
     let old_path = file_cache::get_project_config_path(&app, &project_path, &old_name)?;
     let new_path = file_cache::get_project_config_path(&app, &project_path, &new_name)?;
     if !old_path.exists() {
-        return Err("Hồ sơ cũ không tồn tại.".to_string());
+        return Err("profile.old_not_exist".to_string());
     }
     if new_path.exists() {
-        return Err("Tên hồ sơ mới đã tồn tại.".to_string());
+        return Err("profile.new_name_exist".to_string());
     }
     fs::rename(old_path, new_path).map_err(|e| e.to_string())
 }

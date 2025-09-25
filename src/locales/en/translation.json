@@ -1,0 +1,299 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "error": "Error",
+    "success": "Success",
+    "close": "Close",
+    "saving": "Saving...",
+    "saveChanges": "Save Changes",
+    "syncError": "Sync Error"
+  },
+  "appMenu": {
+    "file": {
+      "title": "File",
+      "openNew": "Open New Folder...",
+      "rescan": "Rescan Folder",
+      "exportProject": "Export Project Context...",
+      "copyProject": "Copy Project Context",
+      "closeProject": "Close Project"
+    },
+    "window": {
+      "title": "Window",
+      "projectPanel": "Project Panel",
+      "gitPanel": "Git Panel",
+      "groupEditorPanel": "Group Editor Panel",
+      "editorPanel": "Editor Panel"
+    },
+    "errors": {
+      "initFailed": "Could not initialize application menu.",
+      "criticalError": "Critical Error"
+    }
+  },
+  "notifications": {
+    "firstScanComplete": {
+      "title": "First scan complete!",
+      "body": "Data has been cached. Subsequent scans for this project will be significantly faster."
+    }
+  },
+  "dialogs": {
+    "filters": {
+      "text": "Text File"
+    },
+    "saveProjectContext": {
+      "title": "Save Project Context"
+    },
+    "saveGroupContext": {
+      "title": "Save Context for group \"{{name}}\""
+    },
+    "saveSuccess": {
+      "body": "File saved successfully!"
+    },
+    "copyGroupSuccess": {
+      "body": "Copied context for group \"{{name}}\""
+    }
+  },
+  "analysisSettings": {
+    "title": "Content Analysis Settings",
+    "description": "Files with the extensions below will not have their content read for token counting or link analysis, which speeds up scanning.",
+    "extensionsLabel": "Extensions to skip",
+    "extensionsPlaceholder": "png, svg, lock, jpg...",
+    "extensionsHint": "Separate extensions with a comma (,)."
+  },
+  "editorPanel": {
+    "excludeSelection": "Exclude selection",
+    "clearExclusionsTooltip": "Clear all exclusion ranges",
+    "undoExclude": "Undo exclusion"
+  },
+  "gitPanel": {
+    "checking": "Checking Git repository...",
+    "notARepo": "The current directory is not a Git repository.",
+    "title": "Git History",
+    "reloadTooltip": "Reload commits",
+    "copyContextTooltip": "Copy context",
+    "copyDiffTooltip": "Copy diff",
+    "checkoutLatestTooltip": "Return to the latest state (branch '{{branch}}')",
+    "checkoutCommitTooltip": "Return to the state of this commit",
+    "downloadContextTooltip": "Download context",
+    "downloadDiffTooltip": "Download diff",
+    "author": "Author",
+    "date": "Commit date",
+    "loadMore": "Load more",
+    "checkoutDialog": {
+      "title": "Confirm Checkout Commit?",
+      "description": "This action will revert your project to the state of commit <strong>{{sha}}</strong>.",
+      "warning": "This will put you in a \"detached HEAD\" state. Any uncommitted changes will be lost. Make sure you have committed or stashed your changes.",
+      "confirm": "Confirm and Checkout"
+    }
+  },
+  "groupItem": {
+    "tokens": "tokens",
+    "menu": {
+      "rename": "Rename",
+      "editTokenLimit": "Edit Token Limit",
+      "copyContext": "Copy Context",
+      "exportContext": "Export Context",
+      "crossSync": "Cross-sync",
+      "delete": "Delete group"
+    },
+    "deleteDialog": {
+      "title": "Are you sure you want to delete?",
+      "description": "This action cannot be undone. The group \"{{name}}\" will be permanently deleted."
+    }
+  },
+  "groupManager": {
+    "noGroups": "No groups yet."
+  },
+  "inlineInputs": {
+    "profilePlaceholder": "Profile name...",
+    "groupPlaceholder": "Group name..."
+  },
+  "statusBar": {
+    "gitBranchTooltip": "Current Git branch",
+    "totalFilesTooltip": "Total files",
+    "totalDirsTooltip": "Total directories",
+    "totalSizeTooltip": "Total size",
+    "tokensValue": "{{count}} tokens",
+    "tokensTooltip": "Estimated Tokens",
+    "loadingStats": "Loading stats...",
+    "settingsTooltip": "Open settings"
+  },
+  "themeToggle": {
+    "toggle": "Toggle theme"
+  },
+  "tokenLimitEditor": {
+    "title": "Token Limit",
+    "placeholder": "No limit"
+  },
+  "groupEditor": {
+    "title": "Editing: {{name}}",
+    "description": "Select files and folders to include in the context.",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "autoSelectLinked": "Auto-select linked files",
+    "searchPlaceholder": "Search for a file or folder...",
+    "filterExcludedTooltip": "Filter for files with excluded ranges",
+    "unfilterExcludedTooltip": "Remove filter",
+    "noExcludedFiles": "No files with excluded ranges found.",
+    "noSearchResults": "No results found for \"{{searchTerm}}\"."
+  },
+  "mainPanel": {
+    "placeholder": {
+      "title": "Main Panel",
+      "selectGroupOrFile": "Select a group to edit or click a file to preview",
+      "noGroupSelected": "No group selected for editing",
+      "noFileSelected": "No file selected for viewing"
+    }
+  },
+  "scanning": {
+    "analyzing": "Analyzing content...",
+    "scanning": "Analyzing project...",
+    "initializing": "Initializing..."
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Customize settings for the application.",
+    "profileBadge": "Profile",
+    "tabs": {
+      "appearance": "Appearance",
+      "project": "Project",
+      "profile": "Profile",
+      "export": "Export"
+    },
+    "appearance": {
+      "title": "Appearance Settings",
+      "theme": "Theme (Light/Dark)",
+      "language": "Language"
+    },
+    "project": {
+      "title": "Global Project Settings",
+      "watching": {
+        "title": "Project Watching",
+        "enable": {
+          "label": "Live file watching",
+          "description": "Automatically rescan when files change."
+        }
+      },
+      "ignore": {
+        "title": "Custom Ignore Patterns",
+        "label": "Glob patterns (one per line)",
+        "placeholder": "dist/\n*.log\n__pycache__/",
+        "description": "These patterns are used in addition to .gitignore.",
+        "saveButton": "Save and Rescan"
+      },
+      "dangerZone": {
+        "title": "Danger Zone",
+        "deleteData": {
+          "label": "Delete project data",
+          "description": "This will delete all profiles, groups, and settings for this project. This cannot be undone.",
+          "button": "Delete Data"
+        },
+        "deleteDialog": {
+          "title": "Are you absolutely sure?",
+          "description": "All data for this project (including all profiles and groups) will be permanently deleted. This action cannot be undone.",
+          "confirm": "I understand, delete"
+        }
+      }
+    },
+    "profile": {
+      "title": "Settings for Current Profile",
+      "autoSync": {
+        "title": "Auto-sync",
+        "enable": {
+          "label": "Enable background sync",
+          "description": "Automatically re-export on changes."
+        },
+        "folder": {
+          "label": "Sync folder",
+          "placeholder": "Not selected..."
+        }
+      },
+      "git": {
+        "title": "Git Integration",
+        "contextMode": {
+          "label": "Context export mode",
+          "description": "Enable to copy/export context instead of a diff file."
+        }
+      },
+      "alwaysApply": {
+        "title": "Always Apply Text",
+        "description": "This content will be appended to every exported context file.",
+        "placeholder": "Example: Always reply in English.",
+        "saveButton": "Save Text"
+      }
+    },
+    "export": {
+      "title": "Export Settings",
+      "fullTree": {
+        "label": "Use full directory tree",
+        "description": "Enable to always have the full project structure in the context file."
+      },
+      "lineNumbers": {
+        "label": "Add line numbers to file content",
+        "description": "Enable to prepend `line_number:` to each line of code."
+      },
+      "superCompressed": {
+        "label": "Super compressed export",
+        "description": "Compress file content into a single line next to the filename in the tree."
+      },
+      "removeComments": {
+        "label": "Remove comments",
+        "description": "Automatically remove comment blocks from the source code to reduce tokens."
+      },
+      "removeDebug": {
+        "label": "Remove debug logs",
+        "description": "Remove `console.log`, `println!`, etc. from the source code on export."
+      },
+      "excludeExtensions": {
+        "label": "Exclude extensions",
+        "description": "Files with these extensions will not be included in the context file.",
+        "placeholder": "png, svg, jpg, lock...",
+        "hint": "Separate extensions with a comma (,).",
+        "saveButton": "Save Exclusion Settings"
+      }
+    }
+  },
+  "welcome": {
+    "subtitle": "A tool to manage and generate context for your projects.",
+    "openProjectButton": "Open a project...",
+    "openProjectDialogTitle": "Select a project folder",
+    "clonePlaceholder": "Or paste a Git repo URL to clone...",
+    "cloneButton": "Clone",
+    "orRecent": "Or open recent",
+    "openRecent": "Open Recent",
+    "settingsTooltip": "Settings"
+  },
+  "errors": {
+    "scanError": "Error scanning project: {{error}}",
+    "syncError": "Sync error: {{error}}",
+    "fileSaveFailed": "An error occurred while saving the file.",
+    "projectExportError": "Error exporting project: {{error}}",
+    "fileExportFailed": "An error occurred while exporting the file: {{error}}",
+    "startExportFailed": "Could not start file export: {{error}}",
+    "copyFailed": "Could not copy: {{error}}",
+    "profileNameRequired": "Profile name cannot be empty.",
+    "profileNameInvalid": "Name can only contain letters, numbers, underscores, and hyphens.",
+    "groupNameRequired": "Group name cannot be empty.",
+    "git": {
+      "uncommitted_changes": "You have uncommitted changes or untracked files. Please commit, stash, or clean your working directory first."
+    },
+    "group": {
+      "not_found": "Group not found.",
+      "export_no_files": "This group contains no files to export.",
+      "generate_context_no_files": "This group contains no files to generate context from."
+    },
+    "profile": {
+      "cannot_delete_default": "Cannot delete the 'default' profile.",
+      "not_exist": "Profile does not exist.",
+      "cannot_rename_default": "Cannot rename the 'default' profile.",
+      "old_not_exist": "The old profile does not exist.",
+      "new_name_exist": "The new profile name already exists.",
+      "invalid_name": "Invalid profile name."
+    },
+    "project": {
+      "export_no_files": "The project has no files to export.",
+      "generate_context_no_files": "The project has no files to generate context from."
+    }
+  }
+}

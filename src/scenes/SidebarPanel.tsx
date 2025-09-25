@@ -1,5 +1,6 @@
 // src/scenes/SidebarPanel.tsx
 import { useSidebarPanel } from "@/hooks/useSidebarPanel";
+import { useTranslation } from "react-i18next";
 import { GroupManager } from "@/components/GroupManager";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export function SidebarPanel() {
+  const { t } = useTranslation();
   const {
     profiles,
     activeProfile,
@@ -65,14 +67,14 @@ export function SidebarPanel() {
     <>
       <div className="flex flex-col h-full bg-card">
         <header className="flex items-center justify-between p-4 border-b flex-shrink-0">
-          <h1 className="text-xl font-bold">Dự Án</h1>
+          <h1 className="text-xl font-bold">{t("sidebarPanel.title")}</h1>
           <Button
             variant="outline"
             size="sm"
             onClick={handleStartCreateProfile}
             disabled={!!inlineEditingProfile || !!inlineEditingGroup}
           >
-            <Plus className="mr-2 h-4 w-4" /> Tạo hồ sơ
+            <Plus className="mr-2 h-4 w-4" /> {t("sidebarPanel.createProfile")}
           </Button>
         </header>
 
@@ -148,7 +150,7 @@ export function SidebarPanel() {
                           }
                         >
                           <PlusCircle className="mr-2 h-4 w-4" />
-                          <span>Tạo nhóm mới...</span>
+                          <span>{t("sidebarPanel.createGroup")}</span>
                         </DropdownMenuItem>
                         {profileName !== "default" && (
                           <>
@@ -162,7 +164,7 @@ export function SidebarPanel() {
                               }
                             >
                               <Edit className="mr-2 h-4 w-4" />
-                              <span>Đổi tên hồ sơ...</span>
+                              <span>{t("sidebarPanel.renameProfile")}</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() =>
@@ -171,7 +173,7 @@ export function SidebarPanel() {
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              <span>Xóa hồ sơ...</span>
+                              <span>{t("sidebarPanel.deleteProfile")}</span>
                             </DropdownMenuItem>
                           </>
                         )}
@@ -225,19 +227,22 @@ export function SidebarPanel() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xóa hồ sơ</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("sidebarPanel.deleteProfileTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa hồ sơ "{deletingProfile}"? Hành động này
-              không thể hoàn tác.
+              {t("sidebarPanel.deleteProfileDescription", {
+                profile: deletingProfile,
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDeleteProfile}
               className="bg-destructive hover:bg-destructive/90"
             >
-              Xóa
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

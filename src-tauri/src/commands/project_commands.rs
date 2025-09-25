@@ -69,7 +69,7 @@ pub fn start_project_export(window: Window, app: AppHandle, path: String, profil
             let exclude_extensions = project_data.export_exclude_extensions;
             let all_files: Vec<String> = project_data.file_metadata_cache.keys().cloned().collect();
             if all_files.is_empty() {
-                return Err("Dự án không có file nào để xuất.".to_string());
+                return Err("project.export_no_files".to_string());
             }
             context_generator::generate_context_from_files(
                 &path,
@@ -103,7 +103,7 @@ pub fn generate_project_context(app: AppHandle, path: String, profile_name: Stri
     let exclude_extensions = project_data.export_exclude_extensions;
     let all_files: Vec<String> = project_data.file_metadata_cache.keys().cloned().collect();
     if all_files.is_empty() {
-        return Err("Dự án không có file nào để tạo ngữ cảnh.".to_string());
+        return Err("project.generate_context_no_files".to_string());
     }
     context_generator::generate_context_from_files(
         &path,

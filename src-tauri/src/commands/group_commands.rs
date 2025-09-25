@@ -138,14 +138,14 @@ pub fn start_group_export(
                 .groups
                 .iter()
                 .find(|g| g.id == group_id)
-                .ok_or_else(|| format!("Không tìm thấy nhóm với ID: {}", group_id))?;
+                .ok_or_else(|| "group.not_found".to_string())?;
             let expanded_files = context_generator::expand_group_paths_to_files(
                 &group.paths,
                 &project_data.file_metadata_cache,
                 root_path,
             );
             if expanded_files.is_empty() {
-                return Err("Nhóm này không chứa file nào để xuất.".to_string());
+                return Err("group.export_no_files".to_string());
             }
             context_generator::generate_context_from_files(
                 &root_path_str,
@@ -195,14 +195,14 @@ pub fn generate_group_context(
         .groups
         .iter()
         .find(|g| g.id == group_id)
-        .ok_or_else(|| format!("Không tìm thấy nhóm với ID: {}", group_id))?;
+        .ok_or_else(|| "group.not_found".to_string())?;
     let expanded_files = context_generator::expand_group_paths_to_files(
         &group.paths,
         &project_data.file_metadata_cache,
         root_path,
     );
     if expanded_files.is_empty() {
-        return Err("Nhóm này không chứa file nào để tạo ngữ cảnh.".to_string());
+        return Err("group.generate_context_no_files".to_string());
     }
     context_generator::generate_context_from_files(
         &root_path_str,
@@ -231,7 +231,7 @@ pub fn set_group_cross_sync(
     if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
         group.cross_sync_enabled = Some(enabled);
     } else {
-        return Err(format!("Không tìm thấy nhóm với ID: {}", group_id));
+        return Err("group.not_found".to_string());
     }
     file_cache::save_project_data(&app, &path, &profile_name, &project_data)
 }

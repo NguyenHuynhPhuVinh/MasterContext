@@ -1,5 +1,6 @@
 // src/components/GroupManager.tsx
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { type Group } from "@/store/types";
@@ -29,6 +30,7 @@ export function GroupManager({
   onConfirmRename,
   onCancelEdit,
 }: GroupManagerProps) {
+  const { t } = useTranslation();
   const {
     groups,
     activeProfile,
@@ -83,8 +85,8 @@ export function GroupManager({
     const unlistenError = listen<string>(
       "group_export_error",
       async (event) => {
-        await message(`Đã xảy ra lỗi khi xuất file: ${event.payload}`, {
-          title: "Lỗi",
+        await message(t("errors.fileExportFailed", { error: event.payload }), {
+          title: t("common.error"),
           kind: "error",
         });
         setExportingGroupId(null);
@@ -105,20 +107,22 @@ export function GroupManager({
             "_"
           )}_context.txt`;
           const filePath = await save({
-            title: `Lưu Ngữ cảnh cho nhóm "${pendingExportData.group.name}"`,
+            title: t("dialogs.saveGroupContext.title", {
+              name: pendingExportData.group.name,
+            }),
             defaultPath: defaultName,
-            filters: [{ name: "Text File", extensions: ["txt"] }],
+            filters: [{ name: t("dialogs.filters.text"), extensions: ["txt"] }],
           });
           if (filePath) {
             await writeTextFile(filePath, pendingExportData.context);
-            await message("Đã lưu file thành công!", {
-              title: "Thành công",
+            await message(t("dialogs.saveSuccess.body"), {
+              title: t("common.success"),
               kind: "info",
             });
           }
         } catch (error) {
-          await message("Đã xảy ra lỗi khi lưu file.", {
-            title: "Lỗi",
+          await message(t("errors.fileSaveFailed"), {
+            title: t("common.error"),
             kind: "error",
           });
         } finally {
@@ -148,8 +152,8 @@ export function GroupManager({
         rootPathStr: rootPath,
         profileName,
       }).catch((err) => {
-        message(`Không thể bắt đầu xuất file: ${err}`, {
-          title: "Lỗi",
+        message(t("errors.startExportFailed", { error: err }), {
+          title: t("common.error"),
           kind: "error",
         });
         setExportingGroupId(null);
@@ -175,13 +179,13 @@ export function GroupManager({
           superCompressed: false, // Copy should not be compressed
         });
         await writeText(context);
-        message(`Đã sao chép ngữ cảnh nhóm "${group.name}"`, {
-          title: "Thành công",
+        message(t("dialogs.copyGroupSuccess.body", { name: group.name }), {
+          title: t("common.success"),
           kind: "info",
         });
       } catch (error) {
-        message(`Không thể sao chép: ${error}`, {
-          title: "Lỗi",
+        message(t("errors.copyFailed", { error }), {
+          title: t("common.error"),
           kind: "error",
         });
       } finally {
@@ -209,7 +213,9 @@ export function GroupManager({
         inlineEditingGroup.profileName !== profileName ||
         inlineEditingGroup.mode !== "create") ? (
         <div className="text-left py-2 px-2">
-          <p className="text-sm text-muted-foreground/80">Không có nhóm nào.</p>
+          <p className="text-sm text-muted-foreground/80">
+            {t("groupManager.noGroups")}
+          </p>
         </div>
       ) : (
         <div className="space-y-1">

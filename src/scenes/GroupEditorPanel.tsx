@@ -1,5 +1,6 @@
 // src/scenes/GroupEditorPanel.tsx
 import { useCallback, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { FileTreeView, type FileNode } from "@/components/FileTreeView";
@@ -80,6 +81,7 @@ const filterForExcludedFiles = (
 };
 
 export function GroupEditorPanel() {
+  const { t } = useTranslation();
   // <-- Đổi tên component
   const {
     saveEditingGroup,
@@ -148,9 +150,11 @@ export function GroupEditorPanel() {
     <div className="flex flex-col h-full">
       <header className="flex items-center justify-between p-4 border-b shrink-0">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold">Chỉnh sửa: {group.name}</h1>
+          <h1 className="text-2xl font-bold">
+            {t("groupEditorPanel.editTitle", { name: group.name })}
+          </h1>
           <p className="text-muted-foreground">
-            Chọn các tệp và thư mục để đưa vào ngữ cảnh.
+            {t("groupEditorPanel.selectFilesDescription")}
           </p>
         </div>
         <div className="flex flex-shrink-0 gap-2 ml-4">
@@ -160,7 +164,9 @@ export function GroupEditorPanel() {
             ) : (
               <Save className="mr-2 h-4 w-4" />
             )}
-            {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+            {isSaving
+              ? t("groupEditorPanel.saving")
+              : t("groupEditorPanel.saveChanges")}
           </Button>
         </div>
       </header>
@@ -169,11 +175,11 @@ export function GroupEditorPanel() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={selectAllFiles}>
             <CheckCheck className="mr-2 h-4 w-4" />
-            Chọn tất cả
+            {t("groupEditorPanel.selectAll")}
           </Button>
           <Button variant="outline" size="sm" onClick={deselectAllFiles}>
             <XCircle className="mr-2 h-4 w-4" />
-            Bỏ chọn tất cả
+            {t("groupEditorPanel.deselectAll")}
           </Button>
         </div>
 
@@ -192,7 +198,7 @@ export function GroupEditorPanel() {
             ) : (
               <Link2Off className="h-4 w-4" />
             )}
-            Tự động chọn file liên quan
+            {t("groupEditorPanel.autoSelectRelated")}
           </Label>
         </div>
       </div>
@@ -201,7 +207,7 @@ export function GroupEditorPanel() {
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Tìm kiếm tệp hoặc thư mục..."
+            placeholder={t("groupEditorPanel.searchPlaceholder")}
             className="pl-8 pr-10" // Thêm padding bên phải cho nút
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -223,7 +229,9 @@ export function GroupEditorPanel() {
               </TooltipTrigger>
               <TooltipContent>
                 <p>
-                  {showOnlyExcluded ? "Bỏ lọc" : "Lọc file có vùng bị loại trừ"}
+                  {showOnlyExcluded
+                    ? t("groupEditorPanel.removeFilter")
+                    : t("groupEditorPanel.filterExcludedFiles")}
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -241,8 +249,8 @@ export function GroupEditorPanel() {
           ) : (
             <div className="text-center text-muted-foreground p-4">
               {showOnlyExcluded
-                ? "Không có file nào bị loại trừ."
-                : `Không tìm thấy kết quả nào khớp với "${searchTerm}".`}
+                ? t("groupEditorPanel.noExcludedFiles")
+                : t("groupEditorPanel.noSearchResults", { searchTerm })}
             </div>
           )}
         </ScrollArea>

@@ -352,10 +352,7 @@ pub fn checkout_commit(path: String, commit_sha: String) -> Result<(), String> {
     )).map_err(|e| format!("Failed to get repository status: {}", e))?;
 
     if !statuses.is_empty() {
-        return Err(
-            "You have uncommitted changes or untracked files. Please commit, stash, or clean your working directory before checking out a commit."
-            .to_string()
-        );
+        return Err("git.uncommitted_changes".to_string());
     }
 
     let oid = git2::Oid::from_str(&commit_sha).map_err(|e| format!("Invalid commit SHA: {}", e))?;
@@ -385,10 +382,7 @@ pub fn checkout_branch(path: String, branch: String) -> Result<(), String> {
     )).map_err(|e| format!("Không thể lấy trạng thái kho Git: {}", e))?;
 
     if !statuses.is_empty() {
-        return Err(
-            "Bạn có các thay đổi chưa được commit. Vui lòng commit, stash, hoặc dọn dẹp thư mục làm việc của bạn trước."
-            .to_string()
-        );
+        return Err("git.uncommitted_changes".to_string());
     }
 
     // Checkout nhánh

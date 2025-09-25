@@ -1,5 +1,6 @@
 // src/components/EditorPanel.tsx
 import { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/tooltip";
 
 export function EditorPanel() {
+  const { t } = useTranslation();
   const {
     closeEditor,
     addExclusionRange,
@@ -101,7 +103,7 @@ export function EditorPanel() {
             </TooltipTrigger>
             <TooltipContent>
               <p className="flex items-center gap-2">
-                <Undo className="h-3 w-3" /> Bỏ loại trừ
+                <Undo className="h-3 w-3" /> {t("editorPanel.undoExclude")}
               </p>
             </TooltipContent>
           </Tooltip>
@@ -138,7 +140,7 @@ export function EditorPanel() {
                 variant="ghost"
                 size="icon"
                 onClick={clearExclusionRanges}
-                title="Xóa tất cả các vùng loại trừ"
+                title={t("editorPanel.clearExclusionsTooltip")}
               >
                 <FileX className="h-4 w-4 text-destructive" />
               </Button>
@@ -156,7 +158,7 @@ export function EditorPanel() {
             onClick={handleExcludeClick}
           >
             <Scissors className="mr-2 h-4 w-4" />
-            Loại trừ vùng đã chọn
+            {t("editorPanel.excludeSelection")}
           </Button>
         )}
         {isEditorLoading ? (

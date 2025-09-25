@@ -1,6 +1,7 @@
 // src/components/GitPanel.tsx
 import { useEffect } from "react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -33,6 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export function GitPanel() {
+  const { t } = useTranslation();
   const {
     checkGitRepo,
     fetchGitCommits,
@@ -93,7 +95,7 @@ export function GitPanel() {
       return (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
           <Loader2 className="h-8 w-8 animate-spin mb-4" />
-          <p>Đang kiểm tra kho Git...</p>
+          <p>{t("gitPanel.checking")}</p>
         </div>
       );
     }
@@ -102,7 +104,7 @@ export function GitPanel() {
       return (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4 text-center">
           <AlertTriangle className="h-8 w-8 mb-4" />
-          <p>Thư mục hiện tại không phải là một kho lưu trữ Git.</p>
+          <p>{t("gitPanel.notARepo")}</p>
         </div>
       );
     }
@@ -148,11 +150,11 @@ export function GitPanel() {
                         onClick={() => handleCopy(commit.sha)}
                         className="h-7 w-7"
                         disabled={copyingSha === commit.sha}
-                        title={
+                        title={t(
                           gitExportModeIsContext
-                            ? "Sao chép ngữ cảnh"
-                            : "Sao chép diff"
-                        }
+                            ? "gitPanel.copyContextTooltip"
+                            : "gitPanel.copyDiffTooltip"
+                        )}
                       >
                         {copyingSha === commit.sha ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -170,7 +172,9 @@ export function GitPanel() {
                           variant="outline"
                           onClick={checkoutLatestBranch}
                           className="h-7 w-7 border-green-500/50 text-green-600 hover:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/10"
-                          title={`Quay về trạng thái mới nhất (nhánh '${originalGitBranch}')`}
+                          title={t("gitPanel.checkoutLatestTooltip", {
+                            branch: originalGitBranch,
+                          })}
                         >
                           <RotateCcw className="h-3.5 w-3.5" />
                         </Button>
@@ -181,7 +185,7 @@ export function GitPanel() {
                           onClick={() => setCheckoutSha(commit.sha)}
                           className="h-7 w-7"
                           disabled={isCurrentCommit}
-                          title="Quay về trạng thái của commit này"
+                          title={t("gitPanel.checkoutCommitTooltip")}
                         >
                           <History className="h-3.5 w-3.5" />
                         </Button>
@@ -192,11 +196,11 @@ export function GitPanel() {
                         variant="outline"
                         onClick={() => exportCommitDiff(commit.sha)}
                         className="h-7 w-7"
-                        title={
+                        title={t(
                           gitExportModeIsContext
-                            ? "Tải về ngữ cảnh"
-                            : "Tải về diff"
-                        }
+                            ? "gitPanel.downloadContextTooltip"
+                            : "gitPanel.downloadDiffTooltip"
+                        )}
                       >
                         <Download className="h-3.5 w-3.5" />
                       </Button>
@@ -210,10 +214,16 @@ export function GitPanel() {
                     {commit.message}
                   </p>
                   <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground flex-wrap">
-                    <span className="flex items-center" title="Tác giả">
+                    <span
+                      className="flex items-center"
+                      title={t("gitPanel.author")}
+                    >
                       <User className="h-3 w-3 mr-1" /> {commit.author}
                     </span>
-                    <span className="flex items-center" title="Ngày commit">
+                    <span
+                      className="flex items-center"
+                      title={t("gitPanel.date")}
+                    >
                       <Calendar className="h-3 w-3 mr-1" /> {commit.date}
                     </span>
                   </div>
@@ -235,7 +245,7 @@ export function GitPanel() {
               className="w-full"
               onClick={() => fetchGitCommits(true)}
             >
-              Tải thêm
+              {t("gitPanel.loadMore")}
             </Button>
           )}
         </div>
@@ -247,7 +257,7 @@ export function GitPanel() {
     // Đây là container flexbox chính
     <div className="flex flex-col h-full bg-card">
       <header className="flex items-center justify-between p-4 border-b shrink-0">
-        <h1 className="text-xl font-bold">Lịch sử Git</h1>
+        <h1 className="text-xl font-bold">{t("gitPanel.title")}</h1>
         {/* --- NÚT TẢI LẠI --- */}
         <Button
           variant="ghost"
@@ -257,7 +267,7 @@ export function GitPanel() {
             gitLogState === "loading_commits" || !gitRepoInfo?.isRepository
           }
           className="h-8 w-8"
-          title="Tải lại commits"
+          title={t("gitPanel.reloadTooltip")}
         >
           <RefreshCw
             className={`h-4 w-4 ${
@@ -275,24 +285,25 @@ export function GitPanel() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận Checkout Commit?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("gitPanel.checkoutDialog.title")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Hành động này sẽ đưa dự án của bạn về trạng thái của commit{" "}
-              <strong>{checkoutSha?.substring(0, 7)}</strong>.
+              {t("gitPanel.checkoutDialog.description", {
+                sha: checkoutSha?.substring(0, 7),
+              })}
               <br />
-              <strong className="text-destructive">Cảnh báo:</strong> Điều này
-              sẽ đặt bạn vào trạng thái "detached HEAD". Mọi thay đổi chưa được
-              commit sẽ bị mất. Hãy chắc chắn rằng bạn đã commit hoặc stash các
-              thay đổi của mình.
+              <strong className="text-destructive">Cảnh báo:</strong>{" "}
+              {t("gitPanel.checkoutDialog.warning")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => checkoutSha && checkoutCommit(checkoutSha)}
               className="bg-destructive hover:bg-destructive/90"
             >
-              Xác nhận và Checkout
+              {t("gitPanel.checkoutDialog.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

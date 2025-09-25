@@ -1,6 +1,7 @@
 // src/App.tsx
 import { useEffect, useMemo } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { useTranslation } from "react-i18next";
 import {
   Menu,
   MenuItem,
@@ -84,6 +85,8 @@ function App() {
     toggleGroupEditorPanelVisibility,
   } = useAppActions();
 
+  const { t } = useTranslation();
+
   // --- Effect áp dụng theme (giữ nguyên) ---
   useEffect(() => {
     const theme = localStorage.getItem("theme") || "light";
@@ -117,13 +120,13 @@ function App() {
       try {
         const openFolderItem = await MenuItem.new({
           id: "open_new_folder",
-          text: "Mở thư mục mới...",
+          text: t("appMenu.file.openNew"),
           action: openFolderFromMenu,
         });
 
         const rescanFolderItem = await MenuItem.new({
           id: "rescan_folder",
-          text: "Quét lại thư mục",
+          text: t("appMenu.file.rescan"),
           action: async () => {
             if (useAppStore.getState().selectedPath) {
               rescanProject();
@@ -139,24 +142,24 @@ function App() {
         // --- TẠO CÁC MENU ITEM MỚI ---
         const exportProjectItem = await MenuItem.new({
           id: "export_project",
-          text: "Xuất ngữ cảnh dự án...",
+          text: t("appMenu.file.exportProject"),
           action: exportProject,
         });
 
         const copyProjectItem = await MenuItem.new({
           id: "copy_project",
-          text: "Sao chép ngữ cảnh dự án",
+          text: t("appMenu.file.copyProject"),
           action: copyProjectToClipboard,
         });
 
         const closeProjectItem = await MenuItem.new({
           id: "close_project",
-          text: "Đóng dự án",
+          text: t("appMenu.file.closeProject"),
           action: reset,
         });
 
         const fileSubmenu = await Submenu.new({
-          text: "Tệp",
+          text: t("appMenu.file.title"),
           items: [
             openFolderItem,
             rescanFolderItem,
@@ -169,29 +172,29 @@ function App() {
 
         // --- MENU MỚI ---
         const windowSubmenu = await Submenu.new({
-          text: "Cửa sổ",
+          text: t("appMenu.window.title"),
           items: [
             await CheckMenuItem.new({
               id: "toggle_project_panel",
-              text: "Bảng điều khiển Dự án",
+              text: t("appMenu.window.projectPanel"),
               action: toggleProjectPanelVisibility,
               checked: isSidebarVisible,
             }),
             await CheckMenuItem.new({
               id: "toggle_git_panel",
-              text: "Bảng điều khiển Git",
+              text: t("appMenu.window.gitPanel"),
               action: toggleGitPanelVisibility,
               checked: isGitPanelVisible,
             }),
             await CheckMenuItem.new({
               id: "toggle_group_editor_panel",
-              text: "Bảng điều khiển Chỉnh sửa Nhóm",
+              text: t("appMenu.window.groupEditorPanel"),
               action: toggleGroupEditorPanelVisibility,
               checked: isGroupEditorPanelVisible,
             }),
             await CheckMenuItem.new({
               id: "toggle_editor_panel",
-              text: "Bảng điều khiển Editor",
+              text: t("appMenu.window.editorPanel"),
               action: toggleEditorPanelVisibility,
               checked: isEditorPanelVisible,
             }),
@@ -206,8 +209,8 @@ function App() {
         await appMenu.setAsAppMenu();
       } catch (error) {
         console.error("Failed to create application menu:", error);
-        await message("Không thể khởi tạo menu ứng dụng.", {
-          title: "Lỗi nghiêm trọng",
+        await message(t("appMenu.errors.initFailed"), {
+          title: t("appMenu.errors.criticalError"),
           kind: "error",
         });
       }
@@ -249,6 +252,7 @@ function App() {
     copyProjectToClipboard,
     toggleProjectPanelVisibility,
     toggleGitPanelVisibility,
+    t,
     toggleEditorPanelVisibility,
     toggleGroupEditorPanelVisibility,
     _setRecentPaths,
@@ -291,8 +295,8 @@ function App() {
           }
           if (permissionGranted) {
             sendNotification({
-              title: "Quét lần đầu hoàn tất!",
-              body: "Dữ liệu đã được lưu lại. Các lần quét sau cho dự án này sẽ nhanh hơn đáng kể.",
+              title: t("notifications.firstScanComplete.title"),
+              body: t("notifications.firstScanComplete.body"),
             });
           }
         }
@@ -301,10 +305,18 @@ function App() {
     unlistenFuncs.push(
       listen<string>("scan_error", async (event) => {
         _setScanError(event.payload);
-        await message(`Lỗi khi phân tích dự án: ${event.payload}`, {
-          title: "Lỗi",
-          kind: "error",
-        });
+        const errorKey = `errors.${event.payload}`;
+        const translatedError = t(errorKey);
+        await message(
+          t("errors.scanError", {
+            error:
+              translatedError === errorKey ? event.payload : translatedError,
+          }),
+          {
+            title: t("common.error"),
+            kind: "error",
+          }
+        );
       })
     );
     unlistenFuncs.push(
@@ -317,8 +329,8 @@ function App() {
     );
     unlistenFuncs.push(
       listen<string>("auto_sync_error", async (event) => {
-        await message(`Lỗi đồng bộ: ${event.payload}`, {
-          title: "Lỗi đồng bộ",
+        await message(t("errors.syncError", { error: event.payload }), {
+          title: t("common.syncError"),
           kind: "error",
         });
       })
@@ -335,21 +347,21 @@ function App() {
       listen<string>("project_export_complete", async (event) => {
         try {
           const filePath = await save({
-            title: "Lưu Ngữ cảnh Dự án",
+            title: t("dialogs.saveProjectContext.title"),
             defaultPath: "project_context.txt",
-            filters: [{ name: "Text File", extensions: ["txt"] }],
+            filters: [{ name: t("dialogs.filters.text"), extensions: ["txt"] }],
           });
           if (filePath) {
             await writeTextFile(filePath, event.payload);
-            await message(`Đã lưu file thành công!`, {
-              title: "Thành công",
+            await message(t("dialogs.saveSuccess.body"), {
+              title: t("common.success"),
               kind: "info",
             });
           }
         } catch (error) {
           console.error("Lỗi khi lưu file ngữ cảnh dự án:", error);
-          await message("Đã xảy ra lỗi khi lưu file.", {
-            title: "Lỗi",
+          await message(t("errors.fileSaveFailed"), {
+            title: t("common.error"),
             kind: "error",
           });
         }
@@ -357,10 +369,18 @@ function App() {
     );
     unlistenFuncs.push(
       listen<string>("project_export_error", async (event) => {
-        await message(`Lỗi khi xuất dự án: ${event.payload}`, {
-          title: "Lỗi",
-          kind: "error",
-        });
+        const errorKey = `errors.${event.payload}`;
+        const translatedError = t(errorKey);
+        await message(
+          t("errors.projectExportError", {
+            error:
+              translatedError === errorKey ? event.payload : translatedError,
+          }),
+          {
+            title: t("common.error"),
+            kind: "error",
+          }
+        );
       })
     );
 
@@ -379,6 +399,7 @@ function App() {
     _setGroupUpdateComplete,
     rescanProject,
     _setRecentPaths,
+    t,
     updateAppSettings,
   ]); // <-- Thêm dependency
 

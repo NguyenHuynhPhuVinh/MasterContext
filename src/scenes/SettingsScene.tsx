@@ -1,5 +1,6 @@
 // src/scenes/SettingsScene.tsx
 import { useSettingsScene } from "@/hooks/useSettingsScene";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   FileText,
@@ -19,6 +20,7 @@ import { ExportTab } from "./settings/ExportTab";
 import { type SettingsTab } from "@/hooks/useSettingsScene";
 
 export function SettingsScene() {
+  const { t } = useTranslation();
   const {
     activeTab,
     setActiveTab,
@@ -57,10 +59,14 @@ export function SettingsScene() {
   } = useSettingsScene();
 
   const TABS = [
-    { id: "appearance", label: "Giao diện", icon: Palette },
-    { id: "project", label: "Dự án", icon: FolderCog },
-    { id: "profile", label: "Hồ sơ", icon: User },
-    { id: "export", label: "Xuất File", icon: FileOutput },
+    {
+      id: "appearance",
+      label: t("settingsScene.tabs.appearance"),
+      icon: Palette,
+    },
+    { id: "project", label: t("settingsScene.tabs.project"), icon: FolderCog },
+    { id: "profile", label: t("settingsScene.tabs.profile"), icon: User },
+    { id: "export", label: t("settingsScene.tabs.export"), icon: FileOutput },
   ];
 
   const renderContent = () => {
@@ -122,19 +128,20 @@ export function SettingsScene() {
       <header className="flex items-center justify-between p-4 border-b shrink-0">
         <div className="flex flex-col">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">Cài đặt</h1>
+            <h1 className="text-2xl font-bold">{t("settingsScene.title")}</h1>
             <Badge variant="secondary" className="gap-2">
               <FileText className="h-4 w-4" />
-              Hồ sơ: <span className="font-semibold">{activeProfile}</span>
+              {t("settingsScene.profileLabel")}:{" "}
+              <span className="font-semibold">{activeProfile}</span>
             </Badge>
           </div>
           <p className="text-muted-foreground">
-            Tùy chỉnh các thiết lập cho ứng dụng.
+            {t("settingsScene.description")}
           </p>
         </div>
         <Button variant="ghost" size="icon" onClick={showDashboard}>
           <X className="h-5 w-5" />
-          <span className="sr-only">Đóng</span>
+          <span className="sr-only">{t("settingsScene.close")}</span>
         </Button>
       </header>
 

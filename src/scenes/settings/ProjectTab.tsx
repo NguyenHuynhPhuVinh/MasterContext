@@ -1,4 +1,5 @@
 // src/scenes/settings/ProjectTab.tsx
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -40,19 +41,20 @@ export function ProjectTab({
   setIsDeleteProjectDialogOpen,
   handleConfirmDeleteProjectData,
 }: ProjectTabProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Cài đặt Toàn cục Dự án</h2>
+      <h2 className="text-xl font-semibold">{t("projectTab.title")}</h2>
       <div className="space-y-4 rounded-lg border p-4">
-        <h3 className="font-semibold">Theo dõi dự án</h3>
+        <h3 className="font-semibold">{t("projectTab.projectWatching")}</h3>
         <div className="flex items-center justify-between">
           <Label
             htmlFor="watching-toggle"
             className="flex flex-col items-start"
           >
-            <span>Theo dõi thời gian thực</span>
+            <span>{t("projectTab.realTimeWatching")}</span>
             <span className="text-xs text-muted-foreground">
-              Tự động quét lại khi có thay đổi file.
+              {t("projectTab.realTimeWatchingDescription")}
             </span>
           </Label>
           <Switch
@@ -65,19 +67,21 @@ export function ProjectTab({
       </div>
 
       <div className="space-y-4 rounded-lg border p-4 flex flex-col">
-        <h3 className="font-semibold">Các mẫu loại trừ tùy chỉnh</h3>
+        <h3 className="font-semibold">
+          {t("projectTab.customIgnorePatterns")}
+        </h3>
         <div className="space-y-2 flex-grow flex flex-col">
-          <Label htmlFor="custom-ignore">Mẫu Glob (một mẫu mỗi dòng)</Label>
+          <Label htmlFor="custom-ignore">{t("projectTab.globPatterns")}</Label>
           <Textarea
             id="custom-ignore"
-            placeholder={`dist/\n*.log\n__pycache__/`}
+            placeholder={t("projectTab.ignorePatternsPlaceholder")}
             className="flex-1 resize-y min-h-[120px]"
             value={ignoreText}
             onChange={(e) => setIgnoreText(e.target.value)}
             disabled={isSaving}
           />
           <p className="text-xs text-muted-foreground">
-            Các mẫu này sẽ được sử dụng cùng với file .gitignore.
+            {t("projectTab.ignorePatternsDescription")}
           </p>
         </div>
         <Button
@@ -86,28 +90,27 @@ export function ProjectTab({
           className="w-full mt-4"
         >
           {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Lưu và Quét lại
+          {t("projectTab.saveAndRescan")}
         </Button>
       </div>
 
       <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
         <h3 className="font-semibold text-destructive flex items-center gap-2">
           <AlertTriangle className="h-5 w-5" />
-          Vùng nguy hiểm
+          {t("projectTab.dangerZone")}
         </h3>
         <div className="flex items-center justify-between">
           <div className="flex flex-col items-start pr-4">
-            <span>Xóa dữ liệu dự án</span>
+            <span>{t("projectTab.deleteProjectData")}</span>
             <span className="text-xs text-muted-foreground">
-              Hành động này sẽ xóa tất cả hồ sơ, nhóm và cài đặt cho dự án này.
-              Không thể hoàn tác.
+              {t("projectTab.deleteProjectDataDescription")}
             </span>
           </div>
           <Button
             variant="destructive"
             onClick={() => setIsDeleteProjectDialogOpen(true)}
           >
-            Xóa dữ liệu
+            {t("projectTab.deleteData")}
           </Button>
         </div>
       </div>
@@ -118,19 +121,20 @@ export function ProjectTab({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Bạn có chắc chắn không?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("projectTab.confirmDeleteTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Toàn bộ dữ liệu của dự án này (bao gồm tất cả các hồ sơ và nhóm)
-              sẽ bị xóa vĩnh viễn. Hành động này không thể được hoàn tác.
+              {t("projectTab.confirmDeleteDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={handleConfirmDeleteProjectData}
             >
-              Tôi hiểu, hãy xóa
+              {t("projectTab.confirmDeleteAction")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

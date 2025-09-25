@@ -1,4 +1,5 @@
 // src/components/StatusBar.tsx
+import { useTranslation } from "react-i18next";
 import {
   File,
   Folder,
@@ -42,6 +43,7 @@ export function StatusBar({
   gitRepoInfo,
   onShowSettings,
 }: StatusBarProps) {
+  const { t } = useTranslation();
   const shortPath = path
     ? "..." + path.substring(path.lastIndexOf("/") + 1)
     : "...";
@@ -61,7 +63,7 @@ export function StatusBar({
             <div className="w-px h-4 bg-border" />
             <div
               className="flex items-center gap-1.5 px-3 h-full hover:bg-accent cursor-default"
-              title="Nhánh Git hiện tại"
+              title={t("statusBar.gitBranchTooltip")}
             >
               <GitBranch className="h-3.5 w-3.5" />
               <span className="text-xs">{gitRepoInfo.currentBranch}</span>
@@ -76,26 +78,26 @@ export function StatusBar({
             <StatItem
               icon={File}
               value={stats.total_files.toLocaleString()}
-              title="Tổng số tệp tin"
+              title={t("statusBar.totalFilesTooltip")}
             />
             <StatItem
               icon={Folder}
               value={stats.total_dirs.toLocaleString()}
-              title="Tổng số thư mục"
+              title={t("statusBar.totalDirectoriesTooltip")}
             />
             <StatItem
               icon={HardDrive}
               value={formatBytes(stats.total_size)}
-              title="Tổng dung lượng"
+              title={t("statusBar.totalSizeTooltip")}
             />
             <StatItem
               icon={BrainCircuit}
               value={`${stats.total_tokens.toLocaleString()} tokens`}
-              title="Ước tính số Tokens"
+              title={t("statusBar.estimatedTokensTooltip")}
             />
           </>
         ) : (
-          <span className="text-xs px-3">Đang tải thống kê...</span>
+          <span className="text-xs px-3">{t("statusBar.loadingStats")}</span>
         )}
         <div className="w-px h-4 bg-border" />
         <Button
@@ -103,7 +105,7 @@ export function StatusBar({
           size="icon"
           className="h-full w-7 rounded-none"
           onClick={onShowSettings}
-          title="Mở cài đặt"
+          title={t("statusBar.openSettingsTooltip")}
         >
           <Cog className="h-4 w-4" />
         </Button>
