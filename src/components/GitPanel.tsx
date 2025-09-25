@@ -137,7 +137,7 @@ export function GitPanel() {
                     isCurrentCommit && "ring-2 ring-primary/50 bg-primary/5"
                   )}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
                     <p className="font-mono text-xs text-blue-500 dark:text-blue-400 min-w-0 truncate">
                       {commit.sha.substring(0, 7)}
                     </p>

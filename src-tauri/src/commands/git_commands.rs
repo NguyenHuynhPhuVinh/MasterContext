@@ -269,6 +269,24 @@ pub fn generate_commit_context(path: String, commit_sha: String) -> Result<Strin
         None, None, None,
     ).map_err(|e| e.to_string())?;
 
+    // Loại trừ các file lock khỏi ngữ cảnh commit
+    let lock_files_to_exclude = [
+        "package-lock.json",
+        "Cargo.lock",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+    ];
+
+    changed_files.retain(|path_str| {
+        let file_name = Path::new(path_str).file_name().and_then(|s| s.to_str()).unwrap_or("");
+        !lock_files_to_exclude.contains(&file_name)
+    });
+
+    file_contents_map.retain(|path_str, _| {
+        let file_name = Path::new(path_str).file_name().and_then(|s| s.to_str()).unwrap_or("");
+        !lock_files_to_exclude.contains(&file_name)
+    });
+
     let tree_structure = build_and_format_tree(&changed_files);
 
     let mut final_content_string = String::new();
