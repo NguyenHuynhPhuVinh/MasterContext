@@ -1,5 +1,5 @@
 // src/scenes/GroupEditorPanel.tsx
-import { useCallback } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { FileTreeView, type FileNode } from "@/components/FileTreeView";
@@ -11,10 +11,40 @@ import {
   Link2Off,
   CheckCheck,
   XCircle,
+  Search,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+
+const filterNode = (node: FileNode, searchTerm: string): FileNode | null => {
+  const term = searchTerm.toLowerCase();
+  const isMatch = node.name.toLowerCase().includes(term);
+
+  // Case 1: It's a file. Return it if it matches, otherwise null.
+  if (!node.children) {
+    return isMatch ? node : null;
+  }
+
+  // Case 2: It's a directory. If its name matches, return the whole sub-tree.
+  // This allows a user to find a folder and see all its contents.
+  if (isMatch) {
+    return node;
+  }
+
+  // Case 3: Directory name doesn't match. Filter its children recursively.
+  const filteredChildren = node.children
+    .map((child) => filterNode(child, searchTerm))
+    .filter(Boolean) as FileNode[];
+
+  // If any children matched, return this directory with only the matching children.
+  if (filteredChildren.length > 0) {
+    return { ...node, children: filteredChildren };
+  }
+
+  return null;
+};
 
 export function GroupEditorPanel() {
   // <-- Đổi tên component
@@ -42,12 +72,22 @@ export function GroupEditorPanel() {
     }))
   );
 
+  const [searchTerm, setSearchTerm] = useState("");
+
   const handleTogglePath = useCallback(
     (toggledNode: FileNode, isSelected: boolean) => {
       toggleEditingPath(toggledNode, isSelected);
     },
     [toggleEditingPath]
   );
+
+  const filteredFileTree = useMemo(() => {
+    if (!fileTree) return null;
+    if (!searchTerm.trim()) {
+      return fileTree;
+    }
+    return filterNode(fileTree, searchTerm);
+  }, [fileTree, searchTerm]);
 
   if (!group || !fileTree || tempSelectedPaths === null) {
     return (
@@ -109,13 +149,31 @@ export function GroupEditorPanel() {
           </Label>
         </div>
       </div>
+      {/* Search Bar */}
+      <div className="p-2 border-b shrink-0">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Tìm kiếm tệp hoặc thư mục..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
       <main className="flex-1 overflow-hidden">
         <ScrollArea className="h-full p-4">
-          <FileTreeView
-            node={fileTree}
-            selectedPaths={tempSelectedPaths}
-            onToggle={handleTogglePath}
-          />
+          {filteredFileTree ? (
+            <FileTreeView
+              node={filteredFileTree}
+              selectedPaths={tempSelectedPaths}
+              onToggle={handleTogglePath}
+            />
+          ) : (
+            <div className="text-center text-muted-foreground p-4">
+              Không tìm thấy kết quả nào khớp với "{searchTerm}".
+            </div>
+          )}
         </ScrollArea>
       </main>
     </div>
