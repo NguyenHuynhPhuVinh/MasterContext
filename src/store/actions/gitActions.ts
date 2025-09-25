@@ -160,15 +160,6 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
         path: rootPath,
         commitSha,
       });
-
-      await message(
-        `Đã checkout thành công commit ${commitSha.substring(
-          0,
-          7
-        )}. Bắt đầu quét lại toàn bộ dự án.`,
-        { title: "Thành công", kind: "info" }
-      );
-
       // Trigger a full rescan to update the app state to the new file contents
       get().actions.rescanProject();
     } catch (e) {
@@ -201,10 +192,6 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
         path: rootPath,
         branch: originalGitBranch,
       });
-      await message(
-        `Đã quay về nhánh '${originalGitBranch}'. Đang quét lại dự án.`,
-        { title: "Thành công", kind: "info" }
-      );
       get().actions.rescanProject();
     } catch (e) {
       await message(`Không thể checkout nhánh: ${e}`, {
