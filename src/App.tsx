@@ -160,13 +160,6 @@ function App() {
           ],
         });
 
-        // --- THÊM MENU CÀI ĐẶT ---
-        const settingsItem = await MenuItem.new({
-          id: "open_settings",
-          text: "Cài đặt...",
-          action: showSettingsScene,
-        });
-
         // --- MENU MỚI ---
         const windowSubmenu = await Submenu.new({
           text: "Cửa sổ",
@@ -184,14 +177,8 @@ function App() {
           ],
         });
 
-        const optionsSubmenu = await Submenu.new({
-          text: "Tùy chọn",
-          items: [settingsItem],
-        });
-        // --- KẾT THÚC THÊM MENU ---
-
         const appMenu = await Menu.new({
-          items: [fileSubmenu, windowSubmenu, optionsSubmenu], // <-- Thêm menu mới vào đây
+          items: [fileSubmenu, windowSubmenu],
         });
 
         // Đặt menu cho cửa sổ hiện tại
@@ -427,6 +414,7 @@ function App() {
           stats={projectStats}
           path={selectedPath}
           gitRepoInfo={gitRepoInfo}
+          onShowSettings={showSettingsScene}
         />
       </div>
     );

@@ -1,12 +1,21 @@
 // src/components/StatusBar.tsx
-import { File, Folder, HardDrive, BrainCircuit, GitBranch } from "lucide-react";
+import {
+  File,
+  Folder,
+  HardDrive,
+  BrainCircuit,
+  GitBranch,
+  Cog,
+} from "lucide-react";
 import { type ProjectStats, type GitRepositoryInfo } from "@/store/types";
 import { formatBytes } from "@/lib/utils";
+import { Button } from "./ui/button";
 
 interface StatusBarProps {
   path: string | null;
   stats: ProjectStats | null;
   gitRepoInfo: GitRepositoryInfo | null;
+  onShowSettings: () => void;
 }
 
 const StatItem = ({
@@ -27,7 +36,12 @@ const StatItem = ({
   </div>
 );
 
-export function StatusBar({ path, stats, gitRepoInfo }: StatusBarProps) {
+export function StatusBar({
+  path,
+  stats,
+  gitRepoInfo,
+  onShowSettings,
+}: StatusBarProps) {
   const shortPath = path
     ? "..." + path.substring(path.lastIndexOf("/") + 1)
     : "...";
@@ -83,6 +97,16 @@ export function StatusBar({ path, stats, gitRepoInfo }: StatusBarProps) {
         ) : (
           <span className="text-xs px-3">Đang tải thống kê...</span>
         )}
+        <div className="w-px h-4 bg-border" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-full w-7 rounded-none"
+          onClick={onShowSettings}
+          title="Mở cài đặt"
+        >
+          <Cog className="h-4 w-4" />
+        </Button>
       </div>
     </footer>
   );
