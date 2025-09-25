@@ -123,8 +123,9 @@ export function GitPanel() {
         {/* Khu vực danh sách commit, co giãn và có thể cuộn */}
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-2 space-y-2">
-            {gitCommits.map((commit, index) => {
-              const isLatestCommit = index === 0;
+            {gitCommits.map((commit) => {
+              const isHeadOfMainBranch =
+                commit.sha === gitRepoInfo?.mainBranchHeadSha;
               const isDetachedHead = !gitRepoInfo?.currentBranch;
               const isCurrentCommit = commit.sha === gitRepoInfo?.currentSha;
 
@@ -162,12 +163,13 @@ export function GitPanel() {
                         )}
                       </Button>
 
-                      {isLatestCommit && isDetachedHead ? (
+                      {isHeadOfMainBranch &&
+                      (isDetachedHead || !isCurrentCommit) ? (
                         <Button
                           size="icon"
                           variant="outline"
                           onClick={checkoutLatestBranch}
-                          className="h-7 w-7 border-primary/50 text-primary hover:bg-primary/10"
+                          className="h-7 w-7 border-green-500/50 text-green-600 hover:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/10"
                           title={`Quay về trạng thái mới nhất (nhánh '${originalGitBranch}')`}
                         >
                           <RotateCcw className="h-3.5 w-3.5" />

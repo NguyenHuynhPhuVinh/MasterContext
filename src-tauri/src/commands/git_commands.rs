@@ -17,6 +17,7 @@ pub fn check_git_repository(path: String) -> Result<models::GitRepositoryInfo, S
                 current_branch: None,
                 remote_url: None,
                 current_sha: None,
+                main_branch_head_sha: None,
             });
         }
     };
@@ -27,6 +28,19 @@ pub fn check_git_repository(path: String) -> Result<models::GitRepositoryInfo, S
         .head()
         .ok()
         .and_then(|head| head.shorthand().map(String::from));
+
+    // --- LOGIC MỚI: Tìm commit đầu của nhánh chính ---
+    let main_branch_head_sha = repo
+        .find_branch("main", git2::BranchType::Local)
+        .or_else(|_| repo.find_branch("master", git2::BranchType::Local))
+        .ok()
+        .and_then(|branch| {
+            branch
+                .get()
+                .target()
+                .map(|oid| oid.to_string())
+        });
+    // --- KẾT THÚC LOGIC MỚI ---
 
     let current_sha = head.and_then(|h| h.target().map(|oid| oid.to_string()));
 
@@ -40,6 +54,7 @@ pub fn check_git_repository(path: String) -> Result<models::GitRepositoryInfo, S
         current_branch,
         remote_url,
         current_sha,
+        main_branch_head_sha,
     })
 }
 

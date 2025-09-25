@@ -76,6 +76,7 @@ export interface GitRepositoryInfo {
   currentBranch: string | null;
   remoteUrl: string | null;
   currentSha: string | null;
+  mainBranchHeadSha: string | null;
 }
 
 export interface GitCommit {

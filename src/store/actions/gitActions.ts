@@ -180,15 +180,23 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
   },
 
   checkoutLatestBranch: async () => {
-    const { rootPath, originalGitBranch } = get();
-    if (!rootPath || !originalGitBranch) {
-      await message("Không thể xác định nhánh ban đầu để quay về.", {
+    const { rootPath, originalGitBranch, gitRepoInfo } = get();
+    const mainBranchHeadSha = gitRepoInfo?.mainBranchHeadSha;
+
+    if (!rootPath || !originalGitBranch || !mainBranchHeadSha) {
+      await message("Không thể xác định commit mới nhất để quay về.", {
         title: "Lỗi",
         kind: "error",
       });
       return;
     }
+
     try {
+      // An toàn hơn là checkout về commit SHA cụ thể, sau đó mới về nhánh
+      await invoke("checkout_commit", {
+        path: rootPath,
+        commitSha: mainBranchHeadSha,
+      });
       await invoke("checkout_branch", {
         path: rootPath,
         branch: originalGitBranch,
