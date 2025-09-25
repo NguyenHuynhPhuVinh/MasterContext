@@ -1,6 +1,6 @@
 # Master Context: Trợ lý Xây dựng Ngữ cảnh Thông minh cho Lập trình viên
 
-[![Phiên bản](https://img.shields.io/badge/version-0.1.3-blue.svg)](package.json)
+[![Phiên bản](https://img.shields.io/badge/version-0.1.4-blue.svg)](package.json)
 [![Giấy phép](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Nền tảng](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://tauri.app)
 

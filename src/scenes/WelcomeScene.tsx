@@ -107,7 +107,7 @@ export function WelcomeScene() {
       </main>
       <div className="absolute bottom-4 left-4 text-xs text-muted-foreground">
         <p>
-          beta v0.1.3 | by{" "}
+          beta v0.1.4 | by{" "}
           <a
             href="https://github.com/NguyenHuynhPhuVinh"
             target="_blank"
