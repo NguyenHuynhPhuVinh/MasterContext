@@ -36,6 +36,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 export function GitPanel() {
   const {
@@ -121,8 +122,11 @@ export function GitPanel() {
           !gitRepoInfo.currentBranch &&
           originalGitBranch && (
             <div className="p-2 border-b flex-shrink-0">
-              <Alert variant="destructive" className="p-3">
-                <AlertTriangle className="h-4 w-4" />
+              <Alert
+                variant="default"
+                className="p-3 border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300"
+              >
+                <AlertTriangle className="h-4 w-4 !text-yellow-600 dark:!text-yellow-400" />
                 <AlertTitle className="font-semibold text-sm">
                   Đang xem lại quá khứ
                 </AlertTitle>
@@ -163,7 +167,11 @@ export function GitPanel() {
             {gitCommits.map((commit) => (
               <div
                 key={commit.sha}
-                className="p-2 rounded-md border bg-background/50 space-y-2"
+                className={cn(
+                  "p-2 rounded-md border bg-background/50 space-y-2 transition-all",
+                  commit.sha === gitRepoInfo?.currentSha &&
+                    "ring-2 ring-primary/50 bg-primary/5"
+                )}
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-mono text-xs text-blue-500 dark:text-blue-400 min-w-0 truncate">
@@ -195,6 +203,7 @@ export function GitPanel() {
                       variant="outline"
                       onClick={() => setCheckoutSha(commit.sha)}
                       className="h-7 w-7"
+                      disabled={commit.sha === gitRepoInfo?.currentSha}
                       title="Quay về trạng thái của commit này"
                     >
                       <History className="h-3.5 w-3.5" />

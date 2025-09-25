@@ -22,6 +22,7 @@ pub struct GitRepositoryInfo {
     pub is_repository: bool,
     pub current_branch: Option<String>,
     pub remote_url: Option<String>,
+    pub current_sha: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

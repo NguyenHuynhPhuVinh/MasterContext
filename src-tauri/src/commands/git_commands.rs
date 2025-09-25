@@ -16,14 +16,19 @@ pub fn check_git_repository(path: String) -> Result<models::GitRepositoryInfo, S
                 is_repository: false,
                 current_branch: None,
                 remote_url: None,
+                current_sha: None,
             });
         }
     };
+
+    let head = repo.head().ok();
 
     let current_branch = repo
         .head()
         .ok()
         .and_then(|head| head.shorthand().map(String::from));
+
+    let current_sha = head.and_then(|h| h.target().map(|oid| oid.to_string()));
 
     let remote_url = repo
         .find_remote("origin")
@@ -34,6 +39,7 @@ pub fn check_git_repository(path: String) -> Result<models::GitRepositoryInfo, S
         is_repository: true,
         current_branch,
         remote_url,
+        current_sha,
     })
 }
 

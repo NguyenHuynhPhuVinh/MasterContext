@@ -148,6 +148,9 @@ export const createProjectActions: StateCreator<
         console.error("Không thể tải danh sách các hồ sơ khác:", e);
       }
     }
+
+    // Luôn làm mới trạng thái Git sau khi quét xong
+    get().actions.checkGitRepo();
   },
   _setScanError: (error) => {
     console.error("Scan error from Rust:", error);
