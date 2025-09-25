@@ -127,3 +127,10 @@ pub fn delete_project_data(app: AppHandle, path: String) -> Result<(), String> {
     }
     Ok(())
 }
+
+#[command]
+pub fn get_file_content(root_path_str: String, file_rel_path: String) -> Result<String, String> {
+    let root_path = std::path::Path::new(&root_path_str);
+    let full_path = root_path.join(file_rel_path);
+    fs::read_to_string(full_path).map_err(|e| format!("Không thể đọc file: {}", e))
+}

@@ -6,6 +6,7 @@ import {
   MenuItem,
   Submenu,
   PredefinedMenuItem,
+  CheckMenuItem,
 } from "@tauri-apps/api/menu";
 import { save, message } from "@tauri-apps/plugin-dialog"; // <-- THAY ĐỔI IMPORT
 import { invoke } from "@tauri-apps/api/core";
@@ -44,6 +45,7 @@ function App() {
     isScanning,
     projectStats,
     isSidebarVisible,
+    isEditorPanelVisible,
     isGitPanelVisible,
     gitRepoInfo,
   } = useAppStore(
@@ -55,6 +57,7 @@ function App() {
       projectStats: state.projectStats,
       isSidebarVisible: state.isSidebarVisible,
       isGitPanelVisible: state.isGitPanelVisible,
+      isEditorPanelVisible: state.isEditorPanelVisible,
       gitRepoInfo: state.gitRepoInfo,
     }))
   );
@@ -72,6 +75,7 @@ function App() {
     copyProjectToClipboard,
     toggleProjectPanelVisibility,
     toggleGitPanelVisibility,
+    toggleEditorPanelVisibility,
     _setRecentPaths,
     updateAppSettings,
     reset,
@@ -164,15 +168,23 @@ function App() {
         const windowSubmenu = await Submenu.new({
           text: "Cửa sổ",
           items: [
-            await MenuItem.new({
+            await CheckMenuItem.new({
               id: "toggle_project_panel",
               text: "Bảng điều khiển Dự án",
               action: toggleProjectPanelVisibility,
+              checked: isSidebarVisible,
             }),
-            await MenuItem.new({
+            await CheckMenuItem.new({
               id: "toggle_git_panel",
               text: "Bảng điều khiển Git",
               action: toggleGitPanelVisibility,
+              checked: isGitPanelVisible,
+            }),
+            await CheckMenuItem.new({
+              id: "toggle_editor_panel",
+              text: "Bảng điều khiển Editor",
+              action: toggleEditorPanelVisibility,
+              checked: isEditorPanelVisible,
             }),
           ],
         });
@@ -214,8 +226,12 @@ function App() {
       clearMenu();
     }
   }, [
+    // CẬP NHẬT DEPENDENCY ĐỂ MENU TỰ ĐỘNG CẬP NHẬT
     selectedPath,
     isScanning, // <-- THÊM VÀO DEPENDENCY
+    isSidebarVisible,
+    isGitPanelVisible,
+    isEditorPanelVisible,
     openFolderFromMenu,
     rescanProject,
     showSettingsScene,
@@ -223,6 +239,7 @@ function App() {
     copyProjectToClipboard,
     toggleProjectPanelVisibility,
     toggleGitPanelVisibility,
+    toggleEditorPanelVisibility,
     _setRecentPaths,
     reset,
   ]); // <-- Thêm dependency

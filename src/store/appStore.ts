@@ -50,6 +50,10 @@ export interface AppState {
   isUpdatingGroupId: string | null;
   tempSelectedPaths: Set<string> | null;
   isCrossLinkingEnabled: boolean;
+  isEditorPanelVisible: boolean;
+  activeEditorFile: string | null;
+  activeEditorFileContent: string | null;
+  isEditorLoading: boolean;
 
   // Dữ liệu riêng của hồ sơ active
   syncEnabled: boolean;

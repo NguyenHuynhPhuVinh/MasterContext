@@ -1,6 +1,7 @@
 // src/components/FileTreeView.tsx
 import { useState, useEffect, useRef } from "react"; // <-- Thêm useEffect, useRef
 import { ChevronRight, Folder, File as FileIcon } from "lucide-react";
+import { useAppActions } from "@/store/appStore";
 import { cn } from "@/lib/utils";
 
 export interface FileNode {
@@ -57,6 +58,7 @@ export function FileTreeView({
   onToggle,
   level = 0,
 }: FileTreeViewProps) {
+  const { openFileInEditor } = useAppActions();
   const checkboxRef = useRef<HTMLInputElement>(null);
   const isDirectory = Array.isArray(node.children);
   const [isOpen, setIsOpen] = useState(level < 2);
@@ -77,8 +79,12 @@ export function FileTreeView({
     onToggle(node, e.target.checked);
   };
 
-  const handleToggleDirectory = () => {
-    if (isDirectory) setIsOpen(!isOpen);
+  const handleItemClick = () => {
+    if (isDirectory) {
+      setIsOpen(!isOpen);
+    } else {
+      openFileInEditor(node.path);
+    }
   };
 
   return (
@@ -96,7 +102,7 @@ export function FileTreeView({
           className="mr-2 h-4 w-4"
         />
         <div
-          onClick={handleToggleDirectory}
+          onClick={handleItemClick}
           className="flex items-center cursor-pointer flex-grow"
         >
           {isDirectory ? (

@@ -1,5 +1,6 @@
 // src/store/actions/uiActions.ts
 import { StateCreator } from "zustand";
+import { invoke } from "@tauri-apps/api/core";
 import { AppState } from "../appStore";
 
 export interface UIActions {
@@ -8,6 +9,7 @@ export interface UIActions {
   showSettingsScene: () => void;
   toggleProjectPanelVisibility: () => void;
   toggleGitPanelVisibility: () => void;
+  toggleEditorPanelVisibility: () => void;
   setInlineEditingGroup: (
     state: {
       mode: "create" | "rename";
@@ -16,6 +18,8 @@ export interface UIActions {
     } | null
   ) => void;
   _setRecentPaths: (paths: string[]) => void;
+  openFileInEditor: (filePath: string) => Promise<void>;
+  closeEditor: () => void;
 }
 
 export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
@@ -46,6 +50,40 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
   toggleGitPanelVisibility: () => {
     set((state) => ({ isGitPanelVisible: !state.isGitPanelVisible }));
   },
+  toggleEditorPanelVisibility: () => {
+    set((state) => ({ isEditorPanelVisible: !state.isEditorPanelVisible }));
+  },
   setInlineEditingGroup: (state) => set({ inlineEditingGroup: state }),
   _setRecentPaths: (paths) => set({ recentPaths: paths }),
+  openFileInEditor: async (filePath: string) => {
+    const { rootPath, activeEditorFile } = _get();
+    if (!rootPath || filePath === activeEditorFile) return;
+
+    set({
+      isEditorLoading: true,
+      activeEditorFile: filePath,
+      activeEditorFileContent: null,
+    });
+
+    try {
+      const content = await invoke<string>("get_file_content", {
+        rootPathStr: rootPath,
+        fileRelPath: filePath,
+      });
+      set({ activeEditorFileContent: content, isEditorLoading: false });
+    } catch (e) {
+      console.error(`Failed to load file content for ${filePath}:`, e);
+      set({
+        activeEditorFileContent: `Error loading file: ${e}`,
+        isEditorLoading: false,
+      });
+    }
+  },
+  closeEditor: () => {
+    set({
+      activeEditorFile: null,
+      activeEditorFileContent: null,
+      isEditorLoading: false,
+    });
+  },
 });
