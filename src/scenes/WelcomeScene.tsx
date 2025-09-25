@@ -79,9 +79,9 @@ export function WelcomeScene() {
                   <History className="mr-2 h-4 w-4" />
                   Mở gần đây
                 </h2>
-                <ScrollArea className="h-64 w-full rounded-md border bg-background/50 p-2">
+                <ScrollArea className="max-h-64 w-full rounded-md border bg-background/50 p-2">
                   <div className="space-y-1">
-                    {recentPaths.slice(0, 4).map((path) => (
+                    {recentPaths.map((path) => (
                       <Button
                         key={path}
                         variant="ghost"
