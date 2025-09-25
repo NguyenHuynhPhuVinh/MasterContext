@@ -67,10 +67,10 @@ pub fn get_git_commits(
     let repo = git2::Repository::open(&path).map_err(|e| e.to_string())?;
     let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
  
-    // SỬA LỖI: Cấu hình sắp xếp TRƯỚC, sau đó mới đẩy các nhánh vào.
-    // Dùng .set_sorting() thay vì .sort()
+    // SỬA LỖI: Cấu hình sắp xếp TRƯỚC khi đẩy các tham chiếu vào.
+    // Sử dụng `set_sorting` thay vì `sort` để đảm bảo hành vi nhất quán.
     revwalk.set_sorting(git2::Sort::TOPOLOGICAL | git2::Sort::TIME).map_err(|e| e.to_string())?;
-    revwalk.push_glob("refs/heads/*").map_err(|e| e.to_string())?;
+    revwalk.push_glob("refs/heads/*").map_err(|e| e.to_string())?; // Đẩy các nhánh vào sau khi đã cấu hình sắp xếp.
 
     let commits = revwalk
         .skip((page - 1) * page_size)
