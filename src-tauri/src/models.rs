@@ -20,6 +20,7 @@ pub struct CompilerOptions {
 #[serde(rename_all = "camelCase")]
 pub struct GitRepositoryInfo {
     pub is_repository: bool,
+    pub current_branch: Option<String>,
     pub remote_url: Option<String>,
 }
 
@@ -101,6 +102,7 @@ pub struct CachedProjectData {
     pub export_super_compressed: Option<bool>,
     pub always_apply_text: Option<String>,
     pub export_exclude_extensions: Option<Vec<String>>,
+    pub git_export_mode_is_context: Option<bool>,
 }
 
 #[derive(Debug, Clone)]

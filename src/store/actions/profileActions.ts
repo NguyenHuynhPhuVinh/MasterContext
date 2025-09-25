@@ -54,6 +54,8 @@ export const createProfileActions: StateCreator<
           exportSuperCompressed: profileData.export_super_compressed ?? false,
           alwaysApplyText: profileData.always_apply_text ?? null,
           exportExcludeExtensions: profileData.export_exclude_extensions ?? [],
+          gitExportModeIsContext:
+            profileData.git_export_mode_is_context ?? false,
           scanProgress: { currentFile: null, currentPhase: "scanning" },
         };
       });

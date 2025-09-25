@@ -1,11 +1,12 @@
 // src/components/StatusBar.tsx
 import { File, Folder, HardDrive, BrainCircuit, GitBranch } from "lucide-react";
-import { type ProjectStats } from "@/store/types";
+import { type ProjectStats, type GitRepositoryInfo } from "@/store/types";
 import { formatBytes } from "@/lib/utils";
 
 interface StatusBarProps {
   path: string | null;
   stats: ProjectStats | null;
+  gitRepoInfo: GitRepositoryInfo | null;
 }
 
 const StatItem = ({
@@ -26,7 +27,7 @@ const StatItem = ({
   </div>
 );
 
-export function StatusBar({ path, stats }: StatusBarProps) {
+export function StatusBar({ path, stats, gitRepoInfo }: StatusBarProps) {
   const shortPath = path
     ? "..." + path.substring(path.lastIndexOf("/") + 1)
     : "...";
@@ -38,13 +39,24 @@ export function StatusBar({ path, stats }: StatusBarProps) {
           className="flex items-center gap-1.5 px-3 h-full hover:bg-accent cursor-pointer"
           title={path ?? ""}
         >
-          <GitBranch className="h-3.5 w-3.5" />
+          <Folder className="h-3.5 w-3.5" />
           <span className="text-xs font-semibold">{shortPath}</span>
         </div>
-        <div className="w-px h-4 bg-border" />
+        {gitRepoInfo?.isRepository && gitRepoInfo.currentBranch && (
+          <>
+            <div className="w-px h-4 bg-border" />
+            <div
+              className="flex items-center gap-1.5 px-3 h-full hover:bg-accent cursor-default"
+              title="Nhánh Git hiện tại"
+            >
+              <GitBranch className="h-3.5 w-3.5" />
+              <span className="text-xs">{gitRepoInfo.currentBranch}</span>
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="flex h-full items-center ml-auto">
+      <div className="flex h-full items-center ml-auto border-l">
         {stats ? (
           <>
             <StatItem

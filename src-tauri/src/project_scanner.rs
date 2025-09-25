@@ -292,6 +292,7 @@ pub fn perform_smart_scan_and_rebuild(
         export_super_compressed: old_data.export_super_compressed,
         always_apply_text: old_data.always_apply_text,
         export_exclude_extensions: old_data.export_exclude_extensions,
+        git_export_mode_is_context: old_data.git_export_mode_is_context,
     };
 
     // --- THAY ĐỔI: Trả về dữ liệu thay vì lưu và emit ---

@@ -34,6 +34,8 @@ export function SettingsScene() {
     exportSuperCompressed,
     alwaysApplyText,
     exportExcludeExtensions,
+    gitExportModeIsContext,
+    setGitExportMode,
     showDashboard,
     setFileWatching,
     setExportUseFullTree,
@@ -83,6 +85,8 @@ export function SettingsScene() {
             handleChooseSyncPath={handleChooseSyncPath}
             alwaysApplyText={alwaysApplyText}
             setAlwaysApplyText={setAlwaysApplyText}
+            gitExportModeIsContext={gitExportModeIsContext}
+            setGitExportMode={setGitExportMode}
           />
         );
       case "export":

@@ -21,6 +21,7 @@ export function useSettingsScene() {
     exportSuperCompressed,
     alwaysApplyText,
     exportExcludeExtensions,
+    gitExportModeIsContext,
   } = useAppStore(
     useShallow((state) => ({
       syncEnabled: state.syncEnabled,
@@ -36,6 +37,7 @@ export function useSettingsScene() {
       exportSuperCompressed: state.exportSuperCompressed,
       alwaysApplyText: state.alwaysApplyText,
       exportExcludeExtensions: state.exportExcludeExtensions,
+      gitExportModeIsContext: state.gitExportModeIsContext,
     }))
   );
 
@@ -51,6 +53,7 @@ export function useSettingsScene() {
     setExportSuperCompressed,
     setAlwaysApplyText,
     setExportExcludeExtensions,
+    setGitExportMode,
   } = useAppActions();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
@@ -128,6 +131,8 @@ export function useSettingsScene() {
     setExportSuperCompressed,
     setAlwaysApplyText,
     setExportExcludeExtensions,
+    gitExportModeIsContext,
+    setGitExportMode,
     handleToggleSync,
     handleChooseSyncPath,
     ignoreText,

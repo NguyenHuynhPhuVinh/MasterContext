@@ -35,6 +35,7 @@ export const initialState = {
   exportSuperCompressed: false,
   alwaysApplyText: null,
   exportExcludeExtensions: [],
+  gitExportModeIsContext: false,
   profiles: ["default"],
   activeProfile: "default",
   isSidebarVisible: true,

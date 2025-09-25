@@ -63,6 +63,7 @@ export interface AppState {
   exportSuperCompressed: boolean;
   alwaysApplyText: string | null;
   exportExcludeExtensions: string[];
+  gitExportModeIsContext: boolean;
 
   // Quản lý hồ sơ
   profiles: string[];

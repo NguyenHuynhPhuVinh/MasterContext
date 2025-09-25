@@ -14,7 +14,6 @@ import {
   RefreshCw,
   Clipboard,
   Check,
-  BrainCircuit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,7 +26,6 @@ export function GitPanel() {
     exportCommitDiff,
     reloadGitCommits,
     copyCommitDiff,
-    exportCommitContext,
   } = useAppActions();
   const { rootPath, gitRepoInfo, gitCommits, gitLogState, hasMoreCommits } =
     useAppStore(
@@ -39,12 +37,12 @@ export function GitPanel() {
         hasMoreCommits: state.hasMoreCommits,
       }))
     );
+  const gitExportModeIsContext = useAppStore(
+    (state) => state.gitExportModeIsContext
+  );
 
   const [copyingSha, setCopyingSha] = useState<string | null>(null);
   const [copiedSha, setCopiedSha] = useState<string | null>(null);
-  const [exportingContextSha, setExportingContextSha] = useState<string | null>(
-    null
-  );
 
   const handleCopy = async (sha: string) => {
     setCopyingSha(sha);
@@ -57,12 +55,6 @@ export function GitPanel() {
         setCopiedSha(null);
       }, 2000); // Reset icon after 2 seconds
     }
-  };
-
-  const handleExportContext = async (sha: string) => {
-    setExportingContextSha(sha);
-    await exportCommitContext(sha);
-    setExportingContextSha(null);
   };
 
   useEffect(() => {
@@ -124,7 +116,11 @@ export function GitPanel() {
                       onClick={() => handleCopy(commit.sha)}
                       className="h-7 w-7"
                       disabled={copyingSha === commit.sha}
-                      title="Sao chép diff"
+                      title={
+                        gitExportModeIsContext
+                          ? "Sao chép ngữ cảnh"
+                          : "Sao chép diff"
+                      }
                     >
                       {copyingSha === commit.sha ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -139,23 +135,13 @@ export function GitPanel() {
                       variant="outline"
                       onClick={() => exportCommitDiff(commit.sha)}
                       className="h-7 w-7"
-                      title="Tải về diff"
+                      title={
+                        gitExportModeIsContext
+                          ? "Tải về ngữ cảnh"
+                          : "Tải về diff"
+                      }
                     >
                       <Download className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => handleExportContext(commit.sha)}
-                      className="h-7 w-7"
-                      disabled={exportingContextSha === commit.sha}
-                      title="Xuất ngữ cảnh commit"
-                    >
-                      {exportingContextSha === commit.sha ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <BrainCircuit className="h-3.5 w-3.5" />
-                      )}
                     </Button>
                   </div>
                 </div>

@@ -40,6 +40,7 @@ function App() {
     projectStats,
     isSidebarVisible,
     isGitPanelVisible,
+    gitRepoInfo,
   } = useAppStore(
     // --- SỬA LỖI TẠI ĐÂY ---
     useShallow((state) => ({
@@ -49,6 +50,7 @@ function App() {
       projectStats: state.projectStats,
       isSidebarVisible: state.isSidebarVisible,
       isGitPanelVisible: state.isGitPanelVisible,
+      gitRepoInfo: state.gitRepoInfo,
     }))
   );
 
@@ -406,7 +408,11 @@ function App() {
             <MainPanel />
           </ResizablePanel>
         </ResizablePanelGroup>
-        <StatusBar stats={projectStats} path={selectedPath} />
+        <StatusBar
+          stats={projectStats}
+          path={selectedPath}
+          gitRepoInfo={gitRepoInfo}
+        />
       </div>
     );
   };

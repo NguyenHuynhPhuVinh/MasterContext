@@ -13,10 +13,16 @@ pub fn check_git_repository(path: String) -> Result<models::GitRepositoryInfo, S
         Err(_) => {
             return Ok(models::GitRepositoryInfo {
                 is_repository: false,
+                current_branch: None,
                 remote_url: None,
             });
         }
     };
+
+    let current_branch = repo
+        .head()
+        .ok()
+        .and_then(|head| head.shorthand().map(String::from));
 
     let remote_url = repo
         .find_remote("origin")
@@ -25,6 +31,7 @@ pub fn check_git_repository(path: String) -> Result<models::GitRepositoryInfo, S
 
     Ok(models::GitRepositoryInfo {
         is_repository: true,
+        current_branch,
         remote_url,
     })
 }

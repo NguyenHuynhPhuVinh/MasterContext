@@ -117,6 +117,7 @@ export const createProjectActions: StateCreator<
         exportSuperCompressed: payload.export_super_compressed ?? false,
         alwaysApplyText: payload.always_apply_text ?? null,
         exportExcludeExtensions: payload.export_exclude_extensions ?? [],
+        gitExportModeIsContext: payload.git_export_mode_is_context ?? false,
       };
     });
 

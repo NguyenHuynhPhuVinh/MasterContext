@@ -169,6 +169,18 @@ pub fn set_recent_paths(app: AppHandle, paths: Vec<String>) -> Result<(), String
 }
 
 #[command]
+pub fn set_git_export_mode_setting(
+    app: AppHandle,
+    path: String,
+    profile_name: String,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+    project_data.git_export_mode_is_context = Some(enabled);
+    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
+}
+
+#[command]
 pub fn update_app_settings(app: AppHandle, settings: models::AppSettings) -> Result<(), String> {
     let settings_path = get_app_settings_path(&app)?;
     let json_string = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;

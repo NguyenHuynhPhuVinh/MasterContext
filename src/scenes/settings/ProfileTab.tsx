@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { FolderUp, Save, Loader2 } from "lucide-react";
+import { FolderUp, Save, Loader2, GitBranch } from "lucide-react";
 
 interface ProfileTabProps {
   syncEnabled: boolean;
@@ -13,6 +13,8 @@ interface ProfileTabProps {
   handleChooseSyncPath: () => void;
   alwaysApplyText: string | null;
   setAlwaysApplyText: (text: string) => Promise<void>;
+  gitExportModeIsContext: boolean;
+  setGitExportMode: (enabled: boolean) => Promise<void>;
 }
 
 export function ProfileTab({
@@ -22,6 +24,8 @@ export function ProfileTab({
   handleChooseSyncPath,
   alwaysApplyText,
   setAlwaysApplyText,
+  gitExportModeIsContext,
+  setGitExportMode,
 }: ProfileTabProps) {
   const [localText, setLocalText] = useState("");
   const [isSavingText, setIsSavingText] = useState(false);
@@ -70,6 +74,27 @@ export function ProfileTab({
               <FolderUp className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+      </div>
+      <div className="space-y-4 rounded-lg border p-4">
+        <h3 className="font-semibold flex items-center gap-2">
+          <GitBranch className="h-4 w-4" /> Tích hợp Git
+        </h3>
+        <div className="flex items-center justify-between">
+          <Label
+            htmlFor="git-export-mode-toggle"
+            className="flex flex-col items-start"
+          >
+            <span>Chế độ xuất ngữ cảnh</span>
+            <span className="text-xs text-muted-foreground">
+              Bật để sao chép/xuất ra ngữ cảnh thay vì file diff.
+            </span>
+          </Label>
+          <Switch
+            id="git-export-mode-toggle"
+            checked={gitExportModeIsContext}
+            onCheckedChange={setGitExportMode}
+          />
         </div>
       </div>
       <div className="space-y-4 rounded-lg border p-4 flex flex-col">

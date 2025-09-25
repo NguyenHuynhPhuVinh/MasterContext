@@ -115,6 +115,7 @@ pub fn clone_profile(
         export_super_compressed: Some(false),
         always_apply_text: Some("".to_string()),
         export_exclude_extensions: Some(vec![]),
+        git_export_mode_is_context: Some(false),
     };
 
     file_cache::save_project_data(&app, &project_path, &new_profile_name, &new_data)

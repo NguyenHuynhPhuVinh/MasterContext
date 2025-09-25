@@ -15,7 +15,6 @@ export interface GitActions {
   fetchGitCommits: (loadMore?: boolean) => Promise<void>;
   reloadGitCommits: () => Promise<void>;
   exportCommitDiff: (commitSha: string) => Promise<void>;
-  exportCommitContext: (commitSha: string) => Promise<void>;
   copyCommitDiff: (commitSha: string) => Promise<boolean>;
 }
 
@@ -76,81 +75,72 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
   },
 
   exportCommitDiff: async (commitSha: string) => {
-    const { rootPath } = get();
+    const { rootPath, gitExportModeIsContext } = get();
     if (!rootPath) return;
 
     try {
-      const diffContent = await invoke<string>("get_commit_diff", {
+      const command = gitExportModeIsContext
+        ? "generate_commit_context"
+        : "get_commit_diff";
+      const content = await invoke<string>(command, {
         path: rootPath,
         commitSha,
       });
 
+      const fileType = gitExportModeIsContext ? "ngữ cảnh" : "diff";
+      const defaultPath = gitExportModeIsContext
+        ? `commit_${commitSha.substring(0, 7)}_context.txt`
+        : `${commitSha.substring(0, 7)}.diff.txt`;
+      const filters = gitExportModeIsContext
+        ? [{ name: "Text File", extensions: ["txt"] }]
+        : [{ name: "Diff File", extensions: ["diff", "patch", "txt"] }];
+
       const filePath = await save({
-        title: `Lưu diff cho commit ${commitSha.substring(0, 7)}`,
-        defaultPath: `${commitSha.substring(0, 7)}.diff.txt`,
-        filters: [{ name: "Diff File", extensions: ["diff", "patch"] }],
+        title: `Lưu ${fileType} cho commit ${commitSha.substring(0, 7)}`,
+        defaultPath,
+        filters,
       });
 
       if (filePath) {
-        await writeTextFile(filePath, diffContent);
+        await writeTextFile(filePath, content);
         await message(
-          `Đã lưu diff của commit ${commitSha.substring(0, 7)} vào file.`,
+          `Đã lưu ${fileType} của commit ${commitSha.substring(
+            0,
+            7
+          )} vào file.`,
           { title: "Thành công", kind: "info" }
         );
       }
     } catch (e) {
-      message(`Không thể tạo file diff: ${e}`, { title: "Lỗi", kind: "error" });
+      const fileType = gitExportModeIsContext ? "ngữ cảnh" : "diff";
+      message(`Không thể tạo file ${fileType}: ${e}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
     }
   },
 
   copyCommitDiff: async (commitSha: string): Promise<boolean> => {
-    const { rootPath } = get();
+    const { rootPath, gitExportModeIsContext } = get();
     if (!rootPath) return false;
 
     try {
-      const diffContent = await invoke<string>("get_commit_diff", {
+      const command = gitExportModeIsContext
+        ? "generate_commit_context"
+        : "get_commit_diff";
+      const content = await invoke<string>(command, {
         path: rootPath,
         commitSha,
       });
-      await writeText(diffContent);
+      await writeText(content);
       return true;
     } catch (e) {
-      message(`Không thể sao chép diff: ${e}`, {
+      const fileType = gitExportModeIsContext ? "ngữ cảnh" : "diff";
+      message(`Không thể sao chép ${fileType}: ${e}`, {
         title: "Lỗi",
         kind: "error",
       });
       return false;
-    }
-  },
-
-  exportCommitContext: async (commitSha: string) => {
-    const { rootPath } = get();
-    if (!rootPath) return;
-
-    try {
-      const contextContent = await invoke<string>("generate_commit_context", {
-        path: rootPath,
-        commitSha,
-      });
-
-      const filePath = await save({
-        title: `Lưu Ngữ cảnh Commit ${commitSha.substring(0, 7)}`,
-        defaultPath: `commit_${commitSha.substring(0, 7)}_context.txt`,
-        filters: [{ name: "Text File", extensions: ["txt"] }],
-      });
-
-      if (filePath) {
-        await writeTextFile(filePath, contextContent);
-        await message(
-          `Đã lưu ngữ cảnh của commit ${commitSha.substring(0, 7)} vào file.`,
-          { title: "Thành công", kind: "info" }
-        );
-      }
-    } catch (e) {
-      message(`Không thể tạo file ngữ cảnh commit: ${e}`, {
-        title: "Lỗi",
-        kind: "error",
-      });
     }
   },
 });

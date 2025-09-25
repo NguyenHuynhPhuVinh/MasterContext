@@ -20,6 +20,7 @@ export interface SettingsActions {
   setExportSuperCompressed: (enabled: boolean) => Promise<void>;
   setAlwaysApplyText: (text: string) => Promise<void>;
   setExportExcludeExtensions: (extensions: string[]) => Promise<void>;
+  setGitExportMode: (enabled: boolean) => Promise<void>;
   setCrossLinkingEnabled: (enabled: boolean) => void;
   updateAppSettings: (settings: Partial<AppSettings>) => Promise<void>;
 }
@@ -259,6 +260,26 @@ export const createSettingsActions: StateCreator<
         kind: "error",
       });
       // Revert on error? Or just log it. Let's just log and show message.
+    }
+  },
+  setGitExportMode: async (enabled: boolean) => {
+    const { rootPath, activeProfile } = get();
+    if (!rootPath) return;
+    set({ gitExportModeIsContext: enabled });
+    try {
+      await invoke("set_git_export_mode_setting", {
+        path: rootPath,
+        profileName: activeProfile,
+        enabled,
+      });
+    } catch (error) {
+      message(`Không thể lưu cài đặt Git: ${error}`, {
+        title: "Lỗi",
+        kind: "error",
+      });
+      set((state) => ({
+        gitExportModeIsContext: !state.gitExportModeIsContext,
+      }));
     }
   },
   setCrossLinkingEnabled: (enabled: boolean) => {

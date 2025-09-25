@@ -17,6 +17,7 @@ export interface CachedProjectData {
   export_super_compressed?: boolean | null;
   always_apply_text?: string | null;
   export_exclude_extensions?: string[];
+  git_export_mode_is_context?: boolean | null;
 }
 
 export interface FileNode {
@@ -72,6 +73,7 @@ export interface AppSettings {
 
 export interface GitRepositoryInfo {
   isRepository: boolean;
+  currentBranch: string | null;
   remoteUrl: string | null;
 }
 
