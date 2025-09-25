@@ -1,7 +1,7 @@
 // src-tauri/src/commands/git_commands.rs
 
-use crate::{git_utils, models::{self, FsEntry}};
-use std::path::{Path, PathBuf};
+use crate::models::{self, FsEntry};
+use std::path::Path;
 use tauri::command;
 use std::collections::BTreeMap;
 use std::fmt::Write as FmtWrite;
@@ -168,21 +168,63 @@ pub fn generate_commit_context(path: String, commit_sha: String) -> Result<Strin
 
     let oid = git2::Oid::from_str(&commit_sha).map_err(|e| e.to_string())?;
     let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
+    let commit_tree = commit.tree().map_err(|e| e.to_string())?;
 
     let parent = if commit.parent_count() > 0 {
         Some(commit.parent(0).map_err(|e| e.to_string())?)
     } else {
         None
     };
-
     let parent_tree = parent.as_ref().map(|p| p.tree()).transpose().map_err(|e| e.to_string())?;
-    let commit_tree = commit.tree().map_err(|e| e.to_string())?;
 
     let diff = repo
         .diff_tree_to_tree(parent_tree.as_ref(), Some(&commit_tree), None)
         .map_err(|e| e.to_string())?;
 
     let mut changed_files = Vec::new();
+    let mut file_contents_map = BTreeMap::new();
+
+    diff.foreach(
+        &mut |delta, _| {
+            if let Some(path) = delta.new_file().path() {
+                let path_str = path.to_string_lossy().to_string();
+                // For new or modified files, get content from the current commit
+                if delta.status() != git2::Delta::Deleted {
+                    if let Ok(entry) = commit_tree.get_path(path) {
+                        if let Ok(blob) = repo.find_blob(entry.id()) {
+                            if let Ok(content_str) = std::str::from_utf8(blob.content()) {
+                                file_contents_map.insert(path_str, content_str.lines().map(|s| s.to_string()).collect::<Vec<_>>());
+                            }
+                        }
+                    }
+                } else {
+                    // For deleted files, content will be constructed from diff only
+                    file_contents_map.insert(path_str, vec![]);
+                }
+            }
+            true
+        },
+        None, None, None,
+    ).map_err(|e| e.to_string())?;
+
+
+    let mut diff_hunks_map: BTreeMap<String, Vec<(u32, Vec<(char, String)>)>> = BTreeMap::new();
+
+    diff.print(git2::DiffFormat::Patch, |delta, hunk, line| {
+        if let Some(path) = delta.new_file().path().or_else(|| delta.old_file().path()) {
+            let path_str = path.to_string_lossy().to_string();
+            let hunk_start_line = hunk.map(|h| h.new_start()).unwrap_or(0);
+
+            let file_hunks = diff_hunks_map.entry(path_str).or_default();
+            if file_hunks.last().map_or(true, |(start, _)| *start != hunk_start_line) {
+                file_hunks.push((hunk_start_line, Vec::new()));
+            }
+            file_hunks.last_mut().unwrap().1.push((line.origin(), std::str::from_utf8(line.content()).unwrap_or("").to_string()));
+        }
+        true
+    }).map_err(|e| e.to_string())?;
+
+
     diff.foreach(
         &mut |delta, _| {
             let path = delta.new_file().path().or_else(|| delta.old_file().path());
@@ -196,33 +238,53 @@ pub fn generate_commit_context(path: String, commit_sha: String) -> Result<Strin
 
     let tree_structure = build_and_format_tree(&changed_files);
 
-    let mut all_files_content = String::new();
-    let mut current_file_path: Option<PathBuf> = None;
+    let mut final_content_string = String::new();
 
-    diff.print(git2::DiffFormat::Patch, |delta, _hunk, line| {
-        let new_path = delta.new_file().path().map(PathBuf::from);
-        
-        if current_file_path.as_deref() != new_path.as_deref() {
-            if let Some(p) = &new_path {
-                let _ = write!(all_files_content, "\n================================================\nFILE: {}\n================================================\n", p.to_string_lossy().replace("\\", "/"));
+    for (path, content_lines) in file_contents_map {
+        let _ = write!(final_content_string, "\n================================================\nFILE: {}\n================================================\n", path.replace("\\", "/"));
+
+        if let Some(hunks) = diff_hunks_map.get(&path) {
+            let mut current_line_idx = 0;
+            let mut line_num = 1;
+
+            for (hunk_start, hunk_lines) in hunks {
+                // Print lines before the hunk
+                while line_num < *hunk_start {
+                    if let Some(line) = content_lines.get(current_line_idx) {
+                        let _ = writeln!(final_content_string, "{:>4}   {}", line_num, line);
+                        current_line_idx += 1;
+                        line_num += 1;
+                    } else {
+                        break;
+                    }
+                }
+
+                // Print the hunk lines
+                for (origin, hunk_line_content) in hunk_lines {
+                    let content = hunk_line_content.trim_end_matches('\n');
+                    if *origin == '-' {
+                        let _ = writeln!(final_content_string, "     - {}", content);
+                    } else if *origin == '+' {
+                        let _ = writeln!(final_content_string, "{:>4} + {}", line_num, content);
+                        line_num += 1;
+                        current_line_idx += 1;
+                    } else if *origin == ' ' {
+                        let _ = writeln!(final_content_string, "{:>4}   {}", line_num, content);
+                        line_num += 1;
+                        current_line_idx += 1;
+                    }
+                }
             }
-            current_file_path = new_path;
+            // Print remaining lines after the last hunk
+            while let Some(line) = content_lines.get(current_line_idx) {
+                let _ = writeln!(final_content_string, "{:>4}   {}", line_num, line);
+                current_line_idx += 1;
+                line_num += 1;
+            }
         }
+    }
 
-        let origin = line.origin();
-        let content = std::str::from_utf8(line.content()).unwrap_or("").trim_end_matches('\n');
-
-        let line_num_str = match origin {
-            '-' => line.old_lineno().map(|l| l.to_string()).unwrap_or_else(|| " ".to_string()),
-            _ => line.new_lineno().map(|l| l.to_string()).unwrap_or_else(|| " ".to_string()),
-        };
-
-        let _ = writeln!(all_files_content, "{:>4} {} {}", line_num_str, origin, content);
-        true
-    })
-    .map_err(|e| e.to_string())?;
-
-    let final_context = format!("Directory structure of changed files:\n{}\n{}", tree_structure, all_files_content);
+    let final_context = format!("Directory structure of changed files:\n{}\n{}", tree_structure, final_content_string);
 
     Ok(final_context)
 }
