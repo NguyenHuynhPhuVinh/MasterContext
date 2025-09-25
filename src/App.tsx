@@ -48,6 +48,7 @@ function App() {
     isEditorPanelVisible,
     isGitPanelVisible,
     gitRepoInfo,
+    isGroupEditorPanelVisible,
   } = useAppStore(
     // --- SỬA LỖI TẠI ĐÂY ---
     useShallow((state) => ({
@@ -59,6 +60,7 @@ function App() {
       isGitPanelVisible: state.isGitPanelVisible,
       isEditorPanelVisible: state.isEditorPanelVisible,
       gitRepoInfo: state.gitRepoInfo,
+      isGroupEditorPanelVisible: state.isGroupEditorPanelVisible,
     }))
   );
 
@@ -79,6 +81,7 @@ function App() {
     _setRecentPaths,
     updateAppSettings,
     reset,
+    toggleGroupEditorPanelVisibility,
   } = useAppActions();
 
   // --- Effect áp dụng theme (giữ nguyên) ---
@@ -181,6 +184,12 @@ function App() {
               checked: isGitPanelVisible,
             }),
             await CheckMenuItem.new({
+              id: "toggle_group_editor_panel",
+              text: "Bảng điều khiển Chỉnh sửa Nhóm",
+              action: toggleGroupEditorPanelVisibility,
+              checked: isGroupEditorPanelVisible,
+            }),
+            await CheckMenuItem.new({
               id: "toggle_editor_panel",
               text: "Bảng điều khiển Editor",
               action: toggleEditorPanelVisibility,
@@ -232,6 +241,7 @@ function App() {
     isSidebarVisible,
     isGitPanelVisible,
     isEditorPanelVisible,
+    isGroupEditorPanelVisible,
     openFolderFromMenu,
     rescanProject,
     showSettingsScene,
@@ -240,6 +250,7 @@ function App() {
     toggleProjectPanelVisibility,
     toggleGitPanelVisibility,
     toggleEditorPanelVisibility,
+    toggleGroupEditorPanelVisibility,
     _setRecentPaths,
     reset,
   ]); // <-- Thêm dependency

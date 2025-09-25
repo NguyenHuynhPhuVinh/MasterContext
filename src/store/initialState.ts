@@ -24,6 +24,7 @@ export const initialState = {
   isUpdatingGroupId: null,
   tempSelectedPaths: null,
   isCrossLinkingEnabled: false,
+  isGroupEditorPanelVisible: false,
   isEditorPanelVisible: false,
   activeEditorFile: null,
   activeEditorFileContent: null,

@@ -108,8 +108,8 @@ export const createGroupActions: StateCreator<
       updateGroupsOnBackend();
     },
     editGroupContent: (groupId) => {
+      set({ editingGroupId: groupId, isGroupEditorPanelVisible: true });
       get().actions.startEditingGroup(groupId);
-      set({ editingGroupId: groupId });
     },
     updateGroupPaths: (groupId, paths) => {
       const { rootPath, activeProfile } = get();
@@ -197,7 +197,11 @@ export const createGroupActions: StateCreator<
       set({ tempSelectedPaths: newSelectedPaths });
     },
     cancelEditingGroup: () => {
-      set({ editingGroupId: null, tempSelectedPaths: null });
+      set({
+        editingGroupId: null,
+        tempSelectedPaths: null,
+        isGroupEditorPanelVisible: false,
+      });
     },
     saveEditingGroup: async () => {
       const { editingGroupId, tempSelectedPaths, fileTree } = get();

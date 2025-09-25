@@ -9,6 +9,7 @@ export interface UIActions {
   showSettingsScene: () => void;
   toggleProjectPanelVisibility: () => void;
   toggleGitPanelVisibility: () => void;
+  toggleGroupEditorPanelVisibility: () => void;
   toggleEditorPanelVisibility: () => void;
   setInlineEditingGroup: (
     state: {
@@ -37,6 +38,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       editingGroupId: null,
       profiles: ["default"],
       activeProfile: "default",
+      isGroupEditorPanelVisible: false,
     }),
   showDashboard: () => {
     set({ activeScene: "dashboard", editingGroupId: null });
@@ -49,6 +51,11 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
   },
   toggleGitPanelVisibility: () => {
     set((state) => ({ isGitPanelVisible: !state.isGitPanelVisible }));
+  },
+  toggleGroupEditorPanelVisibility: () => {
+    set((state) => ({
+      isGroupEditorPanelVisible: !state.isGroupEditorPanelVisible,
+    }));
   },
   toggleEditorPanelVisibility: () => {
     set((state) => ({ isEditorPanelVisible: !state.isEditorPanelVisible }));
@@ -63,6 +70,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       isEditorLoading: true,
       activeEditorFile: filePath,
       activeEditorFileContent: null,
+      isEditorPanelVisible: true,
     });
 
     try {
@@ -84,6 +92,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       activeEditorFile: null,
       activeEditorFileContent: null,
       isEditorLoading: false,
+      isEditorPanelVisible: false,
     });
   },
 });

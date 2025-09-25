@@ -7,53 +7,63 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
-import { ListChecks, FileCode } from "lucide-react";
+import { LayoutGrid, ListChecks, FileCode } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
 export function MainPanel() {
-  const { editingGroupId, activeEditorFile, isEditorPanelVisible } =
-    useAppStore(
-      useShallow((state) => ({
-        editingGroupId: state.editingGroupId,
-        activeEditorFile: state.activeEditorFile,
-        isEditorPanelVisible: state.isEditorPanelVisible,
-      }))
-    );
+  const {
+    editingGroupId,
+    activeEditorFile,
+    isEditorPanelVisible,
+    isGroupEditorPanelVisible,
+  } = useAppStore(
+    useShallow((state) => ({
+      editingGroupId: state.editingGroupId,
+      activeEditorFile: state.activeEditorFile,
+      isEditorPanelVisible: state.isEditorPanelVisible,
+      isGroupEditorPanelVisible: state.isGroupEditorPanelVisible,
+    }))
+  );
 
-  if (editingGroupId) {
+  if (!isGroupEditorPanelVisible && !isEditorPanelVisible) {
     return (
-      <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel defaultSize={50} minSize={30}>
-          <GroupEditorPanel />
-        </ResizablePanel>
-        {isEditorPanelVisible && (
-          <>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={50} minSize={30}>
-              {activeEditorFile ? (
-                <EditorPanel />
-              ) : (
-                <Placeholder
-                  message="Nhấp vào một file để xem nội dung"
-                  icon={FileCode}
-                />
-              )}
-            </ResizablePanel>
-          </>
-        )}
-      </ResizablePanelGroup>
+      <Placeholder
+        message="Chọn một nhóm để chỉnh sửa hoặc nhấp vào một file để xem trước"
+        icon={LayoutGrid}
+      />
     );
-  }
-
-  if (activeEditorFile && isEditorPanelVisible) {
-    return <EditorPanel />;
   }
 
   return (
-    <Placeholder
-      message="Chọn một nhóm để chỉnh sửa hoặc nhấp vào một file để xem trước"
-      icon={ListChecks}
-    />
+    <ResizablePanelGroup direction="horizontal">
+      {isGroupEditorPanelVisible && (
+        <ResizablePanel defaultSize={50} minSize={30}>
+          {editingGroupId ? (
+            <GroupEditorPanel />
+          ) : (
+            <Placeholder
+              message="Chưa có nhóm nào được chọn để chỉnh sửa"
+              icon={ListChecks}
+            />
+          )}
+        </ResizablePanel>
+      )}
+      {isGroupEditorPanelVisible && isEditorPanelVisible && (
+        <ResizableHandle withHandle />
+      )}
+      {isEditorPanelVisible && (
+        <ResizablePanel defaultSize={50} minSize={30}>
+          {activeEditorFile ? (
+            <EditorPanel />
+          ) : (
+            <Placeholder
+              message="Chưa có file nào được chọn để xem"
+              icon={FileCode}
+            />
+          )}
+        </ResizablePanel>
+      )}
+    </ResizablePanelGroup>
   );
 }
 

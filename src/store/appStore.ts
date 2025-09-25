@@ -50,6 +50,7 @@ export interface AppState {
   isUpdatingGroupId: string | null;
   tempSelectedPaths: Set<string> | null;
   isCrossLinkingEnabled: boolean;
+  isGroupEditorPanelVisible: boolean;
   isEditorPanelVisible: boolean;
   activeEditorFile: string | null;
   activeEditorFileContent: string | null;
