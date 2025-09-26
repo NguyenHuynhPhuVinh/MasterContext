@@ -67,6 +67,12 @@
     "apply": "Áp dụng",
     "invalidFormatError": "Định dạng diff không hợp lệ. Không thể áp dụng bản vá."
   },
+  "multiDiffModal": {
+    "title": "Áp dụng Diff Hàng loạt",
+    "description": "Dán nội dung từ `git diff` hoặc một pull request. Các bản vá hợp lệ sẽ được áp dụng ảo.",
+    "apply": "Áp dụng các bản vá",
+    "appliedSuccess": "Đã áp dụng thành công {{count}} bản vá ảo."
+  },
   "editorPanel": {
     "excludeSelection": "Loại trừ vùng đã chọn",
     "clearExclusionsTooltip": "Xóa tất cả các vùng loại trừ",
@@ -156,7 +162,14 @@
     "noSearchResults": "Không tìm thấy kết quả nào khớp với \"{{searchTerm}}\".",
     "filterPatchedTooltip": "Lọc file đã áp dụng vá lỗi",
     "unfilterPatchedTooltip": "Bỏ lọc file vá lỗi",
-    "noPatchedFiles": "Không tìm thấy file nào đã áp dụng vá lỗi."
+    "noPatchedFiles": "Không tìm thấy file nào đã áp dụng vá lỗi.",
+    "applyMultiDiffTooltip": "Áp dụng Diff hàng loạt",
+    "resetAllPatchesTooltip": "Hủy tất cả các bản vá ảo",
+    "resetAllPatchesDialog": {
+      "title": "Hủy tất cả các bản vá?",
+      "description": "Bạn có chắc chắn muốn hủy tất cả {{count}} bản vá ảo không? Hành động này không thể hoàn tác.",
+      "confirm": "Đồng ý, Hủy tất cả"
+    }
   },
   "mainPanel": {
     "placeholder": {
