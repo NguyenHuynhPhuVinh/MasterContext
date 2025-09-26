@@ -40,6 +40,31 @@ pub struct GitCommit {
 pub struct GitStatus {
     pub files: BTreeMap<String, String>, // Path -> Status Code (e.g., "M", "A", "D")
 }
+
+// --- THÊM CÁC STRUCT CHO LỊCH SỬ CHAT AI ---
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatMessage {
+    pub role: String, // "user" | "assistant" | "system"
+    pub content: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AIChatSession {
+    pub id: String,
+    pub title: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub messages: Vec<ChatMessage>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AIChatSessionHeader {
+    pub id: String,
+    pub title: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]

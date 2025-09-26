@@ -9,6 +9,7 @@ import {
   type GitRepositoryInfo,
   type GitCommit,
   type GitStatus,
+  type AIChatSessionHeader,
   type ChatMessage,
 } from "./types";
 import { initialState } from "./initialState";
@@ -98,6 +99,8 @@ export interface AppState {
   aiModel: string;
   chatMessages: ChatMessage[];
   isAiPanelLoading: boolean;
+  chatSessions: AIChatSessionHeader[];
+  activeChatSessionId: string | null;
   temperature: number;
   topP: number;
   topK: number;

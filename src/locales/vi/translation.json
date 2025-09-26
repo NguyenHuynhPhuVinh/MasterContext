@@ -164,7 +164,14 @@
     "placeholder": "Nhập câu lệnh của bạn...",
     "noApiKey": "Chưa có API key OpenRouter. Vui lòng thêm trong Cài đặt > AI.",
     "error": "Đã xảy ra lỗi. Vui lòng kiểm tra API key và kết nối mạng.",
-    "responding": "Đang phản hồi..."
+    "responding": "Đang phản hồi...",
+    "newChat": "Cuộc trò chuyện mới",
+    "history": "Lịch sử",
+    "viewHistory": "Xem lịch sử",
+    "deleteChatDialog": {
+      "title": "Xác nhận xóa cuộc trò chuyện?",
+      "description": "Hành động này sẽ xóa vĩnh viễn cuộc trò chuyện. Không thể hoàn tác."
+    }
   },
   "mainPanel": {
     "placeholder": {

@@ -164,7 +164,14 @@
     "placeholder": "Enter your prompt...",
     "noApiKey": "OpenRouter API key not set. Please add it in Settings > AI.",
     "error": "An error occurred. Please check your API key and network connection.",
-    "responding": "Responding..."
+    "responding": "Responding...",
+    "newChat": "New Chat",
+    "history": "History",
+    "viewHistory": "View History",
+    "deleteChatDialog": {
+      "title": "Confirm Chat Deletion?",
+      "description": "This action will permanently delete the chat session. This cannot be undone."
+    }
   },
   "mainPanel": {
     "placeholder": {

@@ -61,6 +61,8 @@ export const initialState = {
   aiModel: "openai/gpt-3.5-turbo",
   chatMessages: [],
   isAiPanelLoading: false,
+  chatSessions: [],
+  activeChatSessionId: null,
   temperature: 1.0,
   topP: 1.0,
   topK: 0, // 0 means not set

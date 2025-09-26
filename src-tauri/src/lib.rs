@@ -66,7 +66,13 @@ pub fn run() {
             commands::checkout_commit,
             commands::checkout_branch,
             commands::clone_git_repository,
-            commands::get_git_status
+            commands::get_git_status,
+            // AI Chat History Commands
+            commands::list_chat_sessions,
+            commands::save_chat_session,
+            commands::load_chat_session,
+            commands::delete_chat_session,
+            commands::update_chat_session_title
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

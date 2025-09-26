@@ -1,14 +1,26 @@
 // src/store/actions/aiActions.ts
 import { StateCreator } from "zustand";
 import { AppState } from "../appStore";
-import { type ChatMessage } from "../types";
+import {
+  type ChatMessage,
+  type AIChatSession,
+  type AIChatSessionHeader,
+} from "../types";
 import i18n from "@/i18n";
+import { invoke } from "@tauri-apps/api/core";
 
 export interface AiActions {
   setOpenRouterApiKey: (key: string) => Promise<void>;
   setAiModel: (model: string) => Promise<void>;
   sendChatMessage: (prompt: string) => Promise<void>;
-  clearChatMessages: () => void;
+  createNewChatSession: () => void;
+  loadChatSessions: () => Promise<void>;
+  loadChatSession: (sessionId: string) => Promise<void>;
+  deleteChatSession: (sessionId: string) => Promise<void>;
+  updateChatSessionTitle: (
+    sessionId: string,
+    newTitle: string
+  ) => Promise<void>;
 }
 
 export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
@@ -25,6 +37,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
     const {
       openRouterApiKey,
       aiModel,
+      activeChatSessionId,
       chatMessages,
       streamResponse,
       systemPrompt,
@@ -37,8 +50,37 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
       return;
     }
 
+    let currentSessionId = activeChatSessionId;
+    let isNewSession = false;
+
+    // If there's no active session, create one
+    if (!currentSessionId) {
+      isNewSession = true;
+      const newSession: AIChatSession = {
+        id: Date.now().toString(),
+        title: prompt.substring(0, 50), // Use first prompt as title
+        createdAt: new Date().toISOString(),
+        messages: [],
+      };
+      currentSessionId = newSession.id;
+      set((state) => ({
+        activeChatSessionId: newSession.id,
+        chatSessions: [
+          {
+            id: newSession.id,
+            title: newSession.title,
+            createdAt: newSession.createdAt,
+          },
+          ...state.chatSessions,
+        ],
+      }));
+    }
+
     const newUserMessage: ChatMessage = { role: "user", content: prompt };
     const newUiMessages = [...chatMessages, newUserMessage];
+
+    // Optimistically update UI
+    set({ chatMessages: newUiMessages, isAiPanelLoading: true });
 
     const messagesToSend: ChatMessage[] = [];
     if (systemPrompt && systemPrompt.trim()) {
@@ -47,8 +89,6 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
     // Important: send the whole history for context
     messagesToSend.push(...chatMessages);
     messagesToSend.push(newUserMessage);
-
-    set({ chatMessages: newUiMessages, isAiPanelLoading: true });
 
     // Build payload with advanced parameters
     const payload: Record<string, any> = {
@@ -60,6 +100,29 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
     if (topP) payload.top_p = topP;
     if (topK > 0) payload.top_k = topK;
     if (maxTokens > 0) payload.max_tokens = maxTokens;
+
+    const saveSession = async (finalMessages: ChatMessage[]) => {
+      const { rootPath, activeProfile, chatSessions } = get();
+      const currentSessionHeader = chatSessions.find(
+        (s) => s.id === currentSessionId
+      );
+      if (
+        rootPath &&
+        activeProfile &&
+        currentSessionId &&
+        currentSessionHeader
+      ) {
+        const sessionToSave: AIChatSession = {
+          ...currentSessionHeader,
+          messages: finalMessages,
+        };
+        await invoke("save_chat_session", {
+          projectPath: rootPath,
+          profileName: activeProfile,
+          session: sessionToSave,
+        });
+      }
+    };
 
     // Handle non-streaming case first
     if (!streamResponse) {
@@ -87,10 +150,12 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         const data = await response.json();
         const assistantMessage = data.choices[0].message;
 
+        const finalMessages = [...newUiMessages, assistantMessage];
         set((state) => ({
-          chatMessages: [...state.chatMessages, assistantMessage],
+          chatMessages: finalMessages,
           isAiPanelLoading: false,
         }));
+        await saveSession(finalMessages);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
@@ -101,10 +166,12 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
           content: `${t("aiPanel.error")}\n\n${errorMessage}`,
         };
 
+        const finalMessages = [...newUiMessages, assistantErrorMessage];
         set((state) => ({
-          chatMessages: [...state.chatMessages, assistantErrorMessage],
+          chatMessages: finalMessages,
           isAiPanelLoading: false,
         }));
+        await saveSession(finalMessages);
       }
       return;
     }
@@ -167,7 +234,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
                   content: delta,
                 };
                 set((state) => ({
-                  chatMessages: [...state.chatMessages, newAssistantMessage],
+                  chatMessages: [...newUiMessages, newAssistantMessage],
                 }));
               } else {
                 set((state) => {
@@ -194,6 +261,9 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
           }
         }
       }
+
+      // Save after stream is complete
+      await saveSession(get().chatMessages);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -204,16 +274,79 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         content: `${t("aiPanel.error")}\n\n${errorMessage}`,
       };
 
+      const finalMessages = [...newUiMessages, assistantErrorMessage];
       set((state) => ({
-        chatMessages: [...state.chatMessages, assistantErrorMessage],
+        chatMessages: finalMessages,
         isAiPanelLoading: false,
       }));
+      await saveSession(finalMessages);
     } finally {
       set({ isAiPanelLoading: false });
     }
   },
-  clearChatMessages: () => {
-    set({ chatMessages: [] });
+  createNewChatSession: () => {
+    set({ chatMessages: [], activeChatSessionId: null });
+  },
+  loadChatSessions: async () => {
+    const { rootPath, activeProfile } = get();
+    if (!rootPath || !activeProfile) return;
+    try {
+      const sessions = await invoke<AIChatSessionHeader[]>(
+        "list_chat_sessions",
+        { projectPath: rootPath, profileName: activeProfile }
+      );
+      set({ chatSessions: sessions });
+    } catch (e) {
+      console.error("Failed to load chat sessions:", e);
+      set({ chatSessions: [] });
+    }
+  },
+  loadChatSession: async (sessionId: string) => {
+    const { rootPath, activeProfile } = get();
+    if (!rootPath || !activeProfile) return;
+    try {
+      const session = await invoke<AIChatSession>("load_chat_session", {
+        projectPath: rootPath,
+        profileName: activeProfile,
+        sessionId,
+      });
+      set({
+        activeChatSessionId: session.id,
+        chatMessages: session.messages,
+      });
+    } catch (e) {
+      console.error(`Failed to load chat session ${sessionId}:`, e);
+    }
+  },
+  deleteChatSession: async (sessionId: string) => {
+    const { rootPath, activeProfile, activeChatSessionId } = get();
+    if (!rootPath || !activeProfile) return;
+    await invoke("delete_chat_session", {
+      projectPath: rootPath,
+      profileName: activeProfile,
+      sessionId,
+    });
+    set((state) => ({
+      chatSessions: state.chatSessions.filter((s) => s.id !== sessionId),
+    }));
+    if (activeChatSessionId === sessionId) {
+      get().actions.createNewChatSession();
+    }
+  },
+  updateChatSessionTitle: async (sessionId: string, newTitle: string) => {
+    const { rootPath, activeProfile } = get();
+    if (!rootPath || !activeProfile) return;
+    await invoke("update_chat_session_title", {
+      projectPath: rootPath,
+      profileName: activeProfile,
+      sessionId,
+      newTitle,
+    });
+    set((state) => ({
+      chatSessions: state.chatSessions.map((s) =>
+        s.id === sessionId ? { ...s, title: newTitle } : s
+      ),
+    }));
   },
 });
 

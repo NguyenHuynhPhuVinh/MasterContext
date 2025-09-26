@@ -105,3 +105,16 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
 }
+
+export interface AIChatSessionHeader {
+  id: string;
+  title: string;
+  createdAt: string; // ISO string from backend
+}
+
+export interface AIChatSession {
+  id: string;
+  title: string;
+  createdAt: string;
+  messages: ChatMessage[];
+}

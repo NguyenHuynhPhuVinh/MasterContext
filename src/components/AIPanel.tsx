@@ -10,12 +10,24 @@ import { useShallow } from "zustand/react/shallow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Send, Trash, Loader2 } from "lucide-react";
+import { Send, Plus, Loader2, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ChatHistoryList } from "./ChatHistoryList";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 export function AIPanel() {
   const { t } = useTranslation();
-  const { sendChatMessage, clearChatMessages } = useAppActions();
+  const {
+    sendChatMessage,
+    createNewChatSession,
+    loadChatSessions,
+    loadChatSession,
+  } = useAppActions();
   const { chatMessages, isAiPanelLoading, openRouterApiKey } = useAppStore(
     useShallow((state) => ({
       chatMessages: state.chatMessages,
@@ -26,12 +38,16 @@ export function AIPanel() {
 
   const [prompt, setPrompt] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState<"chat" | "history">("chat");
 
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    // Also trigger scroll when loading state changes (e.g., to show the spinner)
-  }, [chatMessages, isAiPanelLoading]);
+    loadChatSessions();
+  }, [loadChatSessions]);
+
+  const handleSelectSession = async (sessionId: string) => {
+    await loadChatSession(sessionId);
+    setView("chat");
+  };
 
   const handleSend = () => {
     if (prompt.trim()) {
@@ -125,16 +141,57 @@ export function AIPanel() {
     <div className="flex flex-col h-full bg-card">
       <header className="flex items-center justify-between p-4 border-b shrink-0">
         <h1 className="text-xl font-bold">{t("aiPanel.title")}</h1>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={clearChatMessages}
-          disabled={chatMessages.length === 0}
-        >
-          <Trash className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={() => {
+                    createNewChatSession();
+                    setView("chat");
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t("aiPanel.newChat")}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={view === "history" ? "secondary" : "outline"}
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={() => setView(view === "chat" ? "history" : "chat")}
+                >
+                  <History className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t("aiPanel.viewHistory")}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </header>
-      {renderContent()}
+
+      {view === "chat" ? (
+        <>{renderContent()}</>
+      ) : (
+        <>
+          <header className="p-4 border-b shrink-0">
+            <h2 className="text-lg font-semibold">{t("aiPanel.history")}</h2>
+          </header>
+          <ChatHistoryList onSelectSession={handleSelectSession} />
+        </>
+      )}
     </div>
   );
 }
