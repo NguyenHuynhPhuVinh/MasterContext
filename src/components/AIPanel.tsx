@@ -6,7 +6,7 @@ import { useShallow } from "zustand/react/shallow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Send, Trash, Bot, User, Loader2 } from "lucide-react";
+import { Send, Trash, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function AIPanel() {
@@ -21,17 +21,13 @@ export function AIPanel() {
   );
 
   const [prompt, setPrompt] = useState("");
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Scroll to bottom when new messages arrive
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    }
-  }, [chatMessages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Also trigger scroll when loading state changes (e.g., to show the spinner)
+  }, [chatMessages, isAiPanelLoading]);
 
   const handleSend = () => {
     if (prompt.trim()) {
@@ -58,46 +54,34 @@ export function AIPanel() {
 
     return (
       <>
-        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+        <ScrollArea className="flex-1 p-4 min-h-0">
           <div className="space-y-4">
             {chatMessages.map((msg, index) => (
               <div
                 key={index}
                 className={cn(
-                  "flex items-start gap-3",
+                  "flex",
                   msg.role === "user" ? "justify-end" : "justify-start"
                 )}
               >
-                {msg.role === "assistant" && (
-                  <div className="bg-primary text-primary-foreground rounded-full p-2">
-                    <Bot className="h-4 w-4" />
-                  </div>
-                )}
                 <div
                   className={cn(
-                    "max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 text-sm whitespace-pre-wrap",
-                    msg.role === "user" ? "bg-muted" : "bg-background border"
+                    "max-w-xs md:max-w-md lg:max-w-lg text-sm whitespace-pre-wrap",
+                    msg.role === "user" && "bg-muted rounded-lg px-4 py-2"
                   )}
                 >
                   {msg.content}
                 </div>
-                {msg.role === "user" && (
-                  <div className="bg-secondary text-secondary-foreground rounded-full p-2">
-                    <User className="h-4 w-4" />
-                  </div>
-                )}
               </div>
             ))}
             {isAiPanelLoading && (
-              <div className="flex items-center gap-3">
-                <div className="bg-primary text-primary-foreground rounded-full p-2">
-                  <Bot className="h-4 w-4" />
-                </div>
+              <div className="flex justify-start">
                 <div className="bg-background border rounded-lg px-4 py-3">
                   <Loader2 className="h-4 w-4 animate-spin" />
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
         <div className="p-4 border-t">
