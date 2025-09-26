@@ -1,7 +1,8 @@
 // src/store/actions/aiActions.ts
 import { StateCreator } from "zustand";
 import { AppState } from "../appStore";
-import { ChatMessage } from "../types";
+import axios, { isAxiosError } from "axios";
+import { type ChatMessage } from "../types";
 import i18n from "@/i18n";
 
 export interface AiActions {
@@ -33,27 +34,23 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
     set({ chatMessages: newMessages, isAiPanelLoading: true });
 
     try {
-      const response = await fetch(
+      // Sử dụng axios để có xử lý lỗi tốt hơn và tự động chuyển đổi JSON
+      const response = await axios.post(
         "https://openrouter.ai/api/v1/chat/completions",
         {
-          method: "POST",
+          // body
+          model: aiModel,
+          messages: newMessages,
+        },
+        {
+          // config
           headers: {
             Authorization: `Bearer ${openRouterApiKey}`,
-            "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            model: aiModel,
-            messages: newMessages,
-          }),
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || "Unknown API error");
-      }
-
-      const data = await response.json();
+      const data = response.data;
       const assistantMessage = data.choices[0].message;
 
       set((state) => ({
@@ -61,13 +58,21 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         isAiPanelLoading: false,
       }));
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      // Xử lý lỗi của axios một cách cụ thể hơn
+      let errorMessage = "An unknown error occurred.";
+      if (isAxiosError(error) && (error as any).response) {
+        errorMessage =
+          (error as any).response.data?.error?.message ||
+          (error as any).message ||
+          "Failed to fetch from OpenRouter API.";
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       console.error("OpenRouter API error:", errorMessage);
 
       const assistantErrorMessage: ChatMessage = {
         role: "assistant",
-        content: `${t("aiPanel.error")}\n\n${errorMessage}`,
+        content: `${t("aiPanel.error")}\n\n${String(errorMessage)}`,
       };
 
       set((state) => ({
