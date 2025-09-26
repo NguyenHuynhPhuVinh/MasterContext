@@ -4,6 +4,10 @@
 [![Giấy phép](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Nền tảng](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://tauri.app)
 
+**Tiếng Việt | [English](./README.en.md)**
+
+---
+
 **Master Context** là một ứng dụng desktop mạnh mẽ được thiết kế để tối ưu hóa quy trình làm việc của bạn với các Mô hình Ngôn ngữ Lớn (LLM). Thay vì sao chép thủ công, ứng dụng cho phép bạn quét, lựa chọn và tạo ra các file ngữ cảnh (context) một cách thông minh và có tổ chức từ mã nguồn dự án, giúp tăng tốc độ phát triển và đảm bảo chất lượng đầu ra từ AI.
 
 ![Giao diện Master Context](public/screenshot.png) <!-- Cần cập nhật ảnh chụp màn hình mới với giao diện đa panel -->
