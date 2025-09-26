@@ -10,7 +10,15 @@ import { useShallow } from "zustand/react/shallow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Send, Plus, Loader2, History, X, Square, Bot } from "lucide-react";
+import {
+  Send,
+  Plus,
+  Loader2,
+  History,
+  X,
+  Square,
+  AlignJustify,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChatHistoryList } from "./ChatHistoryList";
 import {
@@ -20,12 +28,12 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function AIPanel() {
   const { t } = useTranslation();
@@ -67,6 +75,8 @@ export function AIPanel() {
   useEffect(() => {
     loadChatSessions();
   }, [loadChatSessions]);
+
+  const shortModelName = (selectedAiModel || aiModels[0])?.split("/").pop();
 
   const handleSelectSession = async (sessionId: string) => {
     await loadChatSession(sessionId);
@@ -146,37 +156,47 @@ export function AIPanel() {
           </div>
         </ScrollArea>
         <div className="p-4 border-t">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col min-h-[80px] max-h-48 w-full rounded-md border bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
             <Textarea
               placeholder={t("aiPanel.placeholder")}
-              className="min-h-[80px] resize-y"
+              className="flex-1 w-full !rounded-none resize-none border-none bg-transparent px-3 py-3 shadow-none focus-visible:ring-0 custom-scrollbar"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
             />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            {/* Container cho các nút, nằm ở dưới cùng */}
+            <div className="flex-shrink-0 flex h-12 items-center justify-between px-3">
+              {/* Nút bên trái */}
+              <div>
                 {aiModels.length > 1 && (
-                  <>
-                    <Bot className="h-4 w-4 text-muted-foreground" />
-                    <Select
-                      value={selectedAiModel || aiModels[0]}
-                      onValueChange={setSelectedAiModel}
-                    >
-                      <SelectTrigger className="w-auto h-8 text-xs gap-1">
-                        <SelectValue placeholder="Chọn model" />
-                      </SelectTrigger>
-                      <SelectContent>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="h-8 gap-2 px-2 text-muted-foreground"
+                      >
+                        <AlignJustify className="h-4 w-4 shrink-0" />
+                        <span className="truncate max-w-[120px] text-xs font-medium">
+                          {shortModelName || "..."}
+                        </span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuRadioGroup
+                        value={selectedAiModel || aiModels[0]}
+                        onValueChange={setSelectedAiModel}
+                      >
                         {aiModels.map((modelId) => (
-                          <SelectItem key={modelId} value={modelId}>
+                          <DropdownMenuRadioItem key={modelId} value={modelId}>
                             {modelId}
-                          </SelectItem>
+                          </DropdownMenuRadioItem>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </>
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
+              {/* Nút bên phải */}
               <Button
                 variant={isAiPanelLoading ? "destructive" : "default"}
                 size="icon"
