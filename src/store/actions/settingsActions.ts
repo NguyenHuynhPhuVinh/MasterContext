@@ -289,6 +289,10 @@ export const createSettingsActions: StateCreator<
       aiModel,
       streamResponse,
       systemPrompt,
+      temperature,
+      topP,
+      topK,
+      maxTokens,
     } = get();
     const fullSettings: AppSettings = {
       recentPaths: newSettings.recentPaths ?? recentPaths,
@@ -298,6 +302,10 @@ export const createSettingsActions: StateCreator<
       aiModel: newSettings.aiModel ?? aiModel,
       streamResponse: newSettings.streamResponse ?? streamResponse,
       systemPrompt: newSettings.systemPrompt ?? systemPrompt,
+      temperature: newSettings.temperature ?? temperature,
+      topP: newSettings.topP ?? topP,
+      topK: newSettings.topK ?? topK,
+      maxTokens: newSettings.maxTokens ?? maxTokens,
     };
 
     try {
@@ -307,8 +315,12 @@ export const createSettingsActions: StateCreator<
         nonAnalyzableExtensions: fullSettings.nonAnalyzableExtensions,
         openRouterApiKey: fullSettings.openRouterApiKey ?? "",
         aiModel: fullSettings.aiModel ?? "openai/gpt-3.5-turbo",
-        streamResponse: fullSettings.streamResponse ?? true,
         systemPrompt: fullSettings.systemPrompt ?? "",
+        streamResponse: fullSettings.streamResponse ?? true,
+        temperature: fullSettings.temperature ?? 1.0,
+        topP: fullSettings.topP ?? 1.0,
+        topK: fullSettings.topK ?? 0,
+        maxTokens: fullSettings.maxTokens ?? 0,
       });
     } catch (e) {
       console.error("Failed to update app settings:", e);

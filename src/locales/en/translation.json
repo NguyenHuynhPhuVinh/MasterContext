@@ -296,6 +296,13 @@
         "title": "System Prompt",
         "description": "An instruction that guides the AI's behavior for the entire conversation.",
         "placeholder": "You are a helpful assistant."
+      },
+      "parameters": {
+        "title": "Advanced Parameters",
+        "temperature": "Temperature",
+        "topP": "Top-P",
+        "topK": "Top-K",
+        "maxTokens": "Max Output Tokens"
       }
     }
   },

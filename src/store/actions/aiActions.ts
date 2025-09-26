@@ -28,6 +28,10 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
       chatMessages,
       streamResponse,
       systemPrompt,
+      temperature,
+      topP,
+      topK,
+      maxTokens,
     } = get();
     if (!openRouterApiKey) {
       return;
@@ -46,6 +50,17 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
 
     set({ chatMessages: newUiMessages, isAiPanelLoading: true });
 
+    // Build payload with advanced parameters
+    const payload: Record<string, any> = {
+      model: aiModel,
+      messages: messagesToSend,
+    };
+
+    if (temperature) payload.temperature = temperature;
+    if (topP) payload.top_p = topP;
+    if (topK > 0) payload.top_k = topK;
+    if (maxTokens > 0) payload.max_tokens = maxTokens;
+
     // Handle non-streaming case first
     if (!streamResponse) {
       try {
@@ -58,8 +73,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: aiModel,
-              messages: messagesToSend,
+              ...payload,
               stream: false, // Explicitly false
             }),
           }
@@ -106,8 +120,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: aiModel,
-            messages: messagesToSend,
+            ...payload,
             stream: true,
           }),
         }

@@ -41,8 +41,12 @@ export function SettingsScene() {
     gitExportModeIsContext,
     openRouterApiKey,
     aiModel,
-    streamResponse,
     systemPrompt,
+    temperature,
+    topP,
+    topK,
+    maxTokens,
+    streamResponse,
     updateAppSettings,
     setGitExportMode,
     showDashboard,
@@ -131,14 +135,22 @@ export function SettingsScene() {
           <AITab
             apiKey={openRouterApiKey}
             model={aiModel}
-            streamResponse={streamResponse}
             systemPrompt={systemPrompt}
-            onSave={async ({ apiKey, model, streamResponse, systemPrompt }) => {
+            streamResponse={streamResponse}
+            temperature={temperature}
+            topP={topP}
+            topK={topK}
+            maxTokens={maxTokens}
+            onSave={async (newSettings) => {
               await updateAppSettings({
-                openRouterApiKey: apiKey,
-                aiModel: model,
-                streamResponse: streamResponse,
-                systemPrompt: systemPrompt,
+                openRouterApiKey: newSettings.apiKey,
+                aiModel: newSettings.model,
+                systemPrompt: newSettings.systemPrompt,
+                streamResponse: newSettings.streamResponse,
+                temperature: newSettings.temperature,
+                topP: newSettings.topP,
+                topK: newSettings.topK,
+                maxTokens: newSettings.maxTokens,
               });
             }}
           />

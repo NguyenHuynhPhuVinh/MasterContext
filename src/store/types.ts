@@ -74,6 +74,10 @@ export interface AppSettings {
   aiModel?: string;
   streamResponse?: boolean;
   systemPrompt?: string;
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  maxTokens?: number;
 }
 
 export interface GitRepositoryInfo {

@@ -296,6 +296,13 @@
         "title": "System Prompt",
         "description": "Một chỉ dẫn định hướng hành vi của AI trong suốt cuộc trò chuyện.",
         "placeholder": "Bạn là một trợ lý hữu ích."
+      },
+      "parameters": {
+        "title": "Tham số Nâng cao",
+        "temperature": "Nhiệt độ (Temperature)",
+        "topP": "Top-P",
+        "topK": "Top-K",
+        "maxTokens": "Số Token Tối đa"
       }
     }
   },

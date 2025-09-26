@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Save, Loader2 } from "lucide-react";
 
@@ -13,11 +14,19 @@ interface AITabProps {
   model: string;
   streamResponse: boolean;
   systemPrompt: string;
+  temperature: number;
+  topP: number;
+  topK: number;
+  maxTokens: number;
   onSave: (settings: {
     apiKey: string;
     model: string;
     streamResponse: boolean;
     systemPrompt: string;
+    temperature: number;
+    topP: number;
+    topK: number;
+    maxTokens: number;
   }) => Promise<void>;
 }
 
@@ -26,6 +35,10 @@ export function AITab({
   model,
   streamResponse,
   systemPrompt,
+  temperature,
+  topP,
+  topK,
+  maxTokens,
   onSave: onSaveProp,
 }: AITabProps) {
   const { t } = useTranslation();
@@ -34,6 +47,10 @@ export function AITab({
   const [localStreamResponse, setLocalStreamResponse] =
     useState(streamResponse);
   const [localSystemPrompt, setLocalSystemPrompt] = useState(systemPrompt);
+  const [localTemperature, setLocalTemperature] = useState(temperature);
+  const [localTopP, setLocalTopP] = useState(topP);
+  const [localTopK, setLocalTopK] = useState(topK);
+  const [localMaxTokens, setLocalMaxTokens] = useState(maxTokens);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -41,7 +58,20 @@ export function AITab({
     setLocalModel(model);
     setLocalStreamResponse(streamResponse);
     setLocalSystemPrompt(systemPrompt);
-  }, [apiKey, model, streamResponse, systemPrompt]);
+    setLocalTemperature(temperature);
+    setLocalTopP(topP);
+    setLocalTopK(topK);
+    setLocalMaxTokens(maxTokens);
+  }, [
+    apiKey,
+    model,
+    streamResponse,
+    systemPrompt,
+    temperature,
+    topP,
+    topK,
+    maxTokens,
+  ]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -50,6 +80,10 @@ export function AITab({
       model: localModel,
       streamResponse: localStreamResponse,
       systemPrompt: localSystemPrompt,
+      temperature: localTemperature,
+      topP: localTopP,
+      topK: localTopK,
+      maxTokens: localMaxTokens,
     });
     setIsSaving(false);
   };
@@ -58,7 +92,11 @@ export function AITab({
     localApiKey !== apiKey ||
     localModel !== model ||
     localStreamResponse !== streamResponse ||
-    localSystemPrompt !== systemPrompt;
+    localSystemPrompt !== systemPrompt ||
+    localTemperature !== temperature ||
+    localTopP !== topP ||
+    localTopK !== topK ||
+    localMaxTokens !== maxTokens;
 
   return (
     <div className="space-y-6">
@@ -117,6 +155,73 @@ export function AITab({
             value={localSystemPrompt}
             onChange={(e) => setLocalSystemPrompt(e.target.value)}
           />
+        </div>
+        <div className="space-y-4 rounded-lg border p-4">
+          <h3 className="font-semibold">{t("settings.ai.parameters.title")}</h3>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <Label htmlFor="temperature-slider">
+                {t("settings.ai.parameters.temperature")}
+              </Label>
+              <span className="text-sm text-muted-foreground">
+                {localTemperature.toFixed(2)}
+              </span>
+            </div>
+            <Slider
+              id="temperature-slider"
+              value={[localTemperature]}
+              onValueChange={(value) => setLocalTemperature(value[0])}
+              min={0}
+              max={2}
+              step={0.01}
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <Label htmlFor="topp-slider">
+                {t("settings.ai.parameters.topP")}
+              </Label>
+              <span className="text-sm text-muted-foreground">
+                {localTopP.toFixed(2)}
+              </span>
+            </div>
+            <Slider
+              id="topp-slider"
+              value={[localTopP]}
+              onValueChange={(value) => setLocalTopP(value[0])}
+              min={0}
+              max={1}
+              step={0.01}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="topk-input">
+                {t("settings.ai.parameters.topK")}
+              </Label>
+              <Input
+                id="topk-input"
+                type="number"
+                value={localTopK}
+                onChange={(e) =>
+                  setLocalTopK(parseInt(e.target.value, 10) || 0)
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maxtokens-input">
+                {t("settings.ai.parameters.maxTokens")}
+              </Label>
+              <Input
+                id="maxtokens-input"
+                type="number"
+                value={localMaxTokens}
+                onChange={(e) =>
+                  setLocalMaxTokens(parseInt(e.target.value, 10) || 0)
+                }
+              />
+            </div>
+          </div>
         </div>
         <div className="pt-2">
           <Button

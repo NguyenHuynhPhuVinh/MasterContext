@@ -98,8 +98,12 @@ export interface AppState {
   aiModel: string;
   chatMessages: ChatMessage[];
   isAiPanelLoading: boolean;
-  streamResponse: boolean;
+  temperature: number;
+  topP: number;
+  topK: number;
+  maxTokens: number;
   systemPrompt: string;
+  streamResponse: boolean;
 
   actions: ProjectActions &
     GroupActions &

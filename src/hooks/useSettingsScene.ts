@@ -29,8 +29,12 @@ export function useSettingsScene() {
     gitExportModeIsContext,
     openRouterApiKey,
     aiModel,
-    streamResponse,
     systemPrompt,
+    temperature,
+    topP,
+    topK,
+    maxTokens,
+    streamResponse,
   } = useAppStore(
     useShallow((state) => ({
       syncEnabled: state.syncEnabled,
@@ -49,8 +53,12 @@ export function useSettingsScene() {
       gitExportModeIsContext: state.gitExportModeIsContext,
       openRouterApiKey: state.openRouterApiKey,
       aiModel: state.aiModel,
-      streamResponse: state.streamResponse,
       systemPrompt: state.systemPrompt,
+      temperature: state.temperature,
+      topP: state.topP,
+      topK: state.topK,
+      maxTokens: state.maxTokens,
+      streamResponse: state.streamResponse,
     }))
   );
 
@@ -144,8 +152,12 @@ export function useSettingsScene() {
     showDashboard,
     openRouterApiKey,
     aiModel,
-    streamResponse,
     systemPrompt,
+    temperature,
+    topP,
+    topK,
+    maxTokens,
+    streamResponse,
     updateAppSettings,
     setSyncSettings,
     setCustomIgnorePatterns,

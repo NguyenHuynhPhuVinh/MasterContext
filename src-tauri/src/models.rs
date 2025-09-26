@@ -51,6 +51,10 @@ pub struct AppSettings {
     pub ai_model: Option<String>,
     pub stream_response: Option<bool>,
     pub system_prompt: Option<String>,
+    pub temperature: Option<f64>,
+    pub top_p: Option<f64>,
+    pub top_k: Option<u32>,
+    pub max_tokens: Option<u32>,
 }
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 
