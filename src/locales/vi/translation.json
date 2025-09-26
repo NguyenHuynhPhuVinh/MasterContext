@@ -295,7 +295,8 @@
       "title": "Cài đặt AI",
       "openRouter": {
         "apiKeyLabel": "OpenRouter API Key",
-        "modelLabel": "Model ID Mặc định"
+        "getApiKeyHint": "Lấy API key của bạn từ <1>cài đặt OpenRouter</1>.",
+        "modelLabel": "Các Model ID"
       },
       "streamResponse": {
         "label": "Stream phản hồi",

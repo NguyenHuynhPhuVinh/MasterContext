@@ -295,7 +295,8 @@
       "title": "AI Settings",
       "openRouter": {
         "apiKeyLabel": "OpenRouter API Key",
-        "modelLabel": "Default Model ID"
+        "getApiKeyHint": "Get your API key from <1>OpenRouter settings</1>.",
+        "modelLabel": "Model IDs"
       },
       "streamResponse": {
         "label": "Stream responses",

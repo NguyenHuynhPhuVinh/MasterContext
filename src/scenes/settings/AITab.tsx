@@ -1,6 +1,7 @@
 // src/scenes/settings/AITab.tsx
 import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,6 +134,23 @@ export function AITab({
             value={localApiKey}
             onChange={(e) => setLocalApiKey(e.target.value)}
           />
+          <p className="text-xs text-muted-foreground">
+            <Trans
+              i18nKey="settings.ai.openRouter.getApiKeyHint"
+              components={{
+                1: (
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openUrl("https://openrouter.ai/settings/keys");
+                    }}
+                    className="text-primary underline hover:no-underline"
+                  />
+                ),
+              }}
+            />
+          </p>
         </div>
         <div className="space-y-2">
           <Label>{t("settings.ai.openRouter.modelLabel")}</Label>
