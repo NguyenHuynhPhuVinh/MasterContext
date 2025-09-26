@@ -67,6 +67,16 @@ export interface ScanCompletePayload {
   isFirstScan: boolean;
 }
 
+export interface AIModel {
+  id: string;
+  name: string;
+  context_length: number | null;
+  pricing: {
+    prompt: string;
+    completion: string;
+  };
+}
+
 export interface AppSettings {
   recentPaths: string[];
   nonAnalyzableExtensions?: string[];
@@ -185,7 +195,8 @@ export interface AppState {
   // AI Panel
   isAiPanelVisible: boolean;
   openRouterApiKey: string;
-  aiModels: string[];
+  allAvailableModels: AIModel[];
+  aiModels: AIModel[];
   chatMessages: ChatMessage[];
   isAiPanelLoading: boolean;
   chatSessions: AIChatSessionHeader[];

@@ -58,7 +58,8 @@ export const initialState = {
   originalGitBranch: null,
   isAiPanelVisible: false,
   openRouterApiKey: "",
-  aiModels: ["openai/gpt-3.5-turbo"],
+  allAvailableModels: [],
+  aiModels: [],
   chatMessages: [],
   isAiPanelLoading: false,
   chatSessions: [],
@@ -71,7 +72,7 @@ export const initialState = {
   maxTokens: 0, // 0 means not set
   systemPrompt: "",
   streamResponse: true,
-  selectedAiModel: "",
+  selectedAiModel: "openai/gpt-3.5-turbo",
 };
 
 export type InitialState = typeof initialState;

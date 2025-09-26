@@ -15,6 +15,17 @@ export function formatBytes(bytes: number, decimals = 2): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }
 
+export function formatPrice(priceString: string): string {
+  try {
+    const price = parseFloat(priceString);
+    if (isNaN(price) || price === 0) return "Free";
+    const pricePerMillion = price * 1_000_000;
+    return `$${pricePerMillion.toFixed(2)}`;
+  } catch {
+    return "N/A";
+  }
+}
+
 // --- HÀM MỚI: THROTTLE ---
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function throttle<T extends (...args: any[]) => void>(

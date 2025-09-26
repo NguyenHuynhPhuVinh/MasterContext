@@ -19,7 +19,7 @@ import {
   Square,
   AlignJustify,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 import { ChatHistoryList } from "./ChatHistoryList";
 import {
   Tooltip,
@@ -76,7 +76,9 @@ export function AIPanel() {
     loadChatSessions();
   }, [loadChatSessions]);
 
-  const shortModelName = (selectedAiModel || aiModels[0])?.split("/").pop();
+  const selectedModelDetails = aiModels.find(
+    (m) => m.id === (selectedAiModel || aiModels[0]?.id)
+  );
 
   const handleSelectSession = async (sessionId: string) => {
     await loadChatSession(sessionId);
@@ -175,20 +177,37 @@ export function AIPanel() {
                         variant="ghost"
                         className="h-8 gap-2 px-2 text-muted-foreground"
                       >
-                        <AlignJustify className="h-4 w-4 shrink-0" />
-                        <span className="truncate max-w-[120px] text-xs font-medium">
-                          {shortModelName || "..."}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <AlignJustify className="h-4 w-4 shrink-0" />
+                          <span className="truncate max-w-[120px] text-xs font-medium">
+                            {selectedModelDetails?.name || "..."}
+                          </span>
+                        </div>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
+                    <DropdownMenuContent align="start" className="w-[350px]">
                       <DropdownMenuRadioGroup
-                        value={selectedAiModel || aiModels[0]}
+                        value={selectedAiModel || aiModels[0]?.id}
                         onValueChange={setSelectedAiModel}
                       >
-                        {aiModels.map((modelId) => (
-                          <DropdownMenuRadioItem key={modelId} value={modelId}>
-                            {modelId}
+                        {aiModels.map((model) => (
+                          <DropdownMenuRadioItem
+                            key={model.id}
+                            value={model.id}
+                            className="flex flex-col items-start p-2"
+                          >
+                            <span className="font-medium">{model.name}</span>
+                            <div className="text-xs text-muted-foreground flex gap-2">
+                              <span>
+                                {model.context_length?.toLocaleString()} ctx
+                              </span>
+                              <span>
+                                In: {formatPrice(model.pricing.prompt)}/M
+                              </span>
+                              <span>
+                                Out: {formatPrice(model.pricing.completion)}/M
+                              </span>
+                            </div>
                           </DropdownMenuRadioItem>
                         ))}
                       </DropdownMenuRadioGroup>

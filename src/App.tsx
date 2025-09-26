@@ -11,6 +11,7 @@ import {
 } from "@tauri-apps/api/menu";
 import { save, message } from "@tauri-apps/plugin-dialog"; // <-- THAY ĐỔI IMPORT
 import { invoke } from "@tauri-apps/api/core";
+import axios from "axios";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import {
   isPermissionGranted,
@@ -22,6 +23,7 @@ import {
   type GroupStats,
   type AppSettings,
   type ScanCompletePayload,
+  type AIModel,
 } from "./store/types";
 import { useShallow } from "zustand/react/shallow"; // <-- THÊM IMPORT NÀY
 import { WelcomeScene } from "./scenes/WelcomeScene";
@@ -106,12 +108,44 @@ function App() {
         const settings = await invoke<AppSettings>("get_app_settings");
         // Cập nhật state một lần với tất cả cài đặt
         _setRecentPaths(settings.recentPaths ?? []);
+
+        // Fetch all models from OpenRouter
+        const response = await axios.get("https://openrouter.ai/api/v1/models");
+        const allModelsData: any[] = response.data.data;
+        const allAvailableModels: AIModel[] = allModelsData.map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          context_length: m.context_length,
+          pricing: {
+            prompt: m.pricing.prompt,
+            completion: m.pricing.completion,
+          },
+        }));
+
+        const savedModelIds = settings.aiModels ?? ["openai/gpt-3.5-turbo"];
+
+        const projectAiModels: AIModel[] = savedModelIds
+          .map((id) => allAvailableModels.find((m) => m.id === id))
+          .filter((m): m is AIModel => !!m);
+
         // Dùng set thay vì updateAppSettings để không ghi lại file
         useAppStore.setState({
           nonAnalyzableExtensions: settings.nonAnalyzableExtensions ?? [],
           openRouterApiKey: settings.openRouterApiKey ?? "",
-          aiModels: settings.aiModels ?? ["openai/gpt-3.5-turbo"],
-          selectedAiModel: settings.aiModels?.[0] ?? "openai/gpt-3.5-turbo",
+          allAvailableModels,
+          aiModels: projectAiModels.length
+            ? projectAiModels
+            : [
+                allAvailableModels.find(
+                  (m) => m.id === "openai/gpt-3.5-turbo"
+                )!,
+              ].filter(Boolean),
+          selectedAiModel:
+            projectAiModels.find(
+              (m) => m.id === useAppStore.getState().selectedAiModel
+            )?.id ||
+            projectAiModels[0]?.id ||
+            "openai/gpt-3.5-turbo",
         });
       } catch (e) {
         console.error("Could not load app settings:", e);

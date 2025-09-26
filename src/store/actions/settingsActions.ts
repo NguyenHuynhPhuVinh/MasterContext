@@ -294,12 +294,13 @@ export const createSettingsActions: StateCreator<
       topK,
       maxTokens,
     } = get();
+    const { allAvailableModels } = get();
     const fullSettings: AppSettings = {
       recentPaths: newSettings.recentPaths ?? recentPaths,
       nonAnalyzableExtensions:
         newSettings.nonAnalyzableExtensions ?? nonAnalyzableExtensions,
       openRouterApiKey: newSettings.openRouterApiKey ?? openRouterApiKey,
-      aiModels: newSettings.aiModels ?? aiModels,
+      aiModels: newSettings.aiModels ?? aiModels.map((m) => m.id),
       streamResponse: newSettings.streamResponse ?? streamResponse,
       systemPrompt: newSettings.systemPrompt ?? systemPrompt,
       temperature: newSettings.temperature ?? temperature,
@@ -310,11 +311,22 @@ export const createSettingsActions: StateCreator<
 
     try {
       await invoke("update_app_settings", { settings: fullSettings });
+
+      const projectAiModels: AppState["aiModels"] = (
+        fullSettings.aiModels ?? ["openai/gpt-3.5-turbo"]
+      )
+        .map((id) => allAvailableModels.find((m) => m.id === id))
+        .filter((m): m is AppState["aiModels"][0] => !!m);
+
       set({
         recentPaths: fullSettings.recentPaths,
         nonAnalyzableExtensions: fullSettings.nonAnalyzableExtensions,
         openRouterApiKey: fullSettings.openRouterApiKey ?? "",
-        aiModels: fullSettings.aiModels ?? ["openai/gpt-3.5-turbo"],
+        aiModels: projectAiModels.length
+          ? projectAiModels
+          : [
+              allAvailableModels.find((m) => m.id === "openai/gpt-3.5-turbo")!,
+            ].filter(Boolean),
         systemPrompt: fullSettings.systemPrompt ?? "",
         streamResponse: fullSettings.streamResponse ?? true,
         temperature: fullSettings.temperature ?? 1.0,
@@ -323,8 +335,8 @@ export const createSettingsActions: StateCreator<
         maxTokens: fullSettings.maxTokens ?? 0,
         // Cập nhật model được chọn nếu danh sách thay đổi
         selectedAiModel:
-          fullSettings.aiModels?.find((m) => m === get().selectedAiModel) ||
-          fullSettings.aiModels?.[0] ||
+          projectAiModels.find((m) => m.id === get().selectedAiModel)?.id ||
+          projectAiModels[0]?.id ||
           "",
       });
     } catch (e) {

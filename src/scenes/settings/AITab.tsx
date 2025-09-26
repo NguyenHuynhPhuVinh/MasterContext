@@ -1,6 +1,5 @@
 // src/scenes/settings/AITab.tsx
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { useTranslation, Trans } from "react-i18next";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Save, Loader2, X, ChevronsUpDown } from "lucide-react";
+import { useAppStore } from "@/store/appStore";
+import { useShallow } from "zustand/react/shallow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,10 +26,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { type AIModel } from "@/store/types";
 
 interface AITabProps {
   apiKey: string;
-  models: string[];
+  models: AIModel[]; // This is AIModel[]
   streamResponse: boolean;
   systemPrompt: string;
   temperature: number;
@@ -37,7 +39,7 @@ interface AITabProps {
   maxTokens: number;
   onSave: (settings: {
     apiKey: string;
-    models: string[];
+    models: string[]; // should send back IDs
     streamResponse: boolean;
     systemPrompt: string;
     temperature: number;
@@ -47,14 +49,9 @@ interface AITabProps {
   }) => Promise<void>;
 }
 
-interface OpenRouterModel {
-  id: string;
-  name: string;
-}
-
 export function AITab({
   apiKey,
-  models,
+  models, // This is AIModel[]
   streamResponse,
   systemPrompt,
   temperature,
@@ -64,8 +61,13 @@ export function AITab({
   onSave,
 }: AITabProps) {
   const { t } = useTranslation();
+  const { allAvailableModels } = useAppStore(
+    useShallow((state) => ({
+      allAvailableModels: state.allAvailableModels,
+    }))
+  );
   const [localApiKey, setLocalApiKey] = useState(apiKey);
-  const [localModels, setLocalModels] = useState(models);
+  const [localModels, setLocalModels] = useState(models.map((m) => m.id));
   const [localStreamResponse, setLocalStreamResponse] =
     useState(streamResponse);
   const [localSystemPrompt, setLocalSystemPrompt] = useState(systemPrompt);
@@ -74,15 +76,11 @@ export function AITab({
   const [localTopK, setLocalTopK] = useState(topK);
   const [localMaxTokens, setLocalMaxTokens] = useState(maxTokens);
   const [isSaving, setIsSaving] = useState(false);
-  const [allAvailableModels, setAllAvailableModels] = useState<
-    OpenRouterModel[]
-  >([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
 
   useEffect(() => {
     setLocalApiKey(apiKey);
-    setLocalModels(models);
+    setLocalModels(models.map((m) => m.id));
     setLocalStreamResponse(streamResponse);
     setLocalSystemPrompt(systemPrompt);
     setLocalTemperature(temperature);
@@ -99,29 +97,6 @@ export function AITab({
     topK,
     maxTokens,
   ]);
-
-  useEffect(() => {
-    const fetchAvailableModels = async () => {
-      setIsLoadingModels(true);
-      try {
-        // Thay đổi: Sử dụng axios.get
-        const response = await axios.get("https://openrouter.ai/api/v1/models");
-        // Thay đổi: Dữ liệu nằm trong response.data.data
-        const fetchedModels: OpenRouterModel[] = response.data.data.map(
-          (model: any) => ({
-            id: model.id,
-            name: model.name,
-          })
-        );
-        setAllAvailableModels(fetchedModels);
-      } catch (error) {
-        console.error("Failed to fetch models from OpenRouter:", error);
-      } finally {
-        setIsLoadingModels(false);
-      }
-    };
-    fetchAvailableModels();
-  }, []);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -147,7 +122,8 @@ export function AITab({
 
   // Deep equality check for array
   const modelsChanged =
-    JSON.stringify(localModels.sort()) !== JSON.stringify(models.sort());
+    JSON.stringify(localModels.sort()) !==
+    JSON.stringify(models.map((m) => m.id).sort());
 
   const isChanged =
     localApiKey !== apiKey ||
@@ -194,20 +170,22 @@ export function AITab({
         <div className="space-y-2">
           <Label>{t("settings.ai.openRouter.modelLabel")}</Label>
           <div className="flex flex-wrap gap-2 rounded-lg border p-2 min-h-[40px]">
-            {localModels.map((model) => (
-              <Badge key={model} variant="secondary" className="pl-3 pr-1">
-                {model}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ml-1 h-5 w-5 rounded-full"
-                  onClick={() => handleRemoveModel(model)}
-                  disabled={localModels.length <= 1}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            ))}
+            {allAvailableModels
+              .filter((m) => localModels.includes(m.id))
+              .map((model) => (
+                <Badge key={model.id} variant="secondary" className="pl-3 pr-1">
+                  {model.id}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="ml-1 h-5 w-5 rounded-full"
+                    onClick={() => handleRemoveModel(model.id)}
+                    disabled={localModels.length <= 1}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              ))}
           </div>
           <Popover open={isModelPickerOpen} onOpenChange={setIsModelPickerOpen}>
             <PopoverTrigger asChild>
@@ -228,7 +206,7 @@ export function AITab({
                 <ScrollArea className="h-[250px]">
                   <CommandList>
                     <CommandEmpty>
-                      {isLoadingModels
+                      {allAvailableModels.length === 0
                         ? "Đang tải models..."
                         : "Không tìm thấy model."}
                     </CommandEmpty>
