@@ -102,6 +102,7 @@ export interface AppState {
   isAiPanelLoading: boolean;
   chatSessions: AIChatSessionHeader[];
   activeChatSessionId: string | null;
+  abortController: AbortController | null;
   activeChatSession: AIChatSession | null;
   temperature: number;
   topP: number;

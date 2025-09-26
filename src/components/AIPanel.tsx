@@ -25,6 +25,7 @@ export function AIPanel() {
   const {
     sendChatMessage,
     createNewChatSession,
+    stopAiResponse,
     loadChatSessions,
     loadChatSession,
   } = useAppActions();
@@ -124,12 +125,17 @@ export function AIPanel() {
               onKeyDown={handleKeyDown}
             />
             <Button
+              variant={isAiPanelLoading ? "destructive" : "default"}
               size="icon"
               className="absolute right-2 top-2 h-8 w-8"
-              onClick={handleSend}
-              disabled={isAiPanelLoading || !prompt.trim()}
+              onClick={isAiPanelLoading ? stopAiResponse : handleSend}
+              disabled={!isAiPanelLoading && !prompt.trim()}
             >
-              <Send className="h-4 w-4" />
+              {isAiPanelLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>

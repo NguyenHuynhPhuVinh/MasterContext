@@ -15,6 +15,7 @@ export interface AiActions {
   sendChatMessage: (prompt: string) => Promise<void>;
   fetchOpenRouterResponse: () => Promise<void>;
   saveCurrentChatSession: () => Promise<void>;
+  stopAiResponse: () => void;
   createNewChatSession: () => void;
   loadChatSessions: () => Promise<void>;
   loadChatSession: (sessionId: string) => Promise<void>;
@@ -88,8 +89,14 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
       await get().actions.fetchOpenRouterResponse();
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        error instanceof Error && error.name !== "AbortError"
+          ? error.message
+          : String(error);
       console.error("Error in sendChatMessage:", errorMessage);
+      // Don't show an error message if the user aborted it
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
       const assistantErrorMessage: ChatMessage = {
         role: "assistant",
         content: `${t("aiPanel.error")}\n\n${errorMessage}`,
@@ -115,6 +122,11 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
       topK,
       maxTokens,
     } = get();
+
+    // Create a new AbortController for this request
+    const controller = new AbortController();
+    set({ abortController: controller });
+
     if (!openRouterApiKey || !activeChatSession) return;
     const messagesToSend: ChatMessage[] = [];
     if (systemPrompt && systemPrompt.trim()) {
@@ -149,6 +161,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
               ...payload,
               stream: false, // Explicitly false
             }),
+            signal: controller.signal, // Pass the signal
           }
         );
 
@@ -179,6 +192,10 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
           isAiPanelLoading: false,
         }));
         await get().actions.saveCurrentChatSession();
+      } finally {
+        // Always save and clean up
+        set({ abortController: null });
+        await get().actions.saveCurrentChatSession();
       }
       return;
     }
@@ -197,6 +214,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
             ...payload,
             stream: true,
           }),
+          signal: controller.signal, // Pass the signal
         }
       );
 
@@ -269,6 +287,11 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         }
       }
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        console.log("AI response aborted by user.");
+        // The finally block will handle saving and cleanup.
+        return;
+      }
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       console.error("OpenRouter API streaming error:", errorMessage);
@@ -285,6 +308,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
       });
     } finally {
       set({ isAiPanelLoading: false });
+      set({ abortController: null });
       // Always save the session after the stream attempt is finished.
       await get().actions.saveCurrentChatSession();
     }
@@ -372,6 +396,13 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
       });
       // Keep the state in sync after saving
       set({ activeChatSession: sessionToSave });
+    }
+  },
+  stopAiResponse: () => {
+    const { abortController } = get();
+    if (abortController) {
+      abortController.abort();
+      set({ abortController: null, isAiPanelLoading: false });
     }
   },
 });
