@@ -35,13 +35,13 @@ export function TokenLimitEditor({ group, onSave }: TokenLimitEditorProps) {
   return (
     <div className="p-2 space-y-2">
       <p className="text-xs font-medium text-muted-foreground px-1">
-        {t("tokenLimitEditor.limitLabel")}
+        {t("tokenLimitEditor.title")}
       </p>
       <div className="flex items-center gap-2">
         <Input
           ref={inputRef}
           type="number"
-          placeholder={t("tokenLimitEditor.noLimitPlaceholder")}
+          placeholder={t("tokenLimitEditor.placeholder")}
           value={limit}
           onChange={(e) => setLimit(e.target.value)}
           onKeyDown={handleKeyDown}

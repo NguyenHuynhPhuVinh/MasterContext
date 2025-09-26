@@ -289,12 +289,17 @@ export function GitPanel() {
               {t("gitPanel.checkoutDialog.title")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("gitPanel.checkoutDialog.description", {
-                sha: checkoutSha?.substring(0, 7),
-              })}
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: t("gitPanel.checkoutDialog.description", {
+                    sha: checkoutSha?.substring(0, 7),
+                  }),
+                }}
+              />
               <br />
-              <strong className="text-destructive">Cảnh báo:</strong>{" "}
-              {t("gitPanel.checkoutDialog.warning")}
+              <strong className="text-destructive">
+                {t("gitPanel.checkoutDialog.warning")}
+              </strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

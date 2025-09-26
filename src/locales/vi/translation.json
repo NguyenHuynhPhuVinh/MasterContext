@@ -83,7 +83,7 @@
     "checkoutDialog": {
       "title": "Xác nhận Checkout Commit?",
       "description": "Hành động này sẽ đưa dự án của bạn về trạng thái của commit <strong>{{sha}}</strong>.",
-      "warning": "Điều này sẽ đặt bạn vào trạng thái \"detached HEAD\". Mọi thay đổi chưa được commit sẽ bị mất. Hãy chắc chắn rằng bạn đã commit hoặc stash các thay đổi của mình.",
+      "warning": "Cảnh báo: Điều này sẽ đặt bạn vào trạng thái \"detached HEAD\". Mọi thay đổi chưa được commit sẽ bị mất. Hãy chắc chắn rằng bạn đã commit hoặc stash các thay đổi của mình.",
       "confirm": "Xác nhận và Checkout"
     }
   },

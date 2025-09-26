@@ -83,7 +83,7 @@
     "checkoutDialog": {
       "title": "Confirm Checkout Commit?",
       "description": "This action will revert your project to the state of commit <strong>{{sha}}</strong>.",
-      "warning": "This will put you in a \"detached HEAD\" state. Any uncommitted changes will be lost. Make sure you have committed or stashed your changes.",
+      "warning": "Warning: This will put you in a \"detached HEAD\" state. Any uncommitted changes will be lost. Make sure you have committed or stashed your changes.",
       "confirm": "Confirm and Checkout"
     }
   },
