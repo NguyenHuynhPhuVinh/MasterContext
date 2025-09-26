@@ -28,7 +28,7 @@ export interface UIActions {
   addExclusionRange: (start: number, end: number) => Promise<void>;
   removeExclusionRange: (rangeToRemove: [number, number]) => Promise<void>;
   clearExclusionRanges: () => Promise<void>;
-  applyVirtualPatch: (filePath: string, diff: string) => Promise<void>;
+  applyVirtualPatch: (filePath: string, diff: string) => Promise<boolean>;
   discardVirtualPatch: (filePath: string) => void;
   applyPatchToRealFile: () => Promise<void>;
 }
@@ -213,7 +213,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
   },
   applyVirtualPatch: async (filePath, diff) => {
     const { rootPath } = _get();
-    if (!rootPath) return;
+    if (!rootPath) return false;
 
     try {
       // Lấy nội dung gốc của file cần vá lỗi trực tiếp từ backend
@@ -230,7 +230,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
           title: "Error",
           kind: "error",
         });
-        return;
+        return false;
       }
 
       set((state) => {
@@ -238,6 +238,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
         newPatches.set(filePath, diff);
         return { virtualPatches: newPatches };
       });
+      return true;
     } catch (e) {
       // This catches parsing errors or file read errors
       console.error("Failed to apply patch:", e);
@@ -245,6 +246,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
         title: "Error",
         kind: "error",
       });
+      return false;
     }
   },
   discardVirtualPatch: (filePath) => {
