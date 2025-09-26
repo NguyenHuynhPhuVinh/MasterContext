@@ -144,6 +144,13 @@ export function GroupEditorPanel() {
     return new Set(Object.keys(gitStatus.files));
   }, [gitStatus]);
 
+  const hasAnyExclusions = useMemo(() => {
+    if (!fileMetadataCache) return false;
+    return Object.values(fileMetadataCache).some(
+      (meta) => (meta.excluded_ranges?.length ?? 0) > 0
+    );
+  }, [fileMetadataCache]);
+
   const handleTogglePath = useCallback(
     (toggledNode: FileNode, isSelected: boolean) => {
       toggleEditingPath(toggledNode, isSelected);
@@ -266,6 +273,7 @@ export function GroupEditorPanel() {
                       showOnlyExcluded && "bg-accent text-accent-foreground"
                     )}
                     onClick={() => setShowOnlyExcluded(!showOnlyExcluded)}
+                    disabled={!hasAnyExclusions}
                   >
                     <Scissors className="h-4 w-4" />
                   </Button>
