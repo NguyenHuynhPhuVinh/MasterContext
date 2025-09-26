@@ -1,6 +1,9 @@
 // src/components/AIPanel.tsx
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github-dark.css";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -66,11 +69,19 @@ export function AIPanel() {
               >
                 <div
                   className={cn(
-                    "max-w-xs md:max-w-md lg:max-w-lg text-sm whitespace-pre-wrap",
-                    msg.role === "user" && "bg-muted rounded-lg px-4 py-2"
+                    "max-w-xs md:max-w-md lg:max-w-lg text-sm",
+                    msg.role === "user"
+                      ? "bg-muted rounded-lg px-4 py-2 whitespace-pre-wrap"
+                      : "markdown-content"
                   )}
                 >
-                  {msg.content}
+                  {msg.role === "assistant" ? (
+                    <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  ) : (
+                    msg.content
+                  )}
                 </div>
               </div>
             ))}

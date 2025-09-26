@@ -145,3 +145,55 @@
     var(--muted-foreground)
   ); /* Đậm hơn một chút khi hover */
 }
+
+/* --- TÙY CHỈNH CHO MARKDOWN --- */
+.markdown-content {
+  @apply text-sm leading-relaxed;
+}
+
+.markdown-content p,
+.markdown-content ul,
+.markdown-content ol,
+.markdown-content blockquote {
+  @apply mb-4;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+  @apply font-bold mt-6 mb-3 border-b pb-2;
+}
+
+.markdown-content h1 {
+  @apply text-2xl;
+}
+.markdown-content h2 {
+  @apply text-xl;
+}
+.markdown-content h3 {
+  @apply text-lg;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  @apply pl-6;
+}
+.markdown-content ul {
+  @apply list-disc;
+}
+.markdown-content ol {
+  @apply list-decimal;
+}
+
+.markdown-content code:not(pre > code) {
+  @apply bg-muted text-muted-foreground font-mono text-xs px-1.5 py-1 rounded-md;
+}
+
+.markdown-content pre {
+  @apply bg-muted p-4 rounded-md overflow-x-auto;
+}
+
+.markdown-content blockquote {
+  @apply border-l-4 pl-4 italic text-muted-foreground;
+}
