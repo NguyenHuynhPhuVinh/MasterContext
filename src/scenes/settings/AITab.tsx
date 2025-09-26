@@ -4,32 +4,53 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Save, Loader2 } from "lucide-react";
 
 interface AITabProps {
   apiKey: string;
   model: string;
-  onSave: (settings: { apiKey: string; model: string }) => Promise<void>;
+  streamResponse: boolean;
+  onSave: (settings: {
+    apiKey: string;
+    model: string;
+    streamResponse: boolean;
+  }) => Promise<void>;
 }
 
-export function AITab({ apiKey, model, onSave: onSaveProp }: AITabProps) {
+export function AITab({
+  apiKey,
+  model,
+  streamResponse,
+  onSave: onSaveProp,
+}: AITabProps) {
   const { t } = useTranslation();
   const [localApiKey, setLocalApiKey] = useState(apiKey);
   const [localModel, setLocalModel] = useState(model);
+  const [localStreamResponse, setLocalStreamResponse] =
+    useState(streamResponse);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setLocalApiKey(apiKey);
     setLocalModel(model);
-  }, [apiKey, model]);
+    setLocalStreamResponse(streamResponse);
+  }, [apiKey, model, streamResponse]);
 
   const handleSave = async () => {
     setIsSaving(true);
-    await onSaveProp({ apiKey: localApiKey, model: localModel });
+    await onSaveProp({
+      apiKey: localApiKey,
+      model: localModel,
+      streamResponse: localStreamResponse,
+    });
     setIsSaving(false);
   };
 
-  const isChanged = localApiKey !== apiKey || localModel !== model;
+  const isChanged =
+    localApiKey !== apiKey ||
+    localModel !== model ||
+    localStreamResponse !== streamResponse;
 
   return (
     <div className="space-y-6">
@@ -54,6 +75,22 @@ export function AITab({ apiKey, model, onSave: onSaveProp }: AITabProps) {
             id="ai-model"
             value={localModel}
             onChange={(e) => setLocalModel(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center justify-between pt-4 border-t">
+          <Label
+            htmlFor="stream-response-toggle"
+            className="flex flex-col items-start gap-1"
+          >
+            <span>{t("settings.ai.streamResponse.label")}</span>
+            <span className="text-xs text-muted-foreground">
+              {t("settings.ai.streamResponse.description")}
+            </span>
+          </Label>
+          <Switch
+            id="stream-response-toggle"
+            checked={localStreamResponse}
+            onCheckedChange={setLocalStreamResponse}
           />
         </div>
         <div className="pt-2">

@@ -72,6 +72,7 @@ export interface AppSettings {
   nonAnalyzableExtensions?: string[];
   openRouterApiKey?: string;
   aiModel?: string;
+  streamResponse?: boolean;
 }
 
 export interface GitRepositoryInfo {

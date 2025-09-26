@@ -61,6 +61,7 @@ export const initialState = {
   aiModel: "openai/gpt-3.5-turbo",
   chatMessages: [],
   isAiPanelLoading: false,
+  streamResponse: true,
 };
 
 export type InitialState = typeof initialState;

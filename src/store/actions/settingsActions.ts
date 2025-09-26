@@ -282,14 +282,20 @@ export const createSettingsActions: StateCreator<
     }
   },
   updateAppSettings: async (newSettings) => {
-    const { recentPaths, nonAnalyzableExtensions, openRouterApiKey, aiModel } =
-      get();
+    const {
+      recentPaths,
+      nonAnalyzableExtensions,
+      openRouterApiKey,
+      aiModel,
+      streamResponse,
+    } = get();
     const fullSettings: AppSettings = {
       recentPaths: newSettings.recentPaths ?? recentPaths,
       nonAnalyzableExtensions:
         newSettings.nonAnalyzableExtensions ?? nonAnalyzableExtensions,
       openRouterApiKey: newSettings.openRouterApiKey ?? openRouterApiKey,
       aiModel: newSettings.aiModel ?? aiModel,
+      streamResponse: newSettings.streamResponse ?? streamResponse,
     };
 
     try {
@@ -299,6 +305,7 @@ export const createSettingsActions: StateCreator<
         nonAnalyzableExtensions: fullSettings.nonAnalyzableExtensions,
         openRouterApiKey: fullSettings.openRouterApiKey ?? "",
         aiModel: fullSettings.aiModel ?? "openai/gpt-3.5-turbo",
+        streamResponse: fullSettings.streamResponse ?? true,
       });
     } catch (e) {
       console.error("Failed to update app settings:", e);

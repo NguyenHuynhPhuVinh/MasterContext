@@ -98,6 +98,7 @@ export interface AppState {
   aiModel: string;
   chatMessages: ChatMessage[];
   isAiPanelLoading: boolean;
+  streamResponse: boolean;
 
   actions: ProjectActions &
     GroupActions &

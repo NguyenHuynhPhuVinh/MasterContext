@@ -49,6 +49,7 @@ pub struct AppSettings {
     pub non_analyzable_extensions: Option<Vec<String>>,
     pub open_router_api_key: Option<String>,
     pub ai_model: Option<String>,
+    pub stream_response: Option<bool>,
 }
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 

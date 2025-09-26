@@ -286,6 +286,10 @@
       "openRouter": {
         "apiKeyLabel": "OpenRouter API Key",
         "modelLabel": "Model ID Mặc định"
+      },
+      "streamResponse": {
+        "label": "Stream phản hồi",
+        "description": "Nhận phản hồi từ AI từng phần một để có cảm giác nhanh hơn."
       }
     }
   },

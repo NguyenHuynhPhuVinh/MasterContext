@@ -286,6 +286,10 @@
       "openRouter": {
         "apiKeyLabel": "OpenRouter API Key",
         "modelLabel": "Default Model ID"
+      },
+      "streamResponse": {
+        "label": "Stream responses",
+        "description": "Receive AI responses chunk by chunk for a faster perceived response."
       }
     }
   },

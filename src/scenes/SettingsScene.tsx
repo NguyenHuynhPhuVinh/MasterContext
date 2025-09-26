@@ -41,6 +41,7 @@ export function SettingsScene() {
     gitExportModeIsContext,
     openRouterApiKey,
     aiModel,
+    streamResponse,
     updateAppSettings,
     setGitExportMode,
     showDashboard,
@@ -129,10 +130,12 @@ export function SettingsScene() {
           <AITab
             apiKey={openRouterApiKey}
             model={aiModel}
-            onSave={async ({ apiKey, model }) => {
+            streamResponse={streamResponse}
+            onSave={async ({ apiKey, model, streamResponse }) => {
               await updateAppSettings({
                 openRouterApiKey: apiKey,
                 aiModel: model,
+                streamResponse: streamResponse,
               });
             }}
           />
