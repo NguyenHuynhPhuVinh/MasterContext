@@ -17,6 +17,7 @@ i18n
         translation: viTranslation,
       },
     },
+    lng: "vi",
     fallbackLng: "vi",
     interpolation: {
       escapeValue: false, // React already does escaping

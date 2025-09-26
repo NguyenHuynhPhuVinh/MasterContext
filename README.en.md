@@ -22,7 +22,22 @@ In the age of generative AI, providing complete and accurate context about a pro
 
 Master Context comes equipped with a suite of powerful features designed to meet the needs of modern developers.
 
-### 1. Intelligent Project Management & Analysis
+### 1. Deep Git Integration
+
+- **Visual Commit History:** View the entire commit history of your project directly within the app, with detailed information about authors, dates, and messages.
+- **Generate Context/Diff from Commits:** Export the full context of files changed in a commit or just the `.diff` file to review code or ask AI about specific changes.
+- **Checkout State:** Revert to the state of any commit to inspect code at a past point in time (Detached HEAD).
+- **File Status Display:** The directory tree clearly marks modified files (`M`), newly added (`A`), or deleted (`D`) compared to the latest commit.
+- **Clone & Open:** Paste a Git repository URL into the welcome screen to clone and start working immediately.
+
+### 2. Integrated File Viewer & Patcher
+
+- **Quick Content View:** Click on any file to view its content in a separate panel without leaving the application.
+- **Apply Diff/Patch:** Paste the content of a patch file (`.diff`, `.patch`) into the app to preview how changes will be applied to the original file.
+- **Exclude Source Code:** Easily highlight and exclude unwanted code segments from the context without editing the original file.
+- **Save Changes:** After previewing, you can choose to permanently apply the changes from the patch file to the original file on disk.
+
+### 3. Intelligent Project Management & Analysis
 
 - **High-Performance Parallel Scanning**: Leverages the full power of multi-core CPUs to scan and analyze your project at exceptional speeds.
 - **Lightning-Fast Rescans (Smart Scan)**: Uses metadata caching (based on modification time and file size) to process only changed files, making subsequent scans nearly instantaneous.
@@ -30,20 +45,20 @@ Master Context comes equipped with a suite of powerful features designed to meet
 - **Custom Exclusion Filters**: Allows you to define glob patterns (e.g., `dist/`, `*.log`, `node_modules/`) to exclude additional unwanted files across the entire project.
 - **Skip Content Analysis**: Customize file types (e.g., `.png`, `.lock`, `.svg`) to scan only their metadata without reading their content, significantly speeding up scans for large projects.
 
-### 2. Detailed Context Control
+### 4. Detailed Context Control
 
 - **Profiles**: Create independent workspaces within the same project. Each profile has its own set of groups, settings, and configurations, ideal for separating different workflows (e.g., "Frontend Tasks," "Backend Refactor," "Database Migration").
 - **Context Groups**: Organize files and directories into logical groups for specific tasks. Easily manage, edit, and track these groups.
 - **Detailed Statistics**: Each group and the entire project provide visual stats on the total number of files, directories, size, and **estimated token count**, helping you control costs and input for the LLM.
 - **Token Budget**: Set a token limit for each group and receive visual warnings when it's exceeded, ensuring your context always stays within the model's limits.
 
-### 3. Dependency Analysis & Automation
+### 5. Dependency Analysis & Automation
 
 - **Source Code Link Analysis**: Automatically analyzes `import`, `export`, and `require` statements to identify dependencies between files.
 - **Alias Path Support**: Reads and resolves path aliases from `tsconfig.json` or `jsconfig.json` (e.g., `@/*`, `~/*`), understanding modern project structures.
 - **Cross-sync**: When enabled for a group, this feature automatically finds and adds dependent files to the group every time you rescan the project, ensuring your context is always complete.
 
-### 4. Powerful & Flexible Exporting
+### 6. Powerful & Flexible Exporting
 
 - **Copy to Clipboard**: Quickly copy the entire context of a group or the whole project to your clipboard with a single click.
 - **Directory Tree Options**: Choose to export context with a minimal tree (containing only selected files) or the full project directory tree.
@@ -55,13 +70,13 @@ Master Context comes equipped with a suite of powerful features designed to meet
 - **Exclude Files by Extension**: Easily remove unwanted file types (e.g., `.png`, `.svg`) from the final context file.
 - **Always Apply Text**: Define a block of text (e.g., a directive, a question) that will be automatically appended to every exported context file.
 
-### 5. Workflow Optimization
+### 7. Workflow Optimization
 
 - **Live Watch**: Automatically rescans the project upon detecting changes in the file system, keeping your data always up-to-date.
 - **Auto-sync**: Automatically exports the context files for groups and the entire project to a specified directory whenever changes occur, enabling seamless integration with other tools.
 - **Recent Projects Management**: Quickly access previously opened projects right from the welcome screen.
 
-### 6. Modern User Experience
+### 8. Modern & Flexible User Experience
 
 - **Intuitive Interface**: Built with Shadcn UI and Tailwind CSS, providing a smooth and user-friendly experience.
 - **Light/Dark Mode**: Switch the interface to match your work environment.
@@ -85,6 +100,8 @@ Master Context comes equipped with a suite of powerful features designed to meet
   - **Token Counting**: `tiktoken-rs`
   - **Data Handling**: `serde`, `serde_json`
   - **Project ID Generation**: `sha2`
+  - **Git Integration**: `git2`
+  - **Time Handling**: `chrono`
 
 ## Installation and Setup
 
