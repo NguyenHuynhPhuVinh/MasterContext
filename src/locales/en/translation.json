@@ -24,7 +24,8 @@
       "projectPanel": "Project Panel",
       "gitPanel": "Git Panel",
       "groupEditorPanel": "Group Editor Panel",
-      "editorPanel": "Editor Panel"
+      "editorPanel": "Editor Panel",
+      "aiPanel": "AI Panel"
     },
     "errors": {
       "initFailed": "Could not initialize application menu.",
@@ -158,6 +159,12 @@
     "unfilterPatchedTooltip": "Remove patch filter",
     "noPatchedFiles": "No patched files found."
   },
+  "aiPanel": {
+    "title": "AI Chat",
+    "placeholder": "Enter your prompt...",
+    "noApiKey": "OpenRouter API key not set. Please add it in Settings > AI.",
+    "error": "An error occurred. Please check your API key and network connection."
+  },
   "mainPanel": {
     "placeholder": {
       "title": "Main Panel",
@@ -179,7 +186,8 @@
       "appearance": "Appearance",
       "project": "Project",
       "profile": "Profile",
-      "export": "Export"
+      "export": "Export",
+      "ai": "AI"
     },
     "appearance": {
       "title": "Appearance Settings",
@@ -271,6 +279,13 @@
         "placeholder": "png, svg, jpg, lock...",
         "hint": "Separate extensions with a comma (,).",
         "saveButton": "Save Exclusion Settings"
+      }
+    },
+    "ai": {
+      "title": "AI Settings",
+      "openRouter": {
+        "apiKeyLabel": "OpenRouter API Key",
+        "modelLabel": "Default Model ID"
       }
     }
   },

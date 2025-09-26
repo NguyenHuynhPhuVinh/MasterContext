@@ -9,6 +9,7 @@ import {
   type GitRepositoryInfo,
   type GitCommit,
   type GitStatus,
+  type ChatMessage,
 } from "./types";
 import { initialState } from "./initialState";
 import {
@@ -26,6 +27,7 @@ import {
 } from "./actions/settingsActions";
 import { createUIActions, type UIActions } from "./actions/uiActions";
 import { createGitActions, type GitActions } from "./actions/gitActions";
+import { createAiActions, type AiActions } from "./actions/aiActions";
 
 export interface AppState {
   rootPath: string | null;
@@ -90,12 +92,20 @@ export interface AppState {
   hasMoreCommits: boolean;
   originalGitBranch: string | null; // <-- THÊM STATE MỚI
 
+  // AI Panel
+  isAiPanelVisible: boolean;
+  openRouterApiKey: string;
+  aiModel: string;
+  chatMessages: ChatMessage[];
+  isAiPanelLoading: boolean;
+
   actions: ProjectActions &
     GroupActions &
     ProfileActions &
     SettingsActions &
     UIActions &
-    GitActions;
+    GitActions &
+    AiActions;
 }
 
 export const useAppStore = create<AppState>()((set, get, store) => ({
@@ -107,6 +117,7 @@ export const useAppStore = create<AppState>()((set, get, store) => ({
     ...createSettingsActions(set, get, store),
     ...createUIActions(set, get, store),
     ...createGitActions(set, get, store),
+    ...createAiActions(set, get, store),
   },
 }));
 

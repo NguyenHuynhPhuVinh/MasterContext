@@ -4,7 +4,12 @@ import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { open, message } from "@tauri-apps/plugin-dialog";
 
-export type SettingsTab = "appearance" | "project" | "profile" | "export";
+export type SettingsTab =
+  | "appearance"
+  | "project"
+  | "profile"
+  | "export"
+  | "ai";
 
 export function useSettingsScene() {
   const {
@@ -22,6 +27,8 @@ export function useSettingsScene() {
     alwaysApplyText,
     exportExcludeExtensions,
     gitExportModeIsContext,
+    openRouterApiKey,
+    aiModel,
   } = useAppStore(
     useShallow((state) => ({
       syncEnabled: state.syncEnabled,
@@ -38,6 +45,8 @@ export function useSettingsScene() {
       alwaysApplyText: state.alwaysApplyText,
       exportExcludeExtensions: state.exportExcludeExtensions,
       gitExportModeIsContext: state.gitExportModeIsContext,
+      openRouterApiKey: state.openRouterApiKey,
+      aiModel: state.aiModel,
     }))
   );
 
@@ -55,6 +64,8 @@ export function useSettingsScene() {
     setExportExcludeExtensions,
     setGitExportMode,
     deleteCurrentProjectData,
+    setOpenRouterApiKey,
+    setAiModel,
   } = useAppActions();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
@@ -128,6 +139,10 @@ export function useSettingsScene() {
     alwaysApplyText,
     exportExcludeExtensions,
     showDashboard,
+    openRouterApiKey,
+    aiModel,
+    setOpenRouterApiKey,
+    setAiModel,
     setSyncSettings,
     setCustomIgnorePatterns,
     setFileWatching,

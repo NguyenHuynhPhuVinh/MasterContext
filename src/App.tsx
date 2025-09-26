@@ -29,6 +29,7 @@ import { ScanningScene } from "./scenes/ScanningScene";
 import { SettingsScene } from "./scenes/SettingsScene";
 import { SidebarPanel } from "./scenes/SidebarPanel";
 import { GitPanel } from "./components/GitPanel";
+import { AIPanel } from "./components/AIPanel"; // THÊM IMPORT
 import { MainPanel } from "./scenes/MainPanel";
 import { StatusBar } from "./components/StatusBar";
 import {
@@ -50,6 +51,7 @@ function App() {
     isGitPanelVisible,
     gitRepoInfo,
     isGroupEditorPanelVisible,
+    isAiPanelVisible,
   } = useAppStore(
     // --- SỬA LỖI TẠI ĐÂY ---
     useShallow((state) => ({
@@ -62,6 +64,7 @@ function App() {
       isEditorPanelVisible: state.isEditorPanelVisible,
       gitRepoInfo: state.gitRepoInfo,
       isGroupEditorPanelVisible: state.isGroupEditorPanelVisible,
+      isAiPanelVisible: state.isAiPanelVisible, // THÊM STATE
     }))
   );
 
@@ -83,6 +86,7 @@ function App() {
     updateAppSettings,
     reset,
     toggleGroupEditorPanelVisibility,
+    toggleAiPanelVisibility, // THÊM ACTION
   } = useAppActions();
 
   const { t } = useTranslation();
@@ -105,6 +109,8 @@ function App() {
         // Dùng set thay vì updateAppSettings để không ghi lại file
         useAppStore.setState({
           nonAnalyzableExtensions: settings.nonAnalyzableExtensions ?? [],
+          openRouterApiKey: settings.openRouterApiKey ?? "",
+          aiModel: settings.aiModel ?? "openai/gpt-3.5-turbo",
         });
       } catch (e) {
         console.error("Could not load app settings:", e);
@@ -198,6 +204,12 @@ function App() {
               action: toggleEditorPanelVisibility,
               checked: isEditorPanelVisible,
             }),
+            await CheckMenuItem.new({
+              id: "toggle_ai_panel",
+              text: t("appMenu.window.aiPanel"), // THÊM DÒNG NÀY
+              action: toggleAiPanelVisibility,
+              checked: isAiPanelVisible,
+            }),
           ],
         });
 
@@ -255,6 +267,8 @@ function App() {
     t,
     toggleEditorPanelVisibility,
     toggleGroupEditorPanelVisibility,
+    isAiPanelVisible, // THÊM STATE
+    toggleAiPanelVisibility, // THÊM ACTION
     _setRecentPaths,
     reset,
   ]); // <-- Thêm dependency
@@ -458,6 +472,20 @@ function App() {
           <ResizablePanel id="main-panel" order={3} defaultSize={75}>
             <MainPanel />
           </ResizablePanel>
+          {isAiPanelVisible && (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel
+                id="ai-panel"
+                order={4}
+                defaultSize={25}
+                minSize={20}
+                maxSize={40}
+              >
+                <AIPanel />
+              </ResizablePanel>
+            </>
+          )}
         </ResizablePanelGroup>
         <StatusBar
           stats={projectStats}

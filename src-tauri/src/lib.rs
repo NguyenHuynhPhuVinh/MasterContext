@@ -59,7 +59,7 @@ pub fn run() {
             commands::set_recent_paths,
             commands::update_app_settings, // <-- COMMAND MỚI
             commands::check_git_repository,
-            commands::get_git_commits,
+            commands::get_git_commits, // SỬA LỖI: Thiếu dấu phẩy
             commands::get_commit_diff,
             commands::generate_commit_context,
             commands::set_git_export_mode_setting,

@@ -9,6 +9,7 @@ import {
   FolderCog,
   User,
   FileOutput,
+  Bot,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ import { AppearanceTab } from "./settings/AppearanceTab";
 import { ProjectTab } from "./settings/ProjectTab";
 import { ProfileTab } from "./settings/ProfileTab";
 import { ExportTab } from "./settings/ExportTab";
+import { AITab } from "./settings/AITab"; // THÊM IMPORT
 import { type SettingsTab } from "@/hooks/useSettingsScene";
 
 export function SettingsScene() {
@@ -37,6 +39,10 @@ export function SettingsScene() {
     alwaysApplyText,
     exportExcludeExtensions,
     gitExportModeIsContext,
+    openRouterApiKey,
+    aiModel,
+    setOpenRouterApiKey,
+    setAiModel,
     setGitExportMode,
     showDashboard,
     setFileWatching,
@@ -67,6 +73,7 @@ export function SettingsScene() {
     { id: "project", label: t("settings.tabs.project"), icon: FolderCog },
     { id: "profile", label: t("settings.tabs.profile"), icon: User },
     { id: "export", label: t("settings.tabs.export"), icon: FileOutput },
+    { id: "ai", label: t("settings.tabs.ai"), icon: Bot }, // THÊM TAB
   ];
 
   const renderContent = () => {
@@ -116,6 +123,16 @@ export function SettingsScene() {
             setExportRemoveDebugLogs={setExportRemoveDebugLogs}
             exportExcludeExtensions={exportExcludeExtensions}
             setExportExcludeExtensions={setExportExcludeExtensions}
+          />
+        );
+      case "ai":
+        return (
+          <AITab
+            apiKey={openRouterApiKey}
+            model={aiModel}
+            onSave={async (key, model) => {
+              await Promise.all([setOpenRouterApiKey(key), setAiModel(model)]);
+            }}
           />
         );
       default:

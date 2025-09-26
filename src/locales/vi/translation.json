@@ -24,7 +24,8 @@
       "projectPanel": "Bảng điều khiển Dự án",
       "gitPanel": "Bảng điều khiển Git",
       "groupEditorPanel": "Bảng điều khiển Chỉnh sửa Nhóm",
-      "editorPanel": "Bảng điều khiển Editor"
+      "editorPanel": "Bảng điều khiển Editor",
+      "aiPanel": "Bảng điều khiển AI"
     },
     "errors": {
       "initFailed": "Không thể khởi tạo menu ứng dụng.",
@@ -158,6 +159,12 @@
     "unfilterPatchedTooltip": "Bỏ lọc file vá lỗi",
     "noPatchedFiles": "Không tìm thấy file nào đã áp dụng vá lỗi."
   },
+  "aiPanel": {
+    "title": "Trò chuyện AI",
+    "placeholder": "Nhập câu lệnh của bạn...",
+    "noApiKey": "Chưa có API key OpenRouter. Vui lòng thêm trong Cài đặt > AI.",
+    "error": "Đã xảy ra lỗi. Vui lòng kiểm tra API key và kết nối mạng."
+  },
   "mainPanel": {
     "placeholder": {
       "title": "Bảng điều khiển Chính",
@@ -179,7 +186,8 @@
       "appearance": "Giao diện",
       "project": "Dự án",
       "profile": "Hồ sơ",
-      "export": "Xuất File"
+      "export": "Xuất File",
+      "ai": "AI"
     },
     "appearance": {
       "title": "Cài đặt Giao diện",
@@ -271,6 +279,13 @@
         "placeholder": "png, svg, jpg, lock...",
         "hint": "Phân cách các phần mở rộng bằng dấu phẩy (,).",
         "saveButton": "Lưu cài đặt loại trừ"
+      }
+    },
+    "ai": {
+      "title": "Cài đặt AI",
+      "openRouter": {
+        "apiKeyLabel": "OpenRouter API Key",
+        "modelLabel": "Model ID Mặc định"
       }
     }
   },

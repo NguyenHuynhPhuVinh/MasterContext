@@ -56,6 +56,11 @@ export const initialState = {
   gitCurrentPage: 0,
   hasMoreCommits: true,
   originalGitBranch: null,
+  isAiPanelVisible: false,
+  openRouterApiKey: "",
+  aiModel: "openai/gpt-3.5-turbo",
+  chatMessages: [],
+  isAiPanelLoading: false,
 };
 
 export type InitialState = typeof initialState;

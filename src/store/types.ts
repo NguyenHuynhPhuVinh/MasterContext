@@ -70,6 +70,8 @@ export interface ScanCompletePayload {
 export interface AppSettings {
   recentPaths: string[];
   nonAnalyzableExtensions?: string[];
+  openRouterApiKey?: string;
+  aiModel?: string;
 }
 
 export interface GitRepositoryInfo {
@@ -92,3 +94,8 @@ export interface GitStatus {
 }
 
 export type GitLogState = "idle" | "loading_repo" | "loading_commits" | "error";
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}

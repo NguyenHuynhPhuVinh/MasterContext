@@ -189,3 +189,5 @@ pub fn update_app_settings(app: AppHandle, settings: models::AppSettings) -> Res
         .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+// src-tauri/src/commands/settings_commands.rs

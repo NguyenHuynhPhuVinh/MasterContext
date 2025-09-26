@@ -47,6 +47,8 @@ pub struct GitStatus {
 pub struct AppSettings {
     pub recent_paths: Vec<String>,
     pub non_analyzable_extensions: Option<Vec<String>>,
+    pub open_router_api_key: Option<String>,
+    pub ai_model: Option<String>,
 }
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 

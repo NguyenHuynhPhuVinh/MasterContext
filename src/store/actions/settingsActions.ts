@@ -23,6 +23,8 @@ export interface SettingsActions {
   setGitExportMode: (enabled: boolean) => Promise<void>;
   setCrossLinkingEnabled: (enabled: boolean) => void;
   updateAppSettings: (settings: Partial<AppSettings>) => Promise<void>;
+  setOpenRouterApiKey: (key: string) => Promise<void>;
+  setAiModel: (model: string) => Promise<void>;
 }
 
 export const createSettingsActions: StateCreator<
@@ -286,11 +288,14 @@ export const createSettingsActions: StateCreator<
     set({ isCrossLinkingEnabled: enabled });
   },
   updateAppSettings: async (newSettings) => {
-    const { recentPaths, nonAnalyzableExtensions } = get();
+    const { recentPaths, nonAnalyzableExtensions, openRouterApiKey, aiModel } =
+      get();
     const fullSettings: AppSettings = {
       recentPaths: newSettings.recentPaths ?? recentPaths,
       nonAnalyzableExtensions:
         newSettings.nonAnalyzableExtensions ?? nonAnalyzableExtensions,
+      openRouterApiKey: newSettings.openRouterApiKey ?? openRouterApiKey,
+      aiModel: newSettings.aiModel ?? aiModel,
     };
 
     try {
@@ -298,10 +303,19 @@ export const createSettingsActions: StateCreator<
       set({
         recentPaths: fullSettings.recentPaths,
         nonAnalyzableExtensions: fullSettings.nonAnalyzableExtensions,
+        openRouterApiKey: fullSettings.openRouterApiKey ?? "",
+        aiModel: fullSettings.aiModel ?? "openai/gpt-3.5-turbo",
       });
     } catch (e) {
       console.error("Failed to update app settings:", e);
       message(`Không thể lưu cài đặt: ${e}`, { title: "Lỗi", kind: "error" });
     }
+  },
+  // These are now just wrappers around updateAppSettings
+  setOpenRouterApiKey: async (key: string) => {
+    await get().actions.updateAppSettings({ openRouterApiKey: key });
+  },
+  setAiModel: async (model: string) => {
+    await get().actions.updateAppSettings({ aiModel: model });
   },
 });

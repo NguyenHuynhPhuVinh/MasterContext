@@ -14,6 +14,7 @@ export interface UIActions {
   toggleProjectPanelVisibility: () => void;
   toggleGitPanelVisibility: () => void;
   toggleGroupEditorPanelVisibility: () => void;
+  toggleAiPanelVisibility: () => void;
   toggleEditorPanelVisibility: () => void;
   setInlineEditingGroup: (
     state: {
@@ -65,6 +66,11 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
   toggleGroupEditorPanelVisibility: () => {
     set((state) => ({
       isGroupEditorPanelVisible: !state.isGroupEditorPanelVisible,
+    }));
+  },
+  toggleAiPanelVisibility: () => {
+    set((state) => ({
+      isAiPanelVisible: !state.isAiPanelVisible,
     }));
   },
   toggleEditorPanelVisibility: () => {
