@@ -36,7 +36,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
     await get().actions.updateAppSettings({ aiModel: model });
   },
   sendChatMessage: async (prompt: string) => {
-    const { openRouterApiKey, aiModel } = get();
+    const { openRouterApiKey } = get();
     if (!openRouterApiKey) {
       return;
     }
@@ -225,8 +225,8 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         for (const line of lines) {
           if (line.trim() === "" || !line.startsWith("data:")) continue;
           if (line.includes("data: [DONE]")) {
-            set({ isAiPanelLoading: false });
-            return;
+            // Use break to exit the loop and proceed to the finally block for saving.
+            break;
           }
 
           try {
@@ -268,9 +268,6 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
           }
         }
       }
-
-      // Save after stream is complete
-      await get().actions.saveCurrentChatSession();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -286,9 +283,10 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         chatMessages: finalMessages,
         isAiPanelLoading: false,
       });
-      await get().actions.saveCurrentChatSession();
     } finally {
       set({ isAiPanelLoading: false });
+      // Always save the session after the stream attempt is finished.
+      await get().actions.saveCurrentChatSession();
     }
   },
   createNewChatSession: () => {
