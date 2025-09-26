@@ -30,7 +30,7 @@ export function MainPanel() {
   if (!isGroupEditorPanelVisible && !isEditorPanelVisible) {
     return (
       <Placeholder
-        message={t("mainPanel.selectGroupOrFile")}
+        message={t("mainPanel.placeholder.selectGroupOrFile")}
         icon={LayoutGrid}
         t={t}
       />
@@ -45,7 +45,7 @@ export function MainPanel() {
             <GroupEditorPanel />
           ) : (
             <Placeholder
-              message={t("mainPanel.noGroupSelected")}
+              message={t("mainPanel.placeholder.noGroupSelected")}
               icon={ListChecks}
               t={t}
             />
@@ -61,7 +61,7 @@ export function MainPanel() {
             <EditorPanel />
           ) : (
             <Placeholder
-              message={t("mainPanel.noFileSelected")}
+              message={t("mainPanel.placeholder.noFileSelected")}
               icon={FileCode}
               t={t}
             />
@@ -83,7 +83,9 @@ const Placeholder = ({
 }) => (
   <div className="flex flex-col items-center justify-center h-full text-center bg-muted/40 p-4">
     <Icon className="h-16 w-16 text-muted-foreground mb-4" />
-    <h2 className="text-xl font-semibold">{t("mainPanel.mainPanelTitle")}</h2>
+    <h2 className="text-xl font-semibold">
+      {t("mainPanel.placeholder.title")}
+    </h2>
     <p className="text-muted-foreground mt-2 max-w-md">{message}</p>
   </div>
 );

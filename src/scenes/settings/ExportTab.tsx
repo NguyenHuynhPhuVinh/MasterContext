@@ -56,16 +56,16 @@ export function ExportTab({
   };
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">{t("exportTab.title")}</h2>
+      <h2 className="text-xl font-semibold">{t("settings.export.title")}</h2>
       <div className="space-y-4 rounded-lg border p-4">
         <div className="flex items-center justify-between">
           <Label
             htmlFor="export-tree-toggle"
             className="flex flex-col items-start gap-1"
           >
-            <span>{t("exportTab.useFullTree")}</span>
+            <span>{t("settings.export.fullTree.label")}</span>
             <span className="text-xs text-muted-foreground">
-              {t("exportTab.useFullTreeDescription")}
+              {t("settings.export.fullTree.description")}
             </span>
           </Label>
           <Switch
@@ -82,9 +82,9 @@ export function ExportTab({
               exportSuperCompressed && "opacity-50"
             )}
           >
-            <span>{t("exportTab.addLineNumbers")}</span>
+            <span>{t("settings.export.lineNumbers.label")}</span>
             <span className="text-xs text-muted-foreground">
-              {t("exportTab.addLineNumbersDescription")}
+              {t("settings.export.lineNumbers.description")}
             </span>
           </Label>
           <Switch
@@ -102,9 +102,9 @@ export function ExportTab({
               exportWithLineNumbers && "opacity-50"
             )}
           >
-            <span>{t("exportTab.superCompressed")}</span>
+            <span>{t("settings.export.superCompressed.label")}</span>
             <span className="text-xs text-muted-foreground">
-              {t("exportTab.superCompressedDescription")}
+              {t("settings.export.superCompressed.description")}
             </span>
           </Label>
           <Switch
@@ -119,9 +119,9 @@ export function ExportTab({
             htmlFor="export-comments-toggle"
             className="flex flex-col items-start gap-1"
           >
-            <span>{t("exportTab.removeComments")}</span>
+            <span>{t("settings.export.removeComments.label")}</span>
             <span className="text-xs text-muted-foreground">
-              {t("exportTab.removeCommentsDescription")}
+              {t("settings.export.removeComments.description")}
             </span>
           </Label>
           <Switch
@@ -135,9 +135,9 @@ export function ExportTab({
             htmlFor="export-debug-toggle"
             className="flex flex-col items-start gap-1"
           >
-            <span>{t("exportTab.removeDebugLogs")}</span>
+            <span>{t("settings.export.removeDebug.label")}</span>
             <span className="text-xs text-muted-foreground">
-              {t("exportTab.removeDebugLogsDescription")}
+              {t("settings.export.removeDebug.description")}
             </span>
           </Label>
           <Switch
@@ -149,20 +149,20 @@ export function ExportTab({
         <div className="flex flex-col space-y-3 pt-4 border-t">
           <div className="flex flex-col items-start gap-1">
             <Label htmlFor="export-exclude-extensions">
-              {t("exportTab.excludeExtensions")}
+              {t("settings.export.excludeExtensions.label")}
             </Label>
             <span className="text-xs text-muted-foreground">
-              {t("exportTab.excludeExtensionsDescription")}
+              {t("settings.export.excludeExtensions.description")}
             </span>
           </div>
           <Input
             id="export-exclude-extensions"
-            placeholder={t("exportTab.excludeExtensionsPlaceholder")}
+            placeholder={t("settings.export.excludeExtensions.placeholder")}
             value={localExcludeText}
             onChange={(e) => setLocalExcludeText(e.target.value)}
           />
           <p className="text-sm text-muted-foreground">
-            {t("exportTab.excludeExtensionsHelp")}
+            {t("settings.export.excludeExtensions.hint")}
           </p>
           <Button
             onClick={handleSave}
@@ -177,7 +177,7 @@ export function ExportTab({
             ) : (
               <Save className="mr-2 h-4 w-4" />
             )}
-            {t("exportTab.saveExcludeSettings")}
+            {t("settings.export.excludeExtensions.saveButton")}
           </Button>
         </div>
       </div>

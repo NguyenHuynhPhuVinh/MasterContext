@@ -61,12 +61,12 @@ export function SettingsScene() {
   const TABS = [
     {
       id: "appearance",
-      label: t("settingsScene.tabs.appearance"),
+      label: t("settings.tabs.appearance"),
       icon: Palette,
     },
-    { id: "project", label: t("settingsScene.tabs.project"), icon: FolderCog },
-    { id: "profile", label: t("settingsScene.tabs.profile"), icon: User },
-    { id: "export", label: t("settingsScene.tabs.export"), icon: FileOutput },
+    { id: "project", label: t("settings.tabs.project"), icon: FolderCog },
+    { id: "profile", label: t("settings.tabs.profile"), icon: User },
+    { id: "export", label: t("settings.tabs.export"), icon: FileOutput },
   ];
 
   const renderContent = () => {
@@ -128,20 +128,18 @@ export function SettingsScene() {
       <header className="flex items-center justify-between p-4 border-b shrink-0">
         <div className="flex flex-col">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{t("settingsScene.title")}</h1>
+            <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
             <Badge variant="secondary" className="gap-2">
               <FileText className="h-4 w-4" />
-              {t("settingsScene.profileLabel")}:{" "}
+              {t("settings.profileBadge")}:{" "}
               <span className="font-semibold">{activeProfile}</span>
             </Badge>
           </div>
-          <p className="text-muted-foreground">
-            {t("settingsScene.description")}
-          </p>
+          <p className="text-muted-foreground">{t("settings.description")}</p>
         </div>
         <Button variant="ghost" size="icon" onClick={showDashboard}>
           <X className="h-5 w-5" />
-          <span className="sr-only">{t("settingsScene.close")}</span>
+          <span className="sr-only">{t("common.close")}</span>
         </Button>
       </header>
 

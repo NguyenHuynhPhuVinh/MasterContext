@@ -43,14 +43,16 @@ export function ProfileTab({
   };
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">{t("profileTab.title")}</h2>
+      <h2 className="text-xl font-semibold">{t("settings.profile.title")}</h2>
       <div className="space-y-4 rounded-lg border p-4">
-        <h3 className="font-semibold">{t("profileTab.autoSync")}</h3>
+        <h3 className="font-semibold">
+          {t("settings.profile.autoSync.title")}
+        </h3>
         <div className="flex items-center justify-between">
           <Label htmlFor="sync-toggle" className="flex flex-col items-start">
-            <span>{t("profileTab.enableBackgroundSync")}</span>
+            <span>{t("settings.profile.autoSync.enable.label")}</span>
             <span className="text-xs text-muted-foreground">
-              {t("profileTab.enableBackgroundSyncDescription")}
+              {t("settings.profile.autoSync.enable.description")}
             </span>
           </Label>
           <Switch
@@ -60,13 +62,15 @@ export function ProfileTab({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="sync-path">{t("profileTab.syncDirectory")}</Label>
+          <Label htmlFor="sync-path">
+            {t("settings.profile.autoSync.folder.label")}
+          </Label>
           <div className="flex items-center gap-2">
             <div
               id="sync-path"
               className="flex-grow truncate rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground"
             >
-              {syncPath || t("profileTab.notSelected")}
+              {syncPath || t("settings.profile.autoSync.folder.placeholder")}
             </div>
             <Button
               variant="outline"
@@ -80,16 +84,16 @@ export function ProfileTab({
       </div>
       <div className="space-y-4 rounded-lg border p-4">
         <h3 className="font-semibold flex items-center gap-2">
-          <GitBranch className="h-4 w-4" /> {t("profileTab.gitIntegration")}
+          <GitBranch className="h-4 w-4" /> {t("settings.profile.git.title")}
         </h3>
         <div className="flex items-center justify-between">
           <Label
             htmlFor="git-export-mode-toggle"
             className="flex flex-col items-start"
           >
-            <span>{t("profileTab.exportMode")}</span>
+            <span>{t("settings.profile.git.contextMode.label")}</span>
             <span className="text-xs text-muted-foreground">
-              {t("profileTab.exportModeDescription")}
+              {t("settings.profile.git.contextMode.description")}
             </span>
           </Label>
           <Switch
@@ -100,14 +104,16 @@ export function ProfileTab({
         </div>
       </div>
       <div className="space-y-4 rounded-lg border p-4 flex flex-col">
-        <h3 className="font-semibold">{t("profileTab.alwaysApplyText")}</h3>
+        <h3 className="font-semibold">
+          {t("settings.profile.alwaysApply.title")}
+        </h3>
         <div className="space-y-2 flex-grow flex flex-col">
           <Label htmlFor="always-apply-text">
-            {t("profileTab.alwaysApplyTextDescription")}
+            {t("settings.profile.alwaysApply.description")}
           </Label>
           <Textarea
             id="always-apply-text"
-            placeholder={t("profileTab.alwaysApplyTextPlaceholder")}
+            placeholder={t("settings.profile.alwaysApply.placeholder")}
             className="flex-1 resize-y min-h-[120px]"
             value={localText}
             onChange={(e) => setLocalText(e.target.value)}
@@ -124,7 +130,7 @@ export function ProfileTab({
           ) : (
             <Save className="mr-2 h-4 w-4" />
           )}
-          {t("profileTab.saveText")}
+          {t("settings.profile.alwaysApply.saveButton")}
         </Button>
       </div>
     </div>

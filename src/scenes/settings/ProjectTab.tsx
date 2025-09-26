@@ -44,17 +44,19 @@ export function ProjectTab({
   const { t } = useTranslation();
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">{t("projectTab.title")}</h2>
+      <h2 className="text-xl font-semibold">{t("settings.project.title")}</h2>
       <div className="space-y-4 rounded-lg border p-4">
-        <h3 className="font-semibold">{t("projectTab.projectWatching")}</h3>
+        <h3 className="font-semibold">
+          {t("settings.project.watching.title")}
+        </h3>
         <div className="flex items-center justify-between">
           <Label
             htmlFor="watching-toggle"
             className="flex flex-col items-start"
           >
-            <span>{t("projectTab.realTimeWatching")}</span>
+            <span>{t("settings.project.watching.enable.label")}</span>
             <span className="text-xs text-muted-foreground">
-              {t("projectTab.realTimeWatchingDescription")}
+              {t("settings.project.watching.enable.description")}
             </span>
           </Label>
           <Switch
@@ -67,21 +69,21 @@ export function ProjectTab({
       </div>
 
       <div className="space-y-4 rounded-lg border p-4 flex flex-col">
-        <h3 className="font-semibold">
-          {t("projectTab.customIgnorePatterns")}
-        </h3>
+        <h3 className="font-semibold">{t("settings.project.ignore.title")}</h3>
         <div className="space-y-2 flex-grow flex flex-col">
-          <Label htmlFor="custom-ignore">{t("projectTab.globPatterns")}</Label>
+          <Label htmlFor="custom-ignore">
+            {t("settings.project.ignore.label")}
+          </Label>
           <Textarea
             id="custom-ignore"
-            placeholder={t("projectTab.ignorePatternsPlaceholder")}
+            placeholder={t("settings.project.ignore.placeholder")}
             className="flex-1 resize-y min-h-[120px]"
             value={ignoreText}
             onChange={(e) => setIgnoreText(e.target.value)}
             disabled={isSaving}
           />
           <p className="text-xs text-muted-foreground">
-            {t("projectTab.ignorePatternsDescription")}
+            {t("settings.project.ignore.description")}
           </p>
         </div>
         <Button
@@ -90,27 +92,27 @@ export function ProjectTab({
           className="w-full mt-4"
         >
           {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {t("projectTab.saveAndRescan")}
+          {t("settings.project.ignore.saveButton")}
         </Button>
       </div>
 
       <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
         <h3 className="font-semibold text-destructive flex items-center gap-2">
           <AlertTriangle className="h-5 w-5" />
-          {t("projectTab.dangerZone")}
+          {t("settings.project.dangerZone.title")}
         </h3>
         <div className="flex items-center justify-between">
           <div className="flex flex-col items-start pr-4">
-            <span>{t("projectTab.deleteProjectData")}</span>
+            <span>{t("settings.project.dangerZone.deleteData.label")}</span>
             <span className="text-xs text-muted-foreground">
-              {t("projectTab.deleteProjectDataDescription")}
+              {t("settings.project.dangerZone.deleteData.description")}
             </span>
           </div>
           <Button
             variant="destructive"
             onClick={() => setIsDeleteProjectDialogOpen(true)}
           >
-            {t("projectTab.deleteData")}
+            {t("settings.project.dangerZone.deleteData.button")}
           </Button>
         </div>
       </div>
@@ -122,10 +124,10 @@ export function ProjectTab({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t("projectTab.confirmDeleteTitle")}
+              {t("settings.project.dangerZone.deleteDialog.title")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("projectTab.confirmDeleteDescription")}
+              {t("settings.project.dangerZone.deleteDialog.description")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -134,7 +136,7 @@ export function ProjectTab({
               className="bg-destructive hover:bg-destructive/90"
               onClick={handleConfirmDeleteProjectData}
             >
-              {t("projectTab.confirmDeleteAction")}
+              {t("settings.project.dangerZone.deleteDialog.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

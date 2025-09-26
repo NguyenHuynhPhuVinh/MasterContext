@@ -151,10 +151,10 @@ export function GroupEditorPanel() {
       <header className="flex items-center justify-between p-4 border-b shrink-0">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold">
-            {t("groupEditorPanel.editTitle", { name: group.name })}
+            {t("groupEditor.title", { name: group.name })}
           </h1>
           <p className="text-muted-foreground">
-            {t("groupEditorPanel.selectFilesDescription")}
+            {t("groupEditor.description")}
           </p>
         </div>
         <div className="flex flex-shrink-0 gap-2 ml-4">
@@ -164,9 +164,7 @@ export function GroupEditorPanel() {
             ) : (
               <Save className="mr-2 h-4 w-4" />
             )}
-            {isSaving
-              ? t("groupEditorPanel.saving")
-              : t("groupEditorPanel.saveChanges")}
+            {isSaving ? t("common.saving") : t("common.saveChanges")}
           </Button>
         </div>
       </header>
@@ -175,11 +173,11 @@ export function GroupEditorPanel() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={selectAllFiles}>
             <CheckCheck className="mr-2 h-4 w-4" />
-            {t("groupEditorPanel.selectAll")}
+            {t("groupEditor.selectAll")}
           </Button>
           <Button variant="outline" size="sm" onClick={deselectAllFiles}>
             <XCircle className="mr-2 h-4 w-4" />
-            {t("groupEditorPanel.deselectAll")}
+            {t("groupEditor.deselectAll")}
           </Button>
         </div>
 
@@ -198,7 +196,7 @@ export function GroupEditorPanel() {
             ) : (
               <Link2Off className="h-4 w-4" />
             )}
-            {t("groupEditorPanel.autoSelectRelated")}
+            {t("groupEditor.autoSelectLinked")}
           </Label>
         </div>
       </div>
@@ -207,7 +205,7 @@ export function GroupEditorPanel() {
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={t("groupEditorPanel.searchPlaceholder")}
+            placeholder={t("groupEditor.searchPlaceholder")}
             className="pl-8 pr-10" // Thêm padding bên phải cho nút
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -230,8 +228,8 @@ export function GroupEditorPanel() {
               <TooltipContent>
                 <p>
                   {showOnlyExcluded
-                    ? t("groupEditorPanel.removeFilter")
-                    : t("groupEditorPanel.filterExcludedFiles")}
+                    ? t("groupEditor.unfilterExcludedTooltip")
+                    : t("groupEditor.filterExcludedTooltip")}
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -249,8 +247,8 @@ export function GroupEditorPanel() {
           ) : (
             <div className="text-center text-muted-foreground p-4">
               {showOnlyExcluded
-                ? t("groupEditorPanel.noExcludedFiles")
-                : t("groupEditorPanel.noSearchResults", { searchTerm })}
+                ? t("groupEditor.noExcludedFiles")
+                : t("groupEditor.noSearchResults", { searchTerm })}
             </div>
           )}
         </ScrollArea>

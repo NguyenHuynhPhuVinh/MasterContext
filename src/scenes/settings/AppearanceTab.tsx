@@ -19,24 +19,26 @@ export function AppearanceTab() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">{t("appearanceTab.title")}</h2>
+      <h2 className="text-xl font-semibold">
+        {t("settings.appearance.title")}
+      </h2>
       <div className="flex items-center justify-between rounded-lg border p-4">
         <Label htmlFor="theme-toggle" className="text-base">
-          {t("appearanceTab.themeLabel")}
+          {t("settings.appearance.theme")}
         </Label>
         <ThemeToggle />
       </div>
       <div className="flex items-center justify-between rounded-lg border p-4">
         <Label htmlFor="language-select" className="text-base">
-          {t("appearanceTab.languageLabel")}
+          {t("settings.appearance.language")}
         </Label>
         <Select value={i18n.language} onValueChange={handleLanguageChange}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder={t("appearanceTab.selectLanguage")} />
+            <SelectValue placeholder="Chọn ngôn ngữ" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="vi">{t("appearanceTab.vietnamese")}</SelectItem>
-            <SelectItem value="en">{t("appearanceTab.english")}</SelectItem>
+            <SelectItem value="vi">Tiếng Việt</SelectItem>
+            <SelectItem value="en">English</SelectItem>
           </SelectContent>
         </Select>
       </div>

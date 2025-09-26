@@ -295,5 +295,14 @@
       "export_no_files": "The project has no files to export.",
       "generate_context_no_files": "The project has no files to generate context from."
     }
+  },
+  "sidebarPanel": {
+    "title": "Profiles & Groups",
+    "createProfile": "Create profile",
+    "createGroup": "Create new group",
+    "renameProfile": "Rename profile",
+    "deleteProfile": "Delete profile",
+    "deleteProfileTitle": "Confirm Profile Deletion?",
+    "deleteProfileDescription": "This action will permanently delete the '{{profile}}' profile and all its groups. Are you sure?"
   }
 }

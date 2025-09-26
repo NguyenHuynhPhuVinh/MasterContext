@@ -38,7 +38,7 @@ export function WelcomeScene() {
       const result = await open({
         directory: true,
         multiple: false,
-        title: t("welcomeScene.selectFolderTitle"),
+        title: t("welcome.openProjectDialogTitle"),
       });
       if (typeof result === "string") {
         selectRootPath(result);
@@ -64,7 +64,7 @@ export function WelcomeScene() {
         <img src={iconSrc} alt="Master Context Icon" className="h-32 w-32" />
 
         <p className="text-base text-muted-foreground font-normal">
-          {t("welcomeScene.description")}
+          {t("welcome.subtitle")}
         </p>
 
         <div className="flex w-full max-w-xs flex-col items-center gap-6">
@@ -75,12 +75,12 @@ export function WelcomeScene() {
             disabled={isScanning}
           >
             <Folder className="mr-2 h-5 w-5" />
-            {t("welcomeScene.openProject")}
+            {t("welcome.openProjectButton")}
           </Button>
 
           <div className="flex w-full items-center gap-2">
             <Input
-              placeholder={t("welcomeScene.gitUrlPlaceholder")}
+              placeholder={t("welcome.clonePlaceholder")}
               value={gitUrl}
               onChange={(e) => setGitUrl(e.target.value)}
               onKeyDown={(e) => {
@@ -104,7 +104,7 @@ export function WelcomeScene() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-muted/30 px-2 text-muted-foreground">
-                    {t("welcomeScene.orOpenRecent")}
+                    {t("welcome.orRecent")}
                   </span>
                 </div>
               </div>
@@ -112,7 +112,7 @@ export function WelcomeScene() {
               <div className="w-full text-center">
                 <h2 className="mb-3 flex items-center justify-center text-lg font-semibold">
                   <History className="mr-2 h-4 w-4" />
-                  {t("welcomeScene.recentProjects")}
+                  {t("welcome.openRecent")}
                 </h2>
                 <ScrollArea className="max-h-64 w-full rounded-md border bg-background/50 p-2">
                   <div className="space-y-1">
@@ -158,7 +158,7 @@ export function WelcomeScene() {
           variant="ghost"
           size="icon"
           onClick={() => setIsSettingsOpen(true)}
-          title={t("welcomeScene.settingsTitle")}
+          title={t("welcome.settingsTooltip")}
         >
           <Cog className="h-4 w-4" />
         </Button>

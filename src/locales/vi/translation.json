@@ -295,5 +295,14 @@
       "export_no_files": "Dự án không có file nào để xuất.",
       "generate_context_no_files": "Dự án không có file nào để tạo ngữ cảnh."
     }
+  },
+  "sidebarPanel": {
+    "title": "Hồ sơ & Nhóm",
+    "createProfile": "Tạo hồ sơ",
+    "createGroup": "Tạo nhóm mới",
+    "renameProfile": "Đổi tên hồ sơ",
+    "deleteProfile": "Xóa hồ sơ",
+    "deleteProfileTitle": "Xác nhận xóa hồ sơ?",
+    "deleteProfileDescription": "Hành động này sẽ xóa vĩnh viễn hồ sơ '{{profile}}' và tất cả các nhóm bên trong nó. Bạn có chắc chắn không?"
   }
 }
