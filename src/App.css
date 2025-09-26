@@ -197,3 +197,21 @@
 .markdown-content blockquote {
   @apply border-l-4 pl-4 italic text-muted-foreground;
 }
+
+/* Thêm style cho table */
+.markdown-content table {
+  @apply w-full my-4 border-collapse border border-border;
+}
+
+.markdown-content th,
+.markdown-content td {
+  @apply border border-border px-4 py-2 text-left;
+}
+
+.markdown-content th {
+  @apply bg-muted font-semibold;
+}
+
+.markdown-content tr:nth-of-type(even) {
+  @apply bg-muted/50;
+}
