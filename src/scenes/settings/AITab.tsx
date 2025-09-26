@@ -1,5 +1,6 @@
 // src/scenes/settings/AITab.tsx
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { useTranslation, Trans } from "react-i18next";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
@@ -8,8 +9,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2, Plus, X } from "lucide-react";
+import { Save, Loader2, X, ChevronsUpDown } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 interface AITabProps {
   apiKey: string;
@@ -32,6 +47,11 @@ interface AITabProps {
   }) => Promise<void>;
 }
 
+interface OpenRouterModel {
+  id: string;
+  name: string;
+}
+
 export function AITab({
   apiKey,
   models,
@@ -46,7 +66,6 @@ export function AITab({
   const { t } = useTranslation();
   const [localApiKey, setLocalApiKey] = useState(apiKey);
   const [localModels, setLocalModels] = useState(models);
-  const [newModelInput, setNewModelInput] = useState("");
   const [localStreamResponse, setLocalStreamResponse] =
     useState(streamResponse);
   const [localSystemPrompt, setLocalSystemPrompt] = useState(systemPrompt);
@@ -55,6 +74,11 @@ export function AITab({
   const [localTopK, setLocalTopK] = useState(topK);
   const [localMaxTokens, setLocalMaxTokens] = useState(maxTokens);
   const [isSaving, setIsSaving] = useState(false);
+  const [allAvailableModels, setAllAvailableModels] = useState<
+    OpenRouterModel[]
+  >([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
 
   useEffect(() => {
     setLocalApiKey(apiKey);
@@ -76,6 +100,29 @@ export function AITab({
     maxTokens,
   ]);
 
+  useEffect(() => {
+    const fetchAvailableModels = async () => {
+      setIsLoadingModels(true);
+      try {
+        // Thay đổi: Sử dụng axios.get
+        const response = await axios.get("https://openrouter.ai/api/v1/models");
+        // Thay đổi: Dữ liệu nằm trong response.data.data
+        const fetchedModels: OpenRouterModel[] = response.data.data.map(
+          (model: any) => ({
+            id: model.id,
+            name: model.name,
+          })
+        );
+        setAllAvailableModels(fetchedModels);
+      } catch (error) {
+        console.error("Failed to fetch models from OpenRouter:", error);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+    fetchAvailableModels();
+  }, []);
+
   const handleSave = async () => {
     setIsSaving(true);
     await onSave({
@@ -89,14 +136,6 @@ export function AITab({
       maxTokens: localMaxTokens,
     });
     setIsSaving(false);
-  };
-
-  const handleAddModel = () => {
-    const modelToAdd = newModelInput.trim();
-    if (modelToAdd && !localModels.includes(modelToAdd)) {
-      setLocalModels([...localModels, modelToAdd]);
-      setNewModelInput("");
-    }
   };
 
   const handleRemoveModel = (modelToRemove: string) => {
@@ -170,23 +209,59 @@ export function AITab({
               </Badge>
             ))}
           </div>
-          <div className="flex items-center gap-2">
-            <Input
-              id="ai-model-input"
-              placeholder="anthropic/claude-3-haiku..."
-              value={newModelInput}
-              onChange={(e) => setNewModelInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddModel();
-                }
-              }}
-            />
-            <Button onClick={handleAddModel} disabled={!newModelInput.trim()}>
-              <Plus className="h-4 w-4 mr-2" /> Thêm
-            </Button>
-          </div>
+          <Popover open={isModelPickerOpen} onOpenChange={setIsModelPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={isModelPickerOpen}
+                className="w-full justify-between"
+              >
+                Thêm một model...
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+              <Command>
+                <CommandInput placeholder="Tìm kiếm model..." />
+                {/* Thay đổi: Sử dụng ScrollArea của dự án */}
+                <ScrollArea className="h-[250px]">
+                  <CommandList>
+                    <CommandEmpty>
+                      {isLoadingModels
+                        ? "Đang tải models..."
+                        : "Không tìm thấy model."}
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {allAvailableModels
+                        .filter((model) => !localModels.includes(model.id))
+                        .map((model) => (
+                          <CommandItem
+                            key={model.id}
+                            // Thay đổi: value chỉ là id để xử lý onSelect dễ dàng hơn
+                            value={model.id}
+                            // SỬA LỖI DỨT ĐIỂM: Ngăn Popover "nuốt" sự kiện click
+                            onPointerDown={(e) => e.preventDefault()}
+                            // Thay đổi: Sửa logic onSelect để hoạt động ổn định
+                            onSelect={(currentValue) => {
+                              setLocalModels((prev) => [...prev, currentValue]);
+                              setIsModelPickerOpen(false);
+                            }}
+                          >
+                            <div className="flex flex-col">
+                              <span>{model.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {model.id}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                    </CommandGroup>
+                  </CommandList>
+                </ScrollArea>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="flex items-center justify-between pt-4 border-t">
           <Label
