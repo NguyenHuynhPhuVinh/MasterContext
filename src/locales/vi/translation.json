@@ -153,7 +153,10 @@
     "filterChangedTooltip": "Lọc file có thay đổi trong Git",
     "unfilterChangedTooltip": "Bỏ lọc file thay đổi",
     "noChangedFiles": "Không tìm thấy file nào có thay đổi trong Git.",
-    "noSearchResults": "Không tìm thấy kết quả nào khớp với \"{{searchTerm}}\"."
+    "noSearchResults": "Không tìm thấy kết quả nào khớp với \"{{searchTerm}}\".",
+    "filterPatchedTooltip": "Lọc file đã áp dụng vá lỗi",
+    "unfilterPatchedTooltip": "Bỏ lọc file vá lỗi",
+    "noPatchedFiles": "Không tìm thấy file nào đã áp dụng vá lỗi."
   },
   "mainPanel": {
     "placeholder": {

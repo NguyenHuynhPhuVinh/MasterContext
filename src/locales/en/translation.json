@@ -153,7 +153,10 @@
     "filterChangedTooltip": "Filter for files with Git changes",
     "unfilterChangedTooltip": "Remove Git changes filter",
     "noChangedFiles": "No files with Git changes found.",
-    "noSearchResults": "No results found for \"{{searchTerm}}\"."
+    "noSearchResults": "No results found for \"{{searchTerm}}\".",
+    "filterPatchedTooltip": "Filter for patched files",
+    "unfilterPatchedTooltip": "Remove patch filter",
+    "noPatchedFiles": "No patched files found."
   },
   "mainPanel": {
     "placeholder": {

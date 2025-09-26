@@ -14,6 +14,7 @@ import {
   XCircle,
   Search,
   GitMerge,
+  FileDiff,
 } from "lucide-react";
 import { Scissors } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -103,6 +104,28 @@ const filterForChangedFiles = (
   return null;
 };
 
+// --- HÀM LỌC MỚI: Chỉ giữ lại các file đã áp dụng patch ---
+const filterForPatchedFiles = (
+  node: FileNode,
+  patchedPaths: Set<string>
+): FileNode | null => {
+  // Trường hợp 1: Node là file
+  if (!node.children) {
+    return patchedPaths.has(node.path) ? node : null;
+  }
+
+  // Trường hợp 2: Node là thư mục
+  const filteredChildren = node.children
+    .map((child) => filterForPatchedFiles(child, patchedPaths))
+    .filter(Boolean) as FileNode[];
+
+  if (filteredChildren.length > 0) {
+    return { ...node, children: filteredChildren };
+  }
+
+  return null;
+};
+
 export function GroupEditorPanel() {
   const { t } = useTranslation();
   // <-- Đổi tên component
@@ -123,6 +146,7 @@ export function GroupEditorPanel() {
     tempSelectedPaths,
     isCrossLinkingEnabled,
     gitStatus,
+    virtualPatches,
   } = useAppStore(
     useShallow((state) => ({
       group: state.groups.find((g) => g.id === state.editingGroupId),
@@ -138,6 +162,7 @@ export function GroupEditorPanel() {
 
   const [showOnlyExcluded, setShowOnlyExcluded] = useState(false);
   const [showOnlyChanged, setShowOnlyChanged] = useState(false);
+  const [showOnlyPatched, setShowOnlyPatched] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [diffModalFile, setDiffModalFile] = useState<string | null>(null);
 
@@ -155,6 +180,15 @@ export function GroupEditorPanel() {
     );
   }, [fileMetadataCache]);
 
+  const patchedFilesSet = useMemo(() => {
+    return new Set(virtualPatches.keys());
+  }, [virtualPatches]);
+
+  const hasAnyPatches = useMemo(
+    () => patchedFilesSet.size > 0,
+    [patchedFilesSet]
+  );
+
   const handleTogglePath = useCallback(
     (toggledNode: FileNode, isSelected: boolean) => {
       toggleEditingPath(toggledNode, isSelected);
@@ -167,8 +201,13 @@ export function GroupEditorPanel() {
 
     let tree: FileNode | null = fileTree;
 
+    // 0. Lọc theo trạng thái "chỉ hiển thị file có patch"
+    if (showOnlyPatched && tree) {
+      tree = filterForPatchedFiles(tree, patchedFilesSet);
+    }
+
     // 1. Lọc theo trạng thái "chỉ hiển thị file có thay đổi"
-    if (showOnlyChanged) {
+    if (showOnlyChanged && tree) {
       tree = filterForChangedFiles(tree, changedFilesSet);
     }
 
@@ -190,6 +229,8 @@ export function GroupEditorPanel() {
     searchTerm,
     showOnlyExcluded,
     showOnlyChanged,
+    showOnlyPatched,
+    patchedFilesSet,
     changedFilesSet,
   ]);
 
@@ -261,7 +302,7 @@ export function GroupEditorPanel() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t("groupEditor.searchPlaceholder")}
-            className="pl-8 pr-[5.5rem]" // Thêm padding bên phải cho 2 nút
+            className="pl-8 pr-[7.5rem]" // Tăng padding cho 3 nút
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -316,6 +357,31 @@ export function GroupEditorPanel() {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7",
+                      showOnlyPatched && "bg-accent text-accent-foreground"
+                    )}
+                    onClick={() => setShowOnlyPatched(!showOnlyPatched)}
+                    disabled={!hasAnyPatches}
+                  >
+                    <FileDiff className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {showOnlyPatched
+                      ? t("groupEditor.unfilterPatchedTooltip")
+                      : t("groupEditor.filterPatchedTooltip")}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>
@@ -331,7 +397,9 @@ export function GroupEditorPanel() {
             />
           ) : (
             <div className="text-center text-muted-foreground p-4">
-              {showOnlyChanged
+              {showOnlyPatched
+                ? t("groupEditor.noPatchedFiles")
+                : showOnlyChanged
                 ? t("groupEditor.noChangedFiles")
                 : showOnlyExcluded
                 ? t("groupEditor.noExcludedFiles")
