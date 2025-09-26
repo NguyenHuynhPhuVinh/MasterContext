@@ -10,6 +10,7 @@ import {
   type GitCommit,
   type GitStatus,
   type AIChatSessionHeader,
+  type AIChatSession,
   type ChatMessage,
 } from "./types";
 import { initialState } from "./initialState";
@@ -101,6 +102,7 @@ export interface AppState {
   isAiPanelLoading: boolean;
   chatSessions: AIChatSessionHeader[];
   activeChatSessionId: string | null;
+  activeChatSession: AIChatSession | null;
   temperature: number;
   topP: number;
   topK: number;

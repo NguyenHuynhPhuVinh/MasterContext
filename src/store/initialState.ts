@@ -63,6 +63,7 @@ export const initialState = {
   isAiPanelLoading: false,
   chatSessions: [],
   activeChatSessionId: null,
+  activeChatSession: null,
   temperature: 1.0,
   topP: 1.0,
   topK: 0, // 0 means not set

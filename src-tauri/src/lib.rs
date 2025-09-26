@@ -72,7 +72,8 @@ pub fn run() {
             commands::save_chat_session,
             commands::load_chat_session,
             commands::delete_chat_session,
-            commands::update_chat_session_title
+            commands::update_chat_session_title,
+            commands::create_chat_session
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

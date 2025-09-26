@@ -106,3 +106,26 @@ pub fn update_chat_session_title(
     session.title = new_title;
     save_chat_session(app, project_path, profile_name, session)
 }
+
+#[command]
+pub fn create_chat_session(
+    app: AppHandle,
+    project_path: String,
+    profile_name: String,
+    title: String,
+) -> Result<models::AIChatSession, String> {
+    let new_session = models::AIChatSession {
+        id: uuid::Uuid::new_v4().to_string(),
+        title,
+        created_at: chrono::Utc::now(),
+        messages: Vec::new(),
+    };
+
+    save_chat_session(
+        app,
+        project_path,
+        profile_name,
+        new_session.clone(),
+    )?;
+    Ok(new_session)
+}

@@ -13,6 +13,8 @@ export interface AiActions {
   setOpenRouterApiKey: (key: string) => Promise<void>;
   setAiModel: (model: string) => Promise<void>;
   sendChatMessage: (prompt: string) => Promise<void>;
+  fetchOpenRouterResponse: () => Promise<void>;
+  saveCurrentChatSession: () => Promise<void>;
   createNewChatSession: () => void;
   loadChatSessions: () => Promise<void>;
   loadChatSession: (sessionId: string) => Promise<void>;
@@ -34,11 +36,78 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
     await get().actions.updateAppSettings({ aiModel: model });
   },
   sendChatMessage: async (prompt: string) => {
+    const { openRouterApiKey, aiModel } = get();
+    if (!openRouterApiKey) {
+      return;
+    }
+
+    set({ isAiPanelLoading: true });
+
+    try {
+      let currentSession = get().activeChatSession;
+
+      // If there's no active session, create one on the backend first
+      if (!currentSession) {
+        const { rootPath, activeProfile } = get();
+        if (!rootPath || !activeProfile) {
+          throw new Error("Project path or profile not set.");
+        }
+        const newSession = await invoke<AIChatSession>("create_chat_session", {
+          projectPath: rootPath,
+          profileName: activeProfile,
+          title: prompt.substring(0, 50),
+        });
+
+        currentSession = newSession;
+
+        set((state) => ({
+          activeChatSession: newSession,
+          activeChatSessionId: newSession.id,
+          chatMessages: [], // Start with empty messages
+          chatSessions: [
+            {
+              id: newSession.id,
+              title: newSession.title,
+              createdAt: newSession.createdAt,
+            },
+            ...state.chatSessions,
+          ],
+        }));
+      }
+
+      const newUserMessage: ChatMessage = { role: "user", content: prompt };
+
+      // Optimistically update UI
+      set((state) => ({
+        chatMessages: [...state.chatMessages, newUserMessage],
+      }));
+
+      await get().actions.saveCurrentChatSession(); // Save with the new user message
+
+      // Now proceed with the API call
+      await get().actions.fetchOpenRouterResponse();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("Error in sendChatMessage:", errorMessage);
+      const assistantErrorMessage: ChatMessage = {
+        role: "assistant",
+        content: `${t("aiPanel.error")}\n\n${errorMessage}`,
+      };
+      set((state) => ({
+        chatMessages: [...state.chatMessages, assistantErrorMessage],
+        isAiPanelLoading: false,
+      }));
+      await get().actions.saveCurrentChatSession();
+    }
+  },
+  // New helper action to fetch response from OpenRouter
+  fetchOpenRouterResponse: async () => {
     const {
       openRouterApiKey,
       aiModel,
-      activeChatSessionId,
       chatMessages,
+      activeChatSession,
       streamResponse,
       systemPrompt,
       temperature,
@@ -46,49 +115,13 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
       topK,
       maxTokens,
     } = get();
-    if (!openRouterApiKey) {
-      return;
-    }
-
-    let currentSessionId = activeChatSessionId;
-    let isNewSession = false;
-
-    // If there's no active session, create one
-    if (!currentSessionId) {
-      isNewSession = true;
-      const newSession: AIChatSession = {
-        id: Date.now().toString(),
-        title: prompt.substring(0, 50), // Use first prompt as title
-        createdAt: new Date().toISOString(),
-        messages: [],
-      };
-      currentSessionId = newSession.id;
-      set((state) => ({
-        activeChatSessionId: newSession.id,
-        chatSessions: [
-          {
-            id: newSession.id,
-            title: newSession.title,
-            createdAt: newSession.createdAt,
-          },
-          ...state.chatSessions,
-        ],
-      }));
-    }
-
-    const newUserMessage: ChatMessage = { role: "user", content: prompt };
-    const newUiMessages = [...chatMessages, newUserMessage];
-
-    // Optimistically update UI
-    set({ chatMessages: newUiMessages, isAiPanelLoading: true });
-
+    if (!openRouterApiKey || !activeChatSession) return;
     const messagesToSend: ChatMessage[] = [];
     if (systemPrompt && systemPrompt.trim()) {
       messagesToSend.push({ role: "system", content: systemPrompt });
     }
     // Important: send the whole history for context
     messagesToSend.push(...chatMessages);
-    messagesToSend.push(newUserMessage);
 
     // Build payload with advanced parameters
     const payload: Record<string, any> = {
@@ -100,29 +133,6 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
     if (topP) payload.top_p = topP;
     if (topK > 0) payload.top_k = topK;
     if (maxTokens > 0) payload.max_tokens = maxTokens;
-
-    const saveSession = async (finalMessages: ChatMessage[]) => {
-      const { rootPath, activeProfile, chatSessions } = get();
-      const currentSessionHeader = chatSessions.find(
-        (s) => s.id === currentSessionId
-      );
-      if (
-        rootPath &&
-        activeProfile &&
-        currentSessionId &&
-        currentSessionHeader
-      ) {
-        const sessionToSave: AIChatSession = {
-          ...currentSessionHeader,
-          messages: finalMessages,
-        };
-        await invoke("save_chat_session", {
-          projectPath: rootPath,
-          profileName: activeProfile,
-          session: sessionToSave,
-        });
-      }
-    };
 
     // Handle non-streaming case first
     if (!streamResponse) {
@@ -150,12 +160,11 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         const data = await response.json();
         const assistantMessage = data.choices[0].message;
 
-        const finalMessages = [...newUiMessages, assistantMessage];
         set((state) => ({
-          chatMessages: finalMessages,
+          chatMessages: [...state.chatMessages, assistantMessage],
           isAiPanelLoading: false,
         }));
-        await saveSession(finalMessages);
+        await get().actions.saveCurrentChatSession();
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
@@ -165,13 +174,11 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
           role: "assistant",
           content: `${t("aiPanel.error")}\n\n${errorMessage}`,
         };
-
-        const finalMessages = [...newUiMessages, assistantErrorMessage];
         set((state) => ({
-          chatMessages: finalMessages,
+          chatMessages: [...state.chatMessages, assistantErrorMessage],
           isAiPanelLoading: false,
         }));
-        await saveSession(finalMessages);
+        await get().actions.saveCurrentChatSession();
       }
       return;
     }
@@ -234,7 +241,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
                   content: delta,
                 };
                 set((state) => ({
-                  chatMessages: [...newUiMessages, newAssistantMessage],
+                  chatMessages: [...state.chatMessages, newAssistantMessage],
                 }));
               } else {
                 set((state) => {
@@ -263,7 +270,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
       }
 
       // Save after stream is complete
-      await saveSession(get().chatMessages);
+      await get().actions.saveCurrentChatSession();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -274,18 +281,22 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         content: `${t("aiPanel.error")}\n\n${errorMessage}`,
       };
 
-      const finalMessages = [...newUiMessages, assistantErrorMessage];
-      set((state) => ({
+      const finalMessages = [...get().chatMessages, assistantErrorMessage];
+      set({
         chatMessages: finalMessages,
         isAiPanelLoading: false,
-      }));
-      await saveSession(finalMessages);
+      });
+      await get().actions.saveCurrentChatSession();
     } finally {
       set({ isAiPanelLoading: false });
     }
   },
   createNewChatSession: () => {
-    set({ chatMessages: [], activeChatSessionId: null });
+    set({
+      chatMessages: [],
+      activeChatSessionId: null,
+      activeChatSession: null,
+    });
   },
   loadChatSessions: async () => {
     const { rootPath, activeProfile } = get();
@@ -311,6 +322,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         sessionId,
       });
       set({
+        activeChatSession: session,
         activeChatSessionId: session.id,
         chatMessages: session.messages,
       });
@@ -347,6 +359,22 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         s.id === sessionId ? { ...s, title: newTitle } : s
       ),
     }));
+  },
+  saveCurrentChatSession: async () => {
+    const { rootPath, activeProfile, activeChatSession, chatMessages } = get();
+    if (rootPath && activeProfile && activeChatSession) {
+      const sessionToSave: AIChatSession = {
+        ...activeChatSession,
+        messages: chatMessages, // Use the latest messages from the UI state
+      };
+      await invoke("save_chat_session", {
+        projectPath: rootPath,
+        profileName: activeProfile,
+        session: sessionToSave,
+      });
+      // Keep the state in sync after saving
+      set({ activeChatSession: sessionToSave });
+    }
   },
 });
 

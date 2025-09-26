@@ -1,4 +1,5 @@
 // src-tauri/src/models.rs
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -54,7 +55,7 @@ pub struct ChatMessage {
 pub struct AIChatSession {
     pub id: String,
     pub title: String,
-    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: DateTime<Utc>,
     pub messages: Vec<ChatMessage>,
 }
 
@@ -63,7 +64,7 @@ pub struct AIChatSession {
 pub struct AIChatSessionHeader {
     pub id: String,
     pub title: String,
-    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: DateTime<Utc>,
 }
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 
