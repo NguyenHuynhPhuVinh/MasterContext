@@ -61,7 +61,7 @@ export function WelcomeScene() {
   return (
     <div className="relative w-full h-full">
       <main className="flex w-full h-full flex-1 flex-col items-center justify-center gap-8 p-8 text-center bg-muted/30">
-        <img src={iconSrc} alt="Master Context Icon" className="h-32 w-32" />
+        <img src={iconSrc} alt="Master Context Icon" className="h-24 w-24" />
 
         <p className="text-base text-muted-foreground font-normal">
           {t("welcome.subtitle")}
