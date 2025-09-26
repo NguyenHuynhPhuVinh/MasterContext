@@ -18,6 +18,7 @@ import {
   X,
   Square,
   AlignJustify,
+  BrainCircuit,
 } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { ChatHistoryList } from "./ChatHistoryList";
@@ -158,7 +159,16 @@ export function AIPanel() {
           </div>
         </ScrollArea>
         <div className="p-4 border-t">
-          <div className="flex flex-col min-h-[80px] max-h-48 w-full rounded-md border bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
+          <div className="relative flex flex-col min-h-[80px] max-h-48 w-full rounded-md border bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
+            {selectedModelDetails?.context_length && (
+              <div className="flex-shrink-0 flex items-center justify-end gap-1.5 px-3 py-1 text-xs text-muted-foreground border-b bg-muted/50">
+                <BrainCircuit className="h-3 w-3" />
+                <span>
+                  Max Context:{" "}
+                  {selectedModelDetails.context_length.toLocaleString()} tokens
+                </span>
+              </div>
+            )}
             <Textarea
               placeholder={t("aiPanel.placeholder")}
               className="flex-1 w-full !rounded-none resize-none border-none bg-transparent px-3 py-3 shadow-none focus-visible:ring-0 custom-scrollbar"
@@ -167,7 +177,7 @@ export function AIPanel() {
               onKeyDown={handleKeyDown}
             />
             {/* Container cho các nút, nằm ở dưới cùng */}
-            <div className="flex-shrink-0 flex h-12 items-center justify-between px-3">
+            <div className="flex-shrink-0 flex h-12 items-center justify-between px-3 pt-1">
               {/* Nút bên trái */}
               <div>
                 {aiModels.length > 1 && (
@@ -194,19 +204,20 @@ export function AIPanel() {
                           <DropdownMenuRadioItem
                             key={model.id}
                             value={model.id}
-                            className="flex flex-col items-start p-2"
                           >
-                            <span className="font-medium">{model.name}</span>
-                            <div className="text-xs text-muted-foreground flex gap-2">
-                              <span>
-                                {model.context_length?.toLocaleString()} ctx
-                              </span>
-                              <span>
-                                In: {formatPrice(model.pricing.prompt)}/M
-                              </span>
-                              <span>
-                                Out: {formatPrice(model.pricing.completion)}/M
-                              </span>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{model.name}</span>
+                              <div className="text-xs text-muted-foreground flex gap-2">
+                                <span>
+                                  {model.context_length?.toLocaleString()} ctx
+                                </span>
+                                <span>
+                                  In: {formatPrice(model.pricing.prompt)}/M
+                                </span>
+                                <span>
+                                  Out: {formatPrice(model.pricing.completion)}/M
+                                </span>
+                              </div>
                             </div>
                           </DropdownMenuRadioItem>
                         ))}
