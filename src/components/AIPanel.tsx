@@ -10,7 +10,7 @@ import { useShallow } from "zustand/react/shallow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Send, Plus, Loader2, History, X } from "lucide-react";
+import { Send, Plus, Loader2, History, X, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChatHistoryList } from "./ChatHistoryList";
 import {
@@ -29,17 +29,28 @@ export function AIPanel() {
     loadChatSessions,
     loadChatSession,
   } = useAppActions();
-  const { chatMessages, isAiPanelLoading, openRouterApiKey } = useAppStore(
+  const {
+    chatMessages,
+    isAiPanelLoading,
+    openRouterApiKey,
+    activeChatSessionId,
+  } = useAppStore(
     useShallow((state) => ({
       chatMessages: state.chatMessages,
       isAiPanelLoading: state.isAiPanelLoading,
       openRouterApiKey: state.openRouterApiKey,
+      activeChatSessionId: state.activeChatSessionId,
     }))
   );
 
   const [prompt, setPrompt] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"chat" | "history">("chat");
+
+  // Effect để cuộn xuống cuối khi tin nhắn mới được thêm (khi đang stream)
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
 
   useEffect(() => {
     loadChatSessions();
@@ -50,6 +61,13 @@ export function AIPanel() {
     setView("chat");
   };
 
+  // Effect để cuộn xuống cuối khi một session mới được tải
+  useEffect(() => {
+    if (activeChatSessionId) {
+      setTimeout(() => messagesEndRef.current?.scrollIntoView(), 0);
+    }
+  }, [activeChatSessionId]);
+
   const handleSend = () => {
     if (prompt.trim()) {
       sendChatMessage(prompt.trim());
@@ -58,7 +76,7 @@ export function AIPanel() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !isAiPanelLoading) {
       e.preventDefault();
       handleSend();
     }
@@ -132,7 +150,7 @@ export function AIPanel() {
               disabled={!isAiPanelLoading && !prompt.trim()}
             >
               {isAiPanelLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Square className="h-4 w-4" />
               ) : (
                 <Send className="h-4 w-4" />
               )}
