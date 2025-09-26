@@ -34,6 +34,12 @@ pub struct GitCommit {
     pub date: String,
     pub message: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct GitStatus {
+    pub files: BTreeMap<String, String>, // Path -> Status Code (e.g., "M", "A", "D")
+}
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]

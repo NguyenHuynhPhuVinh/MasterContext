@@ -87,4 +87,8 @@ export interface GitCommit {
   message: string;
 }
 
+export interface GitStatus {
+  files: Record<string, string>; // path -> status code
+}
+
 export type GitLogState = "idle" | "loading_repo" | "loading_commits" | "error";

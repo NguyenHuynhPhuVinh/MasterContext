@@ -8,6 +8,7 @@ import {
   type FileMetadata,
   type GitRepositoryInfo,
   type GitCommit,
+  type GitStatus,
 } from "./types";
 import { initialState } from "./initialState";
 import {
@@ -81,6 +82,7 @@ export interface AppState {
   // Git Panel
   isGitPanelVisible: boolean;
   gitRepoInfo: GitRepositoryInfo | null;
+  gitStatus: GitStatus | null;
   gitCommits: GitCommit[];
   gitLogState: "idle" | "loading_repo" | "loading_commits" | "error";
   gitCurrentPage: number;

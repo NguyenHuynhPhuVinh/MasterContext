@@ -1,7 +1,11 @@
 // src/store/actions/gitActions.ts
 import { StateCreator } from "zustand";
 import { AppState } from "../appStore";
-import { type GitRepositoryInfo, type GitCommit } from "../types";
+import {
+  type GitRepositoryInfo,
+  type GitCommit,
+  type GitStatus,
+} from "../types";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -11,6 +15,7 @@ import { message } from "@tauri-apps/plugin-dialog";
 const COMMITS_PER_PAGE = 20;
 
 export interface GitActions {
+  fetchGitStatus: () => Promise<void>;
   checkGitRepo: () => Promise<void>;
   fetchGitCommits: (loadMore?: boolean) => Promise<void>;
   reloadGitCommits: () => Promise<void>;
@@ -24,6 +29,23 @@ export const createGitActions: StateCreator<AppState, [], [], GitActions> = (
   set,
   get
 ) => ({
+  fetchGitStatus: async () => {
+    const { rootPath, gitRepoInfo } = get();
+    if (!rootPath || !gitRepoInfo?.isRepository) {
+      set({ gitStatus: null });
+      return;
+    }
+    try {
+      const status = await invoke<GitStatus>("get_git_status", {
+        path: rootPath,
+      });
+      set({ gitStatus: status });
+    } catch (e) {
+      console.error("Failed to get git status:", e);
+      set({ gitStatus: null });
+    }
+  },
+
   checkGitRepo: async () => {
     const { rootPath } = get();
     if (!rootPath) return;

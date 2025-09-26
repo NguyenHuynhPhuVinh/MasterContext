@@ -49,6 +49,7 @@ interface FileTreeViewProps {
   node: FileNode;
   selectedPaths: Set<string>;
   onToggle: (node: FileNode, isSelected: boolean) => void; // <-- Sửa prop để truyền cả node
+  gitStatus: Record<string, string> | null;
   level?: number;
 }
 
@@ -56,6 +57,7 @@ export function FileTreeView({
   node,
   selectedPaths,
   onToggle,
+  gitStatus,
   level = 0,
 }: FileTreeViewProps) {
   const { openFileInEditor } = useAppActions();
@@ -63,6 +65,16 @@ export function FileTreeView({
   const checkboxRef = useRef<HTMLInputElement>(null);
   const isDirectory = Array.isArray(node.children);
   const [isOpen, setIsOpen] = useState(level < 2);
+  const fileGitStatus = gitStatus?.[node.path];
+
+  const getStatusColor = (status: string | undefined) => {
+    if (!status) return "";
+    if (status.includes("M")) return "text-blue-500 dark:text-blue-400";
+    if (status.includes("A")) return "text-green-500 dark:text-green-400";
+    if (status.includes("D")) return "text-red-500 dark:text-red-400";
+    if (status.includes("R")) return "text-purple-500 dark:text-purple-400";
+    return "text-orange-500 dark:text-orange-400"; // for C, ?? and other cases
+  };
 
   const hasExclusions =
     !isDirectory &&
@@ -131,6 +143,17 @@ export function FileTreeView({
             </>
           )}
           <span className="ml-2 truncate">{node.name}</span>
+          {fileGitStatus && (
+            <span
+              className={cn(
+                "ml-auto font-mono text-xs font-bold",
+                getStatusColor(fileGitStatus)
+              )}
+              title={`Git Status: ${fileGitStatus}`}
+            >
+              {fileGitStatus}
+            </span>
+          )}
         </div>
       </div>
       {isDirectory && isOpen && node.children && (
@@ -141,6 +164,7 @@ export function FileTreeView({
               node={child}
               selectedPaths={selectedPaths}
               onToggle={onToggle}
+              gitStatus={gitStatus}
               level={level + 1}
             />
           ))}

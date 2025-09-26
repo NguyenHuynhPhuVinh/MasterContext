@@ -136,6 +136,9 @@
     "filterExcludedTooltip": "Filter for files with excluded ranges",
     "unfilterExcludedTooltip": "Remove filter",
     "noExcludedFiles": "No files with excluded ranges found.",
+    "filterChangedTooltip": "Filter for files with Git changes",
+    "unfilterChangedTooltip": "Remove Git changes filter",
+    "noChangedFiles": "No files with Git changes found.",
     "noSearchResults": "No results found for \"{{searchTerm}}\"."
   },
   "mainPanel": {

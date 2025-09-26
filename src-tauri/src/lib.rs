@@ -63,8 +63,9 @@ pub fn run() {
             commands::generate_commit_context,
             commands::set_git_export_mode_setting,
             commands::checkout_commit,
-            commands::checkout_branch, // <-- COMMAND MỚI
-            commands::clone_git_repository
+            commands::checkout_branch,
+            commands::clone_git_repository,
+            commands::get_git_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

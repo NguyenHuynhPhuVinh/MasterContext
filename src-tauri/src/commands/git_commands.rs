@@ -1,10 +1,10 @@
 // src-tauri/src/commands/git_commands.rs
 
-use crate::models::{self, FsEntry};
+use crate::models::{self, FsEntry, GitStatus};
 use std::path::Path;
 use tauri::command;
 use std::collections::BTreeMap;
-use git2::Repository;
+use git2::{Repository, StatusOptions, Status};
 use std::fmt::Write as FmtWrite;
 
 #[command]
@@ -393,6 +393,43 @@ pub fn checkout_branch(path: String, branch: String) -> Result<(), String> {
     )).map_err(|e| format!("Không thể checkout nhánh '{}': {}", branch, e))?;
 
     Ok(())
+}
+
+#[command]
+pub fn get_git_status(path: String) -> Result<GitStatus, String> {
+    let repo = git2::Repository::open(&path).map_err(|e| e.to_string())?;
+    
+    let mut opts = StatusOptions::new();
+    opts.include_untracked(true).recurse_untracked_dirs(true);
+
+    let statuses = repo.statuses(Some(&mut opts)).map_err(|e| e.to_string())?;
+    let mut files_status_map = BTreeMap::new();
+
+    for entry in statuses.iter() {
+        let status = entry.status();
+        if status == Status::CURRENT { continue; }
+
+        if let Some(path_str) = entry.path() {
+            // Prioritize the most significant status for a simple display
+            let status_char = 
+                if status.is_wt_new() { "A" } // Untracked is like a new file in working tree
+                else if status.is_index_new() { "A" }
+                else if status.is_wt_deleted() || status.is_index_deleted() { "D" }
+                else if status.is_wt_renamed() || status.is_index_renamed() { "R" }
+                else if status.is_wt_modified() || status.is_index_modified() { "M" }
+                else if status.is_conflicted() { "C" }
+                else { "" };
+
+            if !status_char.is_empty() {
+                files_status_map.insert(
+                    path_str.to_string().replace("\\", "/"), 
+                    status_char.to_string()
+                );
+            }
+        }
+    }
+
+    Ok(GitStatus { files: files_status_map })
 }
 
 #[command]

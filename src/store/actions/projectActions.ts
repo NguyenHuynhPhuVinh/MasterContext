@@ -201,6 +201,7 @@ export const createProjectActions: StateCreator<
 
     // Luôn làm mới trạng thái Git sau khi quét xong
     await get().actions.checkGitRepo();
+    await get().actions.fetchGitStatus();
   },
   _setScanError: (error) => {
     console.error("Scan error from Rust:", error);

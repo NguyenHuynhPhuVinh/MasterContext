@@ -136,6 +136,9 @@
     "filterExcludedTooltip": "Lọc file có vùng bị loại trừ",
     "unfilterExcludedTooltip": "Bỏ lọc",
     "noExcludedFiles": "Không có file nào bị loại trừ.",
+    "filterChangedTooltip": "Lọc file có thay đổi trong Git",
+    "unfilterChangedTooltip": "Bỏ lọc file thay đổi",
+    "noChangedFiles": "Không tìm thấy file nào có thay đổi trong Git.",
     "noSearchResults": "Không tìm thấy kết quả nào khớp với \"{{searchTerm}}\"."
   },
   "mainPanel": {

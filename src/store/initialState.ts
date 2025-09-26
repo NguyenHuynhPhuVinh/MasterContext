@@ -49,6 +49,7 @@ export const initialState = {
   nonAnalyzableExtensions: [],
   isGitPanelVisible: false,
   gitRepoInfo: null,
+  gitStatus: null,
   gitCommits: [],
   gitLogState: "idle" as "idle" | "loading_repo" | "loading_commits" | "error",
   gitCurrentPage: 0,

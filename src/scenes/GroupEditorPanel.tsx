@@ -13,6 +13,7 @@ import {
   CheckCheck,
   XCircle,
   Search,
+  GitMerge,
 } from "lucide-react";
 import { Scissors } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -80,6 +81,27 @@ const filterForExcludedFiles = (
   return null;
 };
 
+// --- HÀM LỌC MỚI: Chỉ giữ lại các file có thay đổi Git ---
+const filterForChangedFiles = (
+  node: FileNode,
+  changedPaths: Set<string>
+): FileNode | null => {
+  // Trường hợp 1: Node là file
+  if (!node.children) {
+    return changedPaths.has(node.path) ? node : null;
+  }
+
+  // Trường hợp 2: Node là thư mục
+  const filteredChildren = node.children
+    .map((child) => filterForChangedFiles(child, changedPaths))
+    .filter(Boolean) as FileNode[];
+
+  if (filteredChildren.length > 0) {
+    return { ...node, children: filteredChildren };
+  }
+  return null;
+};
+
 export function GroupEditorPanel() {
   const { t } = useTranslation();
   // <-- Đổi tên component
@@ -98,6 +120,7 @@ export function GroupEditorPanel() {
     fileMetadataCache,
     tempSelectedPaths,
     isCrossLinkingEnabled,
+    gitStatus,
   } = useAppStore(
     useShallow((state) => ({
       group: state.groups.find((g) => g.id === state.editingGroupId),
@@ -106,11 +129,20 @@ export function GroupEditorPanel() {
       fileMetadataCache: state.fileMetadataCache,
       tempSelectedPaths: state.tempSelectedPaths,
       isCrossLinkingEnabled: state.isCrossLinkingEnabled,
+      gitStatus: state.gitStatus,
     }))
   );
 
   const [showOnlyExcluded, setShowOnlyExcluded] = useState(false);
+  const [showOnlyChanged, setShowOnlyChanged] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const changedFilesSet = useMemo(() => {
+    if (!gitStatus || !gitStatus.files) {
+      return new Set<string>();
+    }
+    return new Set(Object.keys(gitStatus.files));
+  }, [gitStatus]);
 
   const handleTogglePath = useCallback(
     (toggledNode: FileNode, isSelected: boolean) => {
@@ -122,21 +154,33 @@ export function GroupEditorPanel() {
   const filteredFileTree = useMemo(() => {
     if (!fileTree || !fileMetadataCache) return null;
 
-    let tree = fileTree;
+    let tree: FileNode | null = fileTree;
 
-    // 1. Lọc theo trạng thái "chỉ hiển thị file bị loại trừ" trước
-    if (showOnlyExcluded) {
+    // 1. Lọc theo trạng thái "chỉ hiển thị file có thay đổi"
+    if (showOnlyChanged) {
+      tree = filterForChangedFiles(tree, changedFilesSet);
+    }
+
+    // 2. Lọc theo trạng thái "chỉ hiển thị file bị loại trừ"
+    if (tree && showOnlyExcluded) {
       const excludedTree = filterForExcludedFiles(tree, fileMetadataCache);
-      if (!excludedTree) return null; // Trả về null nếu không có file nào
       tree = excludedTree;
     }
 
-    // 2. Sau đó, áp dụng bộ lọc tìm kiếm trên kết quả đã có
-    if (!searchTerm.trim()) {
-      return tree;
+    // 3. Áp dụng bộ lọc tìm kiếm
+    if (tree && searchTerm.trim()) {
+      tree = filterNode(tree, searchTerm);
     }
-    return filterNode(tree, searchTerm);
-  }, [fileTree, fileMetadataCache, searchTerm, showOnlyExcluded]);
+
+    return tree;
+  }, [
+    fileTree,
+    fileMetadataCache,
+    searchTerm,
+    showOnlyExcluded,
+    showOnlyChanged,
+    changedFilesSet,
+  ]);
 
   if (!group || !fileTree || tempSelectedPaths === null) {
     return (
@@ -206,34 +250,61 @@ export function GroupEditorPanel() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t("groupEditor.searchPlaceholder")}
-            className="pl-8 pr-10" // Thêm padding bên phải cho nút
+            className="pl-8 pr-[5.5rem]" // Thêm padding bên phải cho 2 nút
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <TooltipProvider delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "absolute right-1.5 top-1/2 h-7 w-7 -translate-y-1/2",
-                    showOnlyExcluded && "bg-accent text-accent-foreground"
-                  )}
-                  onClick={() => setShowOnlyExcluded(!showOnlyExcluded)}
-                >
-                  <Scissors className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {showOnlyExcluded
-                    ? t("groupEditor.unfilterExcludedTooltip")
-                    : t("groupEditor.filterExcludedTooltip")}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center">
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7",
+                      showOnlyExcluded && "bg-accent text-accent-foreground"
+                    )}
+                    onClick={() => setShowOnlyExcluded(!showOnlyExcluded)}
+                  >
+                    <Scissors className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {showOnlyExcluded
+                      ? t("groupEditor.unfilterExcludedTooltip")
+                      : t("groupEditor.filterExcludedTooltip")}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7",
+                      showOnlyChanged && "bg-accent text-accent-foreground"
+                    )}
+                    onClick={() => setShowOnlyChanged(!showOnlyChanged)}
+                    disabled={changedFilesSet.size === 0}
+                  >
+                    <GitMerge className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {showOnlyChanged
+                      ? t("groupEditor.unfilterChangedTooltip")
+                      : t("groupEditor.filterChangedTooltip")}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
       <main className="flex-1 overflow-hidden">
@@ -243,12 +314,17 @@ export function GroupEditorPanel() {
               node={filteredFileTree}
               selectedPaths={tempSelectedPaths}
               onToggle={handleTogglePath}
+              gitStatus={gitStatus?.files ?? null}
             />
           ) : (
             <div className="text-center text-muted-foreground p-4">
-              {showOnlyExcluded
+              {showOnlyChanged
+                ? t("groupEditor.noChangedFiles")
+                : showOnlyExcluded
                 ? t("groupEditor.noExcludedFiles")
-                : t("groupEditor.noSearchResults", { searchTerm })}
+                : searchTerm
+                ? t("groupEditor.noSearchResults", { searchTerm })
+                : t("groupEditor.noExcludedFiles")}
             </div>
           )}
         </ScrollArea>
