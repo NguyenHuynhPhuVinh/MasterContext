@@ -21,10 +21,7 @@ export interface SettingsActions {
   setAlwaysApplyText: (text: string) => Promise<void>;
   setExportExcludeExtensions: (extensions: string[]) => Promise<void>;
   setGitExportMode: (enabled: boolean) => Promise<void>;
-  setCrossLinkingEnabled: (enabled: boolean) => void;
   updateAppSettings: (settings: Partial<AppSettings>) => Promise<void>;
-  setOpenRouterApiKey: (key: string) => Promise<void>;
-  setAiModel: (model: string) => Promise<void>;
 }
 
 export const createSettingsActions: StateCreator<
@@ -284,9 +281,6 @@ export const createSettingsActions: StateCreator<
       }));
     }
   },
-  setCrossLinkingEnabled: (enabled: boolean) => {
-    set({ isCrossLinkingEnabled: enabled });
-  },
   updateAppSettings: async (newSettings) => {
     const { recentPaths, nonAnalyzableExtensions, openRouterApiKey, aiModel } =
       get();
@@ -310,12 +304,5 @@ export const createSettingsActions: StateCreator<
       console.error("Failed to update app settings:", e);
       message(`Không thể lưu cài đặt: ${e}`, { title: "Lỗi", kind: "error" });
     }
-  },
-  // These are now just wrappers around updateAppSettings
-  setOpenRouterApiKey: async (key: string) => {
-    await get().actions.updateAppSettings({ openRouterApiKey: key });
-  },
-  setAiModel: async (model: string) => {
-    await get().actions.updateAppSettings({ aiModel: model });
   },
 });

@@ -64,8 +64,7 @@ export function useSettingsScene() {
     setExportExcludeExtensions,
     setGitExportMode,
     deleteCurrentProjectData,
-    setOpenRouterApiKey,
-    setAiModel,
+    updateAppSettings,
   } = useAppActions();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
@@ -141,8 +140,7 @@ export function useSettingsScene() {
     showDashboard,
     openRouterApiKey,
     aiModel,
-    setOpenRouterApiKey,
-    setAiModel,
+    updateAppSettings,
     setSyncSettings,
     setCustomIgnorePatterns,
     setFileWatching,

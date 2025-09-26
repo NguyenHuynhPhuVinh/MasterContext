@@ -24,6 +24,7 @@ export interface UIActions {
     } | null
   ) => void;
   _setRecentPaths: (paths: string[]) => void;
+  setCrossLinkingEnabled: (enabled: boolean) => void;
   openFileInEditor: (filePath: string) => Promise<void>;
   closeEditor: () => void;
   addExclusionRange: (start: number, end: number) => Promise<void>;
@@ -78,6 +79,9 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
   },
   setInlineEditingGroup: (state) => set({ inlineEditingGroup: state }),
   _setRecentPaths: (paths) => set({ recentPaths: paths }),
+  setCrossLinkingEnabled: (enabled: boolean) => {
+    set({ isCrossLinkingEnabled: enabled });
+  },
   openFileInEditor: async (filePath: string) => {
     const { rootPath, activeEditorFile } = _get();
     if (!rootPath || filePath === activeEditorFile) return;

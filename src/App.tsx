@@ -256,6 +256,7 @@ function App() {
     isSidebarVisible,
     isGitPanelVisible,
     isEditorPanelVisible,
+    isAiPanelVisible,
     isGroupEditorPanelVisible,
     openFolderFromMenu,
     rescanProject,

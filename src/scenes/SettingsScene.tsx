@@ -41,8 +41,7 @@ export function SettingsScene() {
     gitExportModeIsContext,
     openRouterApiKey,
     aiModel,
-    setOpenRouterApiKey,
-    setAiModel,
+    updateAppSettings,
     setGitExportMode,
     showDashboard,
     setFileWatching,
@@ -130,8 +129,11 @@ export function SettingsScene() {
           <AITab
             apiKey={openRouterApiKey}
             model={aiModel}
-            onSave={async (key, model) => {
-              await Promise.all([setOpenRouterApiKey(key), setAiModel(model)]);
+            onSave={async ({ apiKey, model }) => {
+              await updateAppSettings({
+                openRouterApiKey: apiKey,
+                aiModel: model,
+              });
             }}
           />
         );

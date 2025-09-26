@@ -9,10 +9,10 @@ import { Save, Loader2 } from "lucide-react";
 interface AITabProps {
   apiKey: string;
   model: string;
-  onSave: (apiKey: string, model: string) => Promise<void>;
+  onSave: (settings: { apiKey: string; model: string }) => Promise<void>;
 }
 
-export function AITab({ apiKey, model, onSave }: AITabProps) {
+export function AITab({ apiKey, model, onSave: onSaveProp }: AITabProps) {
   const { t } = useTranslation();
   const [localApiKey, setLocalApiKey] = useState(apiKey);
   const [localModel, setLocalModel] = useState(model);
@@ -25,7 +25,7 @@ export function AITab({ apiKey, model, onSave }: AITabProps) {
 
   const handleSave = async () => {
     setIsSaving(true);
-    await onSave(localApiKey, localModel);
+    await onSaveProp({ apiKey: localApiKey, model: localModel });
     setIsSaving(false);
   };
 
