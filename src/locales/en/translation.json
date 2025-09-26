@@ -290,6 +290,11 @@
       "streamResponse": {
         "label": "Stream responses",
         "description": "Receive AI responses chunk by chunk for a faster perceived response."
+      },
+      "systemPrompt": {
+        "title": "System Prompt",
+        "description": "An instruction that guides the AI's behavior for the entire conversation.",
+        "placeholder": "You are a helpful assistant."
       }
     }
   },

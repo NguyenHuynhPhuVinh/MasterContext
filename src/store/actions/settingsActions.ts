@@ -288,6 +288,7 @@ export const createSettingsActions: StateCreator<
       openRouterApiKey,
       aiModel,
       streamResponse,
+      systemPrompt,
     } = get();
     const fullSettings: AppSettings = {
       recentPaths: newSettings.recentPaths ?? recentPaths,
@@ -296,6 +297,7 @@ export const createSettingsActions: StateCreator<
       openRouterApiKey: newSettings.openRouterApiKey ?? openRouterApiKey,
       aiModel: newSettings.aiModel ?? aiModel,
       streamResponse: newSettings.streamResponse ?? streamResponse,
+      systemPrompt: newSettings.systemPrompt ?? systemPrompt,
     };
 
     try {
@@ -306,6 +308,7 @@ export const createSettingsActions: StateCreator<
         openRouterApiKey: fullSettings.openRouterApiKey ?? "",
         aiModel: fullSettings.aiModel ?? "openai/gpt-3.5-turbo",
         streamResponse: fullSettings.streamResponse ?? true,
+        systemPrompt: fullSettings.systemPrompt ?? "",
       });
     } catch (e) {
       console.error("Failed to update app settings:", e);

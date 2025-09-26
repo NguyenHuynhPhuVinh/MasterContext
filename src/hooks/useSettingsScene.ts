@@ -30,6 +30,7 @@ export function useSettingsScene() {
     openRouterApiKey,
     aiModel,
     streamResponse,
+    systemPrompt,
   } = useAppStore(
     useShallow((state) => ({
       syncEnabled: state.syncEnabled,
@@ -49,6 +50,7 @@ export function useSettingsScene() {
       openRouterApiKey: state.openRouterApiKey,
       aiModel: state.aiModel,
       streamResponse: state.streamResponse,
+      systemPrompt: state.systemPrompt,
     }))
   );
 
@@ -143,6 +145,7 @@ export function useSettingsScene() {
     openRouterApiKey,
     aiModel,
     streamResponse,
+    systemPrompt,
     updateAppSettings,
     setSyncSettings,
     setCustomIgnorePatterns,

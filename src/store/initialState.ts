@@ -62,6 +62,7 @@ export const initialState = {
   chatMessages: [],
   isAiPanelLoading: false,
   streamResponse: true,
+  systemPrompt: "",
 };
 
 export type InitialState = typeof initialState;

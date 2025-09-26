@@ -22,15 +22,29 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
     await get().actions.updateAppSettings({ aiModel: model });
   },
   sendChatMessage: async (prompt: string) => {
-    const { openRouterApiKey, aiModel, chatMessages, streamResponse } = get();
+    const {
+      openRouterApiKey,
+      aiModel,
+      chatMessages,
+      streamResponse,
+      systemPrompt,
+    } = get();
     if (!openRouterApiKey) {
       return;
     }
 
     const newUserMessage: ChatMessage = { role: "user", content: prompt };
-    const newMessages = [...chatMessages, newUserMessage];
+    const newUiMessages = [...chatMessages, newUserMessage];
 
-    set({ chatMessages: newMessages, isAiPanelLoading: true });
+    const messagesToSend: ChatMessage[] = [];
+    if (systemPrompt && systemPrompt.trim()) {
+      messagesToSend.push({ role: "system", content: systemPrompt });
+    }
+    // Important: send the whole history for context
+    messagesToSend.push(...chatMessages);
+    messagesToSend.push(newUserMessage);
+
+    set({ chatMessages: newUiMessages, isAiPanelLoading: true });
 
     // Handle non-streaming case first
     if (!streamResponse) {
@@ -45,7 +59,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
             },
             body: JSON.stringify({
               model: aiModel,
-              messages: newMessages,
+              messages: messagesToSend,
               stream: false, // Explicitly false
             }),
           }
@@ -93,7 +107,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
           },
           body: JSON.stringify({
             model: aiModel,
-            messages: newMessages,
+            messages: messagesToSend,
             stream: true,
           }),
         }

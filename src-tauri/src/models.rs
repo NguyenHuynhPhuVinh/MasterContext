@@ -50,6 +50,7 @@ pub struct AppSettings {
     pub open_router_api_key: Option<String>,
     pub ai_model: Option<String>,
     pub stream_response: Option<bool>,
+    pub system_prompt: Option<String>,
 }
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 

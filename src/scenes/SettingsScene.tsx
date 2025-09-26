@@ -42,6 +42,7 @@ export function SettingsScene() {
     openRouterApiKey,
     aiModel,
     streamResponse,
+    systemPrompt,
     updateAppSettings,
     setGitExportMode,
     showDashboard,
@@ -131,11 +132,13 @@ export function SettingsScene() {
             apiKey={openRouterApiKey}
             model={aiModel}
             streamResponse={streamResponse}
-            onSave={async ({ apiKey, model, streamResponse }) => {
+            systemPrompt={systemPrompt}
+            onSave={async ({ apiKey, model, streamResponse, systemPrompt }) => {
               await updateAppSettings({
                 openRouterApiKey: apiKey,
                 aiModel: model,
                 streamResponse: streamResponse,
+                systemPrompt: systemPrompt,
               });
             }}
           />

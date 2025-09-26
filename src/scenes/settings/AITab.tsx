@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Save, Loader2 } from "lucide-react";
 
@@ -11,10 +12,12 @@ interface AITabProps {
   apiKey: string;
   model: string;
   streamResponse: boolean;
+  systemPrompt: string;
   onSave: (settings: {
     apiKey: string;
     model: string;
     streamResponse: boolean;
+    systemPrompt: string;
   }) => Promise<void>;
 }
 
@@ -22,6 +25,7 @@ export function AITab({
   apiKey,
   model,
   streamResponse,
+  systemPrompt,
   onSave: onSaveProp,
 }: AITabProps) {
   const { t } = useTranslation();
@@ -29,13 +33,15 @@ export function AITab({
   const [localModel, setLocalModel] = useState(model);
   const [localStreamResponse, setLocalStreamResponse] =
     useState(streamResponse);
+  const [localSystemPrompt, setLocalSystemPrompt] = useState(systemPrompt);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setLocalApiKey(apiKey);
     setLocalModel(model);
     setLocalStreamResponse(streamResponse);
-  }, [apiKey, model, streamResponse]);
+    setLocalSystemPrompt(systemPrompt);
+  }, [apiKey, model, streamResponse, systemPrompt]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -43,6 +49,7 @@ export function AITab({
       apiKey: localApiKey,
       model: localModel,
       streamResponse: localStreamResponse,
+      systemPrompt: localSystemPrompt,
     });
     setIsSaving(false);
   };
@@ -50,7 +57,8 @@ export function AITab({
   const isChanged =
     localApiKey !== apiKey ||
     localModel !== model ||
-    localStreamResponse !== streamResponse;
+    localStreamResponse !== streamResponse ||
+    localSystemPrompt !== systemPrompt;
 
   return (
     <div className="space-y-6">
@@ -91,6 +99,23 @@ export function AITab({
             id="stream-response-toggle"
             checked={localStreamResponse}
             onCheckedChange={setLocalStreamResponse}
+          />
+        </div>
+        <div className="flex flex-col space-y-3 pt-4 border-t">
+          <div className="flex flex-col items-start gap-1">
+            <Label htmlFor="system-prompt">
+              {t("settings.ai.systemPrompt.title")}
+            </Label>
+            <span className="text-xs text-muted-foreground">
+              {t("settings.ai.systemPrompt.description")}
+            </span>
+          </div>
+          <Textarea
+            id="system-prompt"
+            placeholder={t("settings.ai.systemPrompt.placeholder")}
+            className="min-h-[100px] resize-y"
+            value={localSystemPrompt}
+            onChange={(e) => setLocalSystemPrompt(e.target.value)}
           />
         </div>
         <div className="pt-2">

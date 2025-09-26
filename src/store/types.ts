@@ -73,6 +73,7 @@ export interface AppSettings {
   openRouterApiKey?: string;
   aiModel?: string;
   streamResponse?: boolean;
+  systemPrompt?: string;
 }
 
 export interface GitRepositoryInfo {
@@ -97,6 +98,6 @@ export interface GitStatus {
 export type GitLogState = "idle" | "loading_repo" | "loading_commits" | "error";
 
 export interface ChatMessage {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
 }

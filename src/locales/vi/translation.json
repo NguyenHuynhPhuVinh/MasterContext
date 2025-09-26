@@ -290,6 +290,11 @@
       "streamResponse": {
         "label": "Stream phản hồi",
         "description": "Nhận phản hồi từ AI từng phần một để có cảm giác nhanh hơn."
+      },
+      "systemPrompt": {
+        "title": "System Prompt",
+        "description": "Một chỉ dẫn định hướng hành vi của AI trong suốt cuộc trò chuyện.",
+        "placeholder": "Bạn là một trợ lý hữu ích."
       }
     }
   },

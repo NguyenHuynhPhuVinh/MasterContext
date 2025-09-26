@@ -99,6 +99,7 @@ export interface AppState {
   chatMessages: ChatMessage[];
   isAiPanelLoading: boolean;
   streamResponse: boolean;
+  systemPrompt: string;
 
   actions: ProjectActions &
     GroupActions &
