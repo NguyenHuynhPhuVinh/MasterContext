@@ -168,6 +168,7 @@
     "newChat": "Cuộc trò chuyện mới",
     "history": "Lịch sử",
     "viewHistory": "Xem lịch sử",
+    "backToChat": "Quay lại trò chuyện",
     "deleteChatDialog": {
       "title": "Xác nhận xóa cuộc trò chuyện?",
       "description": "Hành động này sẽ xóa vĩnh viễn cuộc trò chuyện. Không thể hoàn tác."

@@ -10,7 +10,7 @@ import { useShallow } from "zustand/react/shallow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Send, Plus, Loader2, History } from "lucide-react";
+import { Send, Plus, Loader2, History, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChatHistoryList } from "./ChatHistoryList";
 import {
@@ -140,57 +140,66 @@ export function AIPanel() {
   return (
     <div className="flex flex-col h-full bg-card">
       <header className="flex items-center justify-between p-4 border-b shrink-0">
-        <h1 className="text-xl font-bold">{t("aiPanel.title")}</h1>
+        <h1 className="text-xl font-bold">
+          {view === "history" ? t("aiPanel.history") : t("aiPanel.title")}
+        </h1>
         <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => {
-                    createNewChatSession();
-                    setView("chat");
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t("aiPanel.newChat")}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={view === "history" ? "secondary" : "outline"}
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => setView(view === "chat" ? "history" : "chat")}
-                >
-                  <History className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t("aiPanel.viewHistory")}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {view === "chat" ? (
+            <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => {
+                        createNewChatSession();
+                        setView("chat");
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t("aiPanel.newChat")}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => setView("history")}
+                    >
+                      <History className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t("aiPanel.viewHistory")}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setView("chat")}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </header>
 
       {view === "chat" ? (
         <>{renderContent()}</>
       ) : (
-        <>
-          <header className="p-4 border-b shrink-0">
-            <h2 className="text-lg font-semibold">{t("aiPanel.history")}</h2>
-          </header>
-          <ChatHistoryList onSelectSession={handleSelectSession} />
-        </>
+        <ChatHistoryList onSelectSession={handleSelectSession} />
       )}
     </div>
   );

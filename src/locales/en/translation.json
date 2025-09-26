@@ -168,6 +168,7 @@
     "newChat": "New Chat",
     "history": "History",
     "viewHistory": "View History",
+    "backToChat": "Back to Chat",
     "deleteChatDialog": {
       "title": "Confirm Chat Deletion?",
       "description": "This action will permanently delete the chat session. This cannot be undone."
