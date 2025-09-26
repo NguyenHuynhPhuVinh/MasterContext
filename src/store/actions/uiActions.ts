@@ -30,6 +30,7 @@ export interface UIActions {
   clearExclusionRanges: () => Promise<void>;
   applyVirtualPatch: (filePath: string, diff: string) => Promise<void>;
   discardVirtualPatch: (filePath: string) => void;
+  applyPatchToRealFile: () => Promise<void>;
 }
 
 export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
@@ -252,5 +253,40 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       newPatches.delete(filePath);
       return { virtualPatches: newPatches };
     });
+  },
+  applyPatchToRealFile: async () => {
+    const { rootPath, activeEditorFile, virtualPatches, activeProfile } =
+      _get();
+    if (!rootPath || !activeEditorFile || !activeProfile) return;
+
+    const patch = virtualPatches.get(activeEditorFile);
+    if (!patch) return;
+
+    try {
+      const originalContent = await invoke<string>("get_file_content", {
+        rootPathStr: rootPath,
+        fileRelPath: activeEditorFile,
+      });
+
+      const newContent = applyPatch(originalContent, patch);
+      if (newContent === false) {
+        throw new Error("Patch could not be applied logically.");
+      }
+
+      await invoke("save_file_content", {
+        rootPathStr: rootPath,
+        fileRelPath: activeEditorFile,
+        content: newContent,
+      });
+
+      // If successful, remove the virtual patch
+      _get().actions.discardVirtualPatch(activeEditorFile);
+    } catch (e) {
+      console.error("Failed to apply patch to real file:", e);
+      message(i18n.t("errors.fileSaveFailed", { error: e }), {
+        title: i18n.t("common.error"),
+        kind: "error",
+      });
+    }
   },
 });

@@ -26,6 +26,7 @@ pub fn run() {
             commands::load_profile_data, // <-- COMMAND MỚI
             // ... (các command còn lại)
             commands::get_file_content,
+            commands::save_file_content,
             commands::update_groups_in_project_data,
             commands::start_group_update,
             commands::start_group_export,

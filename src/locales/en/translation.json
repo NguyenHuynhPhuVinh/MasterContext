@@ -72,7 +72,13 @@
     "clearExclusionsTooltip": "Clear all exclusion ranges",
     "undoExclude": "Undo exclusion",
     "patchedTooltip": "This file has a virtual patch applied.",
-    "resetPatch": "Discard Diff"
+    "resetPatch": "Discard Diff",
+    "applyToFileTooltip": "Apply patch to the actual file",
+    "applyConfirmDialog": {
+      "title": "Apply Changes to File?",
+      "description": "This will permanently overwrite the original file on your disk. This action cannot be undone.",
+      "confirm": "Yes, Overwrite File"
+    }
   },
   "gitPanel": {
     "checking": "Checking Git repository...",

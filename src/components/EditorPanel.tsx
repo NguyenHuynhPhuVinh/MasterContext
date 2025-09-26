@@ -5,8 +5,26 @@ import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { applyPatch, diffLines } from "diff";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Loader2, Scissors, FileX, Undo, RotateCcw } from "lucide-react";
+import {
+  X,
+  Loader2,
+  Scissors,
+  FileX,
+  Undo,
+  RotateCcw,
+  Save,
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -22,6 +40,7 @@ export function EditorPanel() {
     removeExclusionRange,
     clearExclusionRanges,
     discardVirtualPatch,
+    applyPatchToRealFile,
   } = useAppActions();
   const {
     activeEditorFile,
@@ -44,6 +63,7 @@ export function EditorPanel() {
     end: number;
   } | null>(null);
   const codeContainerRef = useRef<HTMLElement>(null);
+  const [isApplyConfirmOpen, setIsApplyConfirmOpen] = useState(false);
 
   const activePatch = activeEditorFile && virtualPatches.get(activeEditorFile);
 
@@ -190,6 +210,16 @@ export function EditorPanel() {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setIsApplyConfirmOpen(true)}
+              title={t("editorPanel.applyToFileTooltip")}
+            >
+              <Save className="h-4 w-4 text-green-500" />
+            </Button>
+          )}
+          {activePatch && activeEditorFile && (
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => discardVirtualPatch(activeEditorFile)}
               title={t("editorPanel.resetPatch")}
             >
@@ -242,6 +272,30 @@ export function EditorPanel() {
           </ScrollArea>
         )}
       </main>
+      <AlertDialog
+        open={isApplyConfirmOpen}
+        onOpenChange={setIsApplyConfirmOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("editorPanel.applyConfirmDialog.title")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("editorPanel.applyConfirmDialog.description")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={applyPatchToRealFile}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {t("editorPanel.applyConfirmDialog.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

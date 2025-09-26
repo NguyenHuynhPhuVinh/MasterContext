@@ -136,6 +136,17 @@ pub fn get_file_content(root_path_str: String, file_rel_path: String) -> Result<
     let full_path = root_path.join(file_rel_path);
     fs::read_to_string(full_path).map_err(|e| format!("Không thể đọc file: {}", e))
 }
+
+#[command]
+pub fn save_file_content(
+    root_path_str: String,
+    file_rel_path: String,
+    content: String,
+) -> Result<(), String> {
+    let root_path = std::path::Path::new(&root_path_str);
+    let full_path = root_path.join(file_rel_path);
+    fs::write(full_path, content).map_err(|e| format!("Không thể ghi file: {}", e))
+}
 #[command]
 pub fn update_file_exclusions(
     app: AppHandle,
