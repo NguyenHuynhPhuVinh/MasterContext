@@ -11,12 +11,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ApplyDiffModalProps {
   isOpen: boolean;
   onClose: () => void;
   filePath: string | null;
-  onApply: (filePath: string, diff: string) => void;
+  onApply: (filePath: string, diff: string) => Promise<void>;
 }
 
 export function ApplyDiffModal({
@@ -28,9 +29,9 @@ export function ApplyDiffModal({
   const { t } = useTranslation();
   const [diffText, setDiffText] = useState("");
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (filePath && diffText.trim()) {
-      onApply(filePath, diffText);
+      await onApply(filePath, diffText);
     }
   };
 
@@ -43,21 +44,23 @@ export function ApplyDiffModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] flex flex-col h-[85vh]">
         <DialogHeader>
           <DialogTitle>{t("diffModal.title", { file: filePath })}</DialogTitle>
           <DialogDescription>{t("diffModal.description")}</DialogDescription>
         </DialogHeader>
-        <div className="py-4">
-          <Textarea
-            placeholder="--- a/file.js
+        <div className="py-4 flex-1 min-h-0">
+          <ScrollArea className="h-full">
+            <Textarea
+              placeholder="--- a/file.js
 +++ b/file.js
 @@ -1,4 +1,4 @@
  ..."
-            className="min-h-[300px] font-mono text-xs"
-            value={diffText}
-            onChange={(e) => setDiffText(e.target.value)}
-          />
+              className="h-full font-mono text-xs resize-none"
+              value={diffText}
+              onChange={(e) => setDiffText(e.target.value)}
+            />
+          </ScrollArea>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>

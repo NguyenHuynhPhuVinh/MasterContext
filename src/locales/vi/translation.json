@@ -64,7 +64,8 @@
   "diffModal": {
     "title": "Áp dụng Diff cho '{{file}}'",
     "description": "Dán nội dung diff vào ô bên dưới.",
-    "apply": "Áp dụng"
+    "apply": "Áp dụng",
+    "invalidFormatError": "Định dạng diff không hợp lệ. Không thể áp dụng bản vá."
   },
   "editorPanel": {
     "excludeSelection": "Loại trừ vùng đã chọn",

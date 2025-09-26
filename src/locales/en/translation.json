@@ -64,7 +64,8 @@
   "diffModal": {
     "title": "Apply Diff to '{{file}}'",
     "description": "Paste the diff content into the text area below.",
-    "apply": "Apply"
+    "apply": "Apply",
+    "invalidFormatError": "Invalid diff format. The patch could not be applied."
   },
   "editorPanel": {
     "excludeSelection": "Exclude selection",

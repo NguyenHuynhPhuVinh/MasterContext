@@ -1,7 +1,9 @@
 // src/store/actions/uiActions.ts
 import { StateCreator } from "zustand";
 import { applyPatch } from "diff";
+import i18n from "@/i18n"; // <-- THÊM DÒNG NÀY
 import { invoke } from "@tauri-apps/api/core";
+import { message } from "@tauri-apps/plugin-dialog";
 import { type FileMetadata } from "../types";
 import { AppState } from "../appStore";
 
@@ -26,7 +28,7 @@ export interface UIActions {
   addExclusionRange: (start: number, end: number) => Promise<void>;
   removeExclusionRange: (rangeToRemove: [number, number]) => Promise<void>;
   clearExclusionRanges: () => Promise<void>;
-  applyVirtualPatch: (filePath: string, diff: string) => void;
+  applyVirtualPatch: (filePath: string, diff: string) => Promise<void>;
   discardVirtualPatch: (filePath: string) => void;
 }
 
@@ -208,23 +210,41 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       console.error("Failed to clear exclusion ranges:", e);
     }
   },
-  applyVirtualPatch: (filePath, diff) => {
-    const { activeEditorFileContent } = _get();
-    if (!activeEditorFileContent) return;
+  applyVirtualPatch: async (filePath, diff) => {
+    const { rootPath } = _get();
+    if (!rootPath) return;
 
-    // Test the patch first
-    const patched = applyPatch(activeEditorFileContent, diff);
-    if (patched === false) {
-      // You might want to show an error message to the user here
-      console.error("Failed to apply patch.");
-      return;
+    try {
+      // Lấy nội dung gốc của file cần vá lỗi trực tiếp từ backend
+      const originalContent = await invoke<string>("get_file_content", {
+        rootPathStr: rootPath,
+        fileRelPath: filePath,
+      });
+
+      // Test the patch first
+      const patched = applyPatch(originalContent, diff);
+      if (patched === false) {
+        // This case handles logical failures, e.g., hunk doesn't match
+        await message(i18n.t("diffModal.invalidFormatError"), {
+          title: "Error",
+          kind: "error",
+        });
+        return;
+      }
+
+      set((state) => {
+        const newPatches = new Map(state.virtualPatches);
+        newPatches.set(filePath, diff);
+        return { virtualPatches: newPatches };
+      });
+    } catch (e) {
+      // This catches parsing errors or file read errors
+      console.error("Failed to apply patch:", e);
+      await message(i18n.t("diffModal.invalidFormatError"), {
+        title: "Error",
+        kind: "error",
+      });
     }
-
-    set((state) => {
-      const newPatches = new Map(state.virtualPatches);
-      newPatches.set(filePath, diff);
-      return { virtualPatches: newPatches };
-    });
   },
   discardVirtualPatch: (filePath) => {
     set((state) => {

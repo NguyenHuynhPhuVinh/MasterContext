@@ -346,8 +346,8 @@ export function GroupEditorPanel() {
         isOpen={!!diffModalFile}
         onClose={() => setDiffModalFile(null)}
         filePath={diffModalFile}
-        onApply={(filePath, diff) => {
-          applyVirtualPatch(filePath, diff);
+        onApply={async (filePath, diff) => {
+          await applyVirtualPatch(filePath, diff);
           setDiffModalFile(null);
         }}
       />
