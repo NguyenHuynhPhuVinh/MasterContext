@@ -163,7 +163,8 @@
     "title": "Trò chuyện AI",
     "placeholder": "Nhập câu lệnh của bạn...",
     "noApiKey": "Chưa có API key OpenRouter. Vui lòng thêm trong Cài đặt > AI.",
-    "error": "Đã xảy ra lỗi. Vui lòng kiểm tra API key và kết nối mạng."
+    "error": "Đã xảy ra lỗi. Vui lòng kiểm tra API key và kết nối mạng.",
+    "responding": "Đang phản hồi..."
   },
   "mainPanel": {
     "placeholder": {

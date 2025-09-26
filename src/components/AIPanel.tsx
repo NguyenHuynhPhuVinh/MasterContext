@@ -90,10 +90,9 @@ export function AIPanel() {
               </div>
             ))}
             {isAiPanelLoading && (
-              <div className="flex justify-start">
-                <div className="bg-background border rounded-lg px-4 py-3">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                </div>
+              <div className="flex items-center justify-start gap-2 text-muted-foreground italic text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <p>{t("aiPanel.responding")}</p>
               </div>
             )}
             <div ref={messagesEndRef} />

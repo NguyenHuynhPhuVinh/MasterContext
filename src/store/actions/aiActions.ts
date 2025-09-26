@@ -122,18 +122,10 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         throw new Error("Response body is null");
       }
 
-      // Add a placeholder for the assistant's message
-      const placeholderMessage: ChatMessage = {
-        role: "assistant",
-        content: "",
-      };
-      set((state) => ({
-        chatMessages: [...state.chatMessages, placeholderMessage],
-      }));
-
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let isFirstChunk = true;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -155,23 +147,34 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
             const delta = json.choices[0]?.delta?.content;
 
             if (delta) {
-              set((state) => {
-                const lastMessage =
-                  state.chatMessages[state.chatMessages.length - 1];
-                if (lastMessage && lastMessage.role === "assistant") {
-                  const updatedMessage = {
-                    ...lastMessage,
-                    content: lastMessage.content + delta,
-                  };
-                  return {
-                    chatMessages: [
-                      ...state.chatMessages.slice(0, -1),
-                      updatedMessage,
-                    ],
-                  };
-                }
-                return state;
-              });
+              if (isFirstChunk) {
+                isFirstChunk = false;
+                const newAssistantMessage: ChatMessage = {
+                  role: "assistant",
+                  content: delta,
+                };
+                set((state) => ({
+                  chatMessages: [...state.chatMessages, newAssistantMessage],
+                }));
+              } else {
+                set((state) => {
+                  const lastMessage =
+                    state.chatMessages[state.chatMessages.length - 1];
+                  if (lastMessage && lastMessage.role === "assistant") {
+                    const updatedMessage = {
+                      ...lastMessage,
+                      content: lastMessage.content + delta,
+                    };
+                    return {
+                      chatMessages: [
+                        ...state.chatMessages.slice(0, -1),
+                        updatedMessage,
+                      ],
+                    };
+                  }
+                  return state;
+                });
+              }
             }
           } catch (e) {
             console.error("Error parsing stream chunk:", e, "Line:", line);

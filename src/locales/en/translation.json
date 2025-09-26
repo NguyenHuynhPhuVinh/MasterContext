@@ -163,7 +163,8 @@
     "title": "AI Chat",
     "placeholder": "Enter your prompt...",
     "noApiKey": "OpenRouter API key not set. Please add it in Settings > AI.",
-    "error": "An error occurred. Please check your API key and network connection."
+    "error": "An error occurred. Please check your API key and network connection.",
+    "responding": "Responding..."
   },
   "mainPanel": {
     "placeholder": {
