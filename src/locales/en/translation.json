@@ -61,10 +61,17 @@
     "extensionsPlaceholder": "png, svg, lock, jpg...",
     "extensionsHint": "Separate extensions with a comma (,)."
   },
+  "diffModal": {
+    "title": "Apply Diff to '{{file}}'",
+    "description": "Paste the diff content into the text area below.",
+    "apply": "Apply"
+  },
   "editorPanel": {
     "excludeSelection": "Exclude selection",
     "clearExclusionsTooltip": "Clear all exclusion ranges",
-    "undoExclude": "Undo exclusion"
+    "undoExclude": "Undo exclusion",
+    "patchedTooltip": "This file has a virtual patch applied.",
+    "resetPatch": "Discard Diff"
   },
   "gitPanel": {
     "checking": "Checking Git repository...",

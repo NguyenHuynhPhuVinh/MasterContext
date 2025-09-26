@@ -1,5 +1,6 @@
 // src/store/actions/uiActions.ts
 import { StateCreator } from "zustand";
+import { applyPatch } from "diff";
 import { invoke } from "@tauri-apps/api/core";
 import { type FileMetadata } from "../types";
 import { AppState } from "../appStore";
@@ -25,6 +26,8 @@ export interface UIActions {
   addExclusionRange: (start: number, end: number) => Promise<void>;
   removeExclusionRange: (rangeToRemove: [number, number]) => Promise<void>;
   clearExclusionRanges: () => Promise<void>;
+  applyVirtualPatch: (filePath: string, diff: string) => void;
+  discardVirtualPatch: (filePath: string) => void;
 }
 
 export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
@@ -204,5 +207,30 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     } catch (e) {
       console.error("Failed to clear exclusion ranges:", e);
     }
+  },
+  applyVirtualPatch: (filePath, diff) => {
+    const { activeEditorFileContent } = _get();
+    if (!activeEditorFileContent) return;
+
+    // Test the patch first
+    const patched = applyPatch(activeEditorFileContent, diff);
+    if (patched === false) {
+      // You might want to show an error message to the user here
+      console.error("Failed to apply patch.");
+      return;
+    }
+
+    set((state) => {
+      const newPatches = new Map(state.virtualPatches);
+      newPatches.set(filePath, diff);
+      return { virtualPatches: newPatches };
+    });
+  },
+  discardVirtualPatch: (filePath) => {
+    set((state) => {
+      const newPatches = new Map(state.virtualPatches);
+      newPatches.delete(filePath);
+      return { virtualPatches: newPatches };
+    });
   },
 });

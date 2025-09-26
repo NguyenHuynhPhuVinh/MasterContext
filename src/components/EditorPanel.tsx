@@ -1,11 +1,12 @@
 // src/components/EditorPanel.tsx
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
+import { applyPatch, diffLines } from "diff";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Loader2, Scissors, FileX, Undo } from "lucide-react";
+import { X, Loader2, Scissors, FileX, Undo, RotateCcw } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -20,18 +21,21 @@ export function EditorPanel() {
     addExclusionRange,
     removeExclusionRange,
     clearExclusionRanges,
+    discardVirtualPatch,
   } = useAppActions();
   const {
     activeEditorFile,
     activeEditorFileContent,
     isEditorLoading,
     activeEditorFileExclusions,
+    virtualPatches,
   } = useAppStore(
     useShallow((state) => ({
       activeEditorFile: state.activeEditorFile,
       activeEditorFileContent: state.activeEditorFileContent,
       isEditorLoading: state.isEditorLoading,
       activeEditorFileExclusions: state.activeEditorFileExclusions,
+      virtualPatches: state.virtualPatches,
     }))
   );
 
@@ -40,6 +44,16 @@ export function EditorPanel() {
     end: number;
   } | null>(null);
   const codeContainerRef = useRef<HTMLElement>(null);
+
+  const activePatch = activeEditorFile && virtualPatches.get(activeEditorFile);
+
+  const patchedContent = useMemo(() => {
+    if (!activePatch || !activeEditorFileContent) {
+      return null;
+    }
+    const result = applyPatch(activeEditorFileContent, activePatch);
+    return result === false ? null : result;
+  }, [activeEditorFileContent, activePatch]);
 
   const handleMouseUp = () => {
     const sel = window.getSelection();
@@ -67,13 +81,39 @@ export function EditorPanel() {
     }
   };
 
-  const renderContentWithExclusions = () => {
-    if (!activeEditorFileContent) return null;
+  const renderContentWithDiff = () => {
+    if (!patchedContent || !activeEditorFileContent) return null;
+
+    const diff = diffLines(activeEditorFileContent, patchedContent);
+
+    return diff.map((part, index) => {
+      const className = part.added
+        ? "bg-green-500/20"
+        : part.removed
+        ? "bg-red-500/20"
+        : "";
+      return (
+        <span key={index} className={className}>
+          {part.value}
+        </span>
+      );
+    });
+  };
+
+  const renderContentWithExclusions = (content: string | null) => {
+    if (!content) return null;
+
+    // If a patch is active, we don't show exclusions to avoid visual clutter.
+    // The patch is a temporary override.
+    if (activePatch) {
+      return renderContentWithDiff();
+    }
+
     if (
       !activeEditorFileExclusions ||
       activeEditorFileExclusions.length === 0
     ) {
-      return <span>{activeEditorFileContent}</span>;
+      return <span>{content}</span>;
     }
 
     const sortedRanges = [...activeEditorFileExclusions].sort(
@@ -86,7 +126,7 @@ export function EditorPanel() {
       if (range[0] > lastIndex) {
         parts.push(
           <span key={`incl-${i}`}>
-            {activeEditorFileContent.substring(lastIndex, range[0])}
+            {content.substring(lastIndex, range[0])}
           </span>
         );
       }
@@ -98,7 +138,7 @@ export function EditorPanel() {
                 className="bg-destructive/20 cursor-pointer hover:bg-destructive/40 rounded-sm"
                 onClick={() => removeExclusionRange(range)}
               >
-                {activeEditorFileContent.substring(range[0], range[1])}
+                {content.substring(range[0], range[1])}
               </span>
             </TooltipTrigger>
             <TooltipContent>
@@ -112,12 +152,8 @@ export function EditorPanel() {
       lastIndex = range[1];
     });
 
-    if (lastIndex < activeEditorFileContent.length) {
-      parts.push(
-        <span key="final-incl">
-          {activeEditorFileContent.substring(lastIndex)}
-        </span>
-      );
+    if (lastIndex < content.length) {
+      parts.push(<span key="final-incl">{content.substring(lastIndex)}</span>);
     }
 
     return parts;
@@ -130,11 +166,38 @@ export function EditorPanel() {
   return (
     <div className="flex flex-col h-full bg-muted/20">
       <header className="flex items-center justify-between p-2 pl-4 border-b shrink-0 h-14">
-        <p className="font-mono text-sm truncate" title={activeEditorFile}>
-          {activeEditorFile}
-        </p>
+        <div className="flex items-center gap-2 min-w-0">
+          <p className="font-mono text-sm truncate" title={activeEditorFile}>
+            {activeEditorFile}
+          </p>
+          {activePatch && (
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-yellow-500 font-bold text-xs">
+                    [PATCHED]
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t("editorPanel.patchedTooltip")}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
         <div className="flex items-center gap-1">
-          {activeEditorFileExclusions &&
+          {activePatch && activeEditorFile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => discardVirtualPatch(activeEditorFile)}
+              title={t("editorPanel.resetPatch")}
+            >
+              <RotateCcw className="h-4 w-4 text-yellow-500" />
+            </Button>
+          )}
+          {!activePatch &&
+            activeEditorFileExclusions &&
             activeEditorFileExclusions.length > 0 && (
               <Button
                 variant="ghost"
@@ -151,7 +214,7 @@ export function EditorPanel() {
         </div>
       </header>
       <main className="flex-1 overflow-auto relative">
-        {selection && (
+        {!activePatch && selection && (
           <Button
             className="absolute z-10 top-2 right-2 animate-in fade-in"
             size="sm"
@@ -173,7 +236,7 @@ export function EditorPanel() {
           >
             <pre className="p-4 text-xs">
               <code ref={codeContainerRef}>
-                {renderContentWithExclusions()}
+                {renderContentWithExclusions(activeEditorFileContent)}
               </code>
             </pre>
           </ScrollArea>

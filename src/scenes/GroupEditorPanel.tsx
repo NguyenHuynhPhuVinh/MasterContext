@@ -27,6 +27,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { ApplyDiffModal } from "@/components/ApplyDiffModal";
 
 const filterNode = (node: FileNode, searchTerm: string): FileNode | null => {
   const term = searchTerm.toLowerCase();
@@ -111,6 +112,7 @@ export function GroupEditorPanel() {
     setCrossLinkingEnabled,
     selectAllFiles,
     deselectAllFiles,
+    applyVirtualPatch,
   } = useAppActions();
 
   const {
@@ -130,12 +132,14 @@ export function GroupEditorPanel() {
       tempSelectedPaths: state.tempSelectedPaths,
       isCrossLinkingEnabled: state.isCrossLinkingEnabled,
       gitStatus: state.gitStatus,
+      virtualPatches: state.virtualPatches,
     }))
   );
 
   const [showOnlyExcluded, setShowOnlyExcluded] = useState(false);
   const [showOnlyChanged, setShowOnlyChanged] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [diffModalFile, setDiffModalFile] = useState<string | null>(null);
 
   const changedFilesSet = useMemo(() => {
     if (!gitStatus || !gitStatus.files) {
@@ -323,6 +327,7 @@ export function GroupEditorPanel() {
               selectedPaths={tempSelectedPaths}
               onToggle={handleTogglePath}
               gitStatus={gitStatus?.files ?? null}
+              onOpenDiffModal={setDiffModalFile}
             />
           ) : (
             <div className="text-center text-muted-foreground p-4">
@@ -337,6 +342,15 @@ export function GroupEditorPanel() {
           )}
         </ScrollArea>
       </main>
+      <ApplyDiffModal
+        isOpen={!!diffModalFile}
+        onClose={() => setDiffModalFile(null)}
+        filePath={diffModalFile}
+        onApply={(filePath, diff) => {
+          applyVirtualPatch(filePath, diff);
+          setDiffModalFile(null);
+        }}
+      />
     </div>
   );
 }

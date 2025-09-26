@@ -61,10 +61,17 @@
     "extensionsPlaceholder": "png, svg, lock, jpg...",
     "extensionsHint": "Phân cách các phần mở rộng bằng dấu phẩy (,)."
   },
+  "diffModal": {
+    "title": "Áp dụng Diff cho '{{file}}'",
+    "description": "Dán nội dung diff vào ô bên dưới.",
+    "apply": "Áp dụng"
+  },
   "editorPanel": {
     "excludeSelection": "Loại trừ vùng đã chọn",
     "clearExclusionsTooltip": "Xóa tất cả các vùng loại trừ",
-    "undoExclude": "Bỏ loại trừ"
+    "undoExclude": "Bỏ loại trừ",
+    "patchedTooltip": "File này đang được áp dụng một bản vá ảo.",
+    "resetPatch": "Hủy bỏ Diff"
   },
   "gitPanel": {
     "checking": "Đang kiểm tra kho Git...",

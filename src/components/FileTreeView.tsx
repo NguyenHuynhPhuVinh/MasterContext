@@ -1,7 +1,14 @@
 // src/components/FileTreeView.tsx
 import { useState, useEffect, useRef } from "react"; // <-- Thêm useEffect, useRef
-import { ChevronRight, Folder, File as FileIcon, Scissors } from "lucide-react";
+import {
+  ChevronRight,
+  Folder,
+  File as FileIcon,
+  Scissors,
+  FileDiff,
+} from "lucide-react";
 import { useAppActions, useAppStore } from "@/store/appStore";
+import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 
 export interface FileNode {
@@ -50,6 +57,7 @@ interface FileTreeViewProps {
   selectedPaths: Set<string>;
   onToggle: (node: FileNode, isSelected: boolean) => void; // <-- Sửa prop để truyền cả node
   gitStatus: Record<string, string> | null;
+  onOpenDiffModal: (filePath: string) => void;
   level?: number;
 }
 
@@ -58,10 +66,16 @@ export function FileTreeView({
   selectedPaths,
   onToggle,
   gitStatus,
+  onOpenDiffModal,
   level = 0,
 }: FileTreeViewProps) {
   const { openFileInEditor } = useAppActions();
-  const fileMetadataCache = useAppStore((state) => state.fileMetadataCache);
+  const { fileMetadataCache, virtualPatches } = useAppStore(
+    useShallow((state) => ({
+      fileMetadataCache: state.fileMetadataCache,
+      virtualPatches: state.virtualPatches,
+    }))
+  );
   const checkboxRef = useRef<HTMLInputElement>(null);
   const isDirectory = Array.isArray(node.children);
   const [isOpen, setIsOpen] = useState(level < 2);
@@ -81,6 +95,8 @@ export function FileTreeView({
     fileMetadataCache &&
     node.path in fileMetadataCache &&
     (fileMetadataCache[node.path]?.excluded_ranges?.length ?? 0) > 0;
+
+  const hasPatch = virtualPatches.has(node.path);
 
   const selectionState = isDirectory
     ? getNodeSelectionState(node, selectedPaths)
@@ -109,7 +125,7 @@ export function FileTreeView({
   return (
     <div>
       <div
-        className="flex items-center py-1 px-2 rounded-md hover:bg-accent"
+        className="group flex items-center py-1 px-2 rounded-md hover:bg-accent"
         style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
       >
         <input
@@ -122,7 +138,7 @@ export function FileTreeView({
         />
         <div
           onClick={handleItemClick}
-          className="flex items-center cursor-pointer flex-grow"
+          className="flex items-center cursor-pointer flex-grow min-w-0"
         >
           {isDirectory ? (
             <>
@@ -140,20 +156,35 @@ export function FileTreeView({
               {hasExclusions && (
                 <Scissors className="h-3.5 w-3.5 text-destructive shrink-0" />
               )}
+              {hasPatch && (
+                <FileDiff className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
+              )}
             </>
           )}
           <span className="ml-2 truncate">{node.name}</span>
-          {fileGitStatus && (
+          <div className="ml-auto flex items-center gap-1 pl-2">
             <span
               className={cn(
-                "ml-auto font-mono text-xs font-bold",
+                "font-mono text-xs font-bold",
                 getStatusColor(fileGitStatus)
               )}
               title={`Git Status: ${fileGitStatus}`}
             >
               {fileGitStatus}
             </span>
-          )}
+            {!isDirectory && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenDiffModal(node.path);
+                }}
+                className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded hover:bg-muted"
+                title="Áp dụng Diff"
+              >
+                <FileDiff className="h-4 w-4 text-muted-foreground" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
       {isDirectory && isOpen && node.children && (
@@ -165,6 +196,7 @@ export function FileTreeView({
               selectedPaths={selectedPaths}
               onToggle={onToggle}
               gitStatus={gitStatus}
+              onOpenDiffModal={onOpenDiffModal}
               level={level + 1}
             />
           ))}

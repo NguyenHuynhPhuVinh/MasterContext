@@ -57,6 +57,7 @@ export interface AppState {
   activeEditorFileContent: string | null;
   isEditorLoading: boolean;
   activeEditorFileExclusions: [number, number][] | null;
+  virtualPatches: Map<string, string>; // filePath -> diff string
 
   // Dữ liệu riêng của hồ sơ active
   syncEnabled: boolean;
