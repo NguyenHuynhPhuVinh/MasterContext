@@ -67,12 +67,6 @@
     "apply": "Apply",
     "invalidFormatError": "Invalid diff format. The patch could not be applied."
   },
-  "multiDiffModal": {
-    "title": "Apply Multi-File Diff",
-    "description": "Paste the content from a `git diff` or pull request. All valid patches will be applied virtually.",
-    "apply": "Apply Patches",
-    "appliedSuccess": "Applied {{count}} virtual patches successfully."
-  },
   "editorPanel": {
     "excludeSelection": "Exclude selection",
     "clearExclusionsTooltip": "Clear all exclusion ranges",
@@ -162,14 +156,7 @@
     "noSearchResults": "No results found for \"{{searchTerm}}\".",
     "filterPatchedTooltip": "Filter for patched files",
     "unfilterPatchedTooltip": "Remove patch filter",
-    "noPatchedFiles": "No patched files found.",
-    "applyMultiDiffTooltip": "Apply a multi-file diff",
-    "resetAllPatchesTooltip": "Discard all virtual patches",
-    "resetAllPatchesDialog": {
-      "title": "Discard All Patches?",
-      "description": "Are you sure you want to discard all {{count}} virtual patches? This action cannot be undone.",
-      "confirm": "Yes, Discard All"
-    }
+    "noPatchedFiles": "No patched files found."
   },
   "mainPanel": {
     "placeholder": {

@@ -148,19 +148,6 @@ pub fn save_file_content(
     fs::write(full_path, content).map_err(|e| format!("Không thể ghi file: {}", e))
 }
 #[command]
-pub fn apply_batch_update(
-    root_path_str: String,
-    updates: std::collections::BTreeMap<String, String>,
-) -> Result<(), String> {
-    let root_path = std::path::Path::new(&root_path_str);
-    for (file_rel_path, content) in updates {
-        let full_path = root_path.join(file_rel_path);
-        fs::write(full_path, content)
-            .map_err(|e| format!("Không thể ghi file: {}", e))?;
-    }
-    Ok(())
-}
-#[command]
 pub fn update_file_exclusions(
     app: AppHandle,
     path: String,

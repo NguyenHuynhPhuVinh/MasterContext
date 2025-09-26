@@ -1,6 +1,6 @@
 // src/store/actions/uiActions.ts
 import { StateCreator } from "zustand";
-import { applyPatch, parsePatch } from "diff";
+import { applyPatch } from "diff";
 import i18n from "@/i18n"; // <-- THÊM DÒNG NÀY
 import { invoke } from "@tauri-apps/api/core";
 import { message } from "@tauri-apps/plugin-dialog";
@@ -31,9 +31,6 @@ export interface UIActions {
   applyVirtualPatch: (filePath: string, diff: string) => Promise<void>;
   discardVirtualPatch: (filePath: string) => void;
   applyPatchToRealFile: () => Promise<void>;
-  applyMultiFilePatch: (multiDiff: string) => Promise<void>;
-  clearAllVirtualPatches: () => void;
-  applyAllPatchesToRealFiles: () => Promise<void>;
 }
 
 export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
@@ -288,93 +285,6 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       console.error("Failed to apply patch to real file:", e);
       message(i18n.t("errors.fileSaveFailed", { error: e }), {
         title: i18n.t("common.error"),
-        kind: "error",
-      });
-    }
-  },
-  applyMultiFilePatch: async (multiDiff: string) => {
-    try {
-      const patches = parsePatch(multiDiff);
-      if (patches.length === 0) {
-        throw new Error("No valid patch found in the provided text.");
-      }
-
-      // To add multiple patches, we need to reconstruct the individual diff strings
-      // as the library doesn't expose them directly after parsing.
-      const diffBlocks = multiDiff.split(/^--- a\//gm).slice(1);
-
-      if (diffBlocks.length !== patches.length) {
-        // Fallback or more robust parsing might be needed for complex cases,
-        // but this handles standard `git diff` output well.
-        console.warn(
-          "Mismatch between parsed patches and split blocks. The diff might have an unusual format."
-        );
-      }
-
-      set((state) => {
-        const newPatches = new Map(state.virtualPatches);
-        patches.forEach((patch, index) => {
-          const filePath = patch.newFileName;
-          const diffContent = "--- a/" + diffBlocks[index];
-          if (filePath) {
-            newPatches.set(filePath, diffContent);
-          }
-        });
-        return { virtualPatches: newPatches };
-      });
-
-      await message(
-        i18n.t("multiDiffModal.appliedSuccess", { count: patches.length }),
-        { title: i18n.t("common.success"), kind: "info" }
-      );
-    } catch (e) {
-      console.error("Failed to parse multi-file patch:", e);
-      await message(i18n.t("diffModal.invalidFormatError"), {
-        title: i18n.t("common.error"),
-        kind: "error",
-      });
-    }
-  },
-  clearAllVirtualPatches: () => {
-    set({ virtualPatches: new Map() });
-  },
-  applyAllPatchesToRealFiles: async () => {
-    const { rootPath, virtualPatches } = _get();
-    if (!rootPath || virtualPatches.size === 0) return;
-
-    const updates = new Map<string, string>();
-    const filePaths = Array.from(virtualPatches.keys());
-
-    try {
-      const promises = filePaths.map((path) =>
-        invoke<string>("get_file_content", {
-          rootPathStr: rootPath,
-          fileRelPath: path,
-        })
-      );
-      const originalContents = await Promise.all(promises);
-
-      for (let i = 0; i < filePaths.length; i++) {
-        const path = filePaths[i];
-        const content = originalContents[i];
-        const patch = virtualPatches.get(path)!;
-        const newContent = applyPatch(content, patch);
-        if (newContent === false) {
-          throw new Error(`Failed to apply patch for file: ${path}`);
-        }
-        updates.set(path, newContent);
-      }
-
-      await invoke("apply_batch_update", {
-        rootPathStr: rootPath,
-        updates: Object.fromEntries(updates),
-      });
-
-      _get().actions.clearAllVirtualPatches();
-    } catch (e) {
-      console.error("Failed during batch apply:", e);
-      await message(`Error applying patches to files: ${e}`, {
-        title: "Error",
         kind: "error",
       });
     }

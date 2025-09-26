@@ -15,8 +15,6 @@ import {
   Search,
   GitMerge,
   FileDiff,
-  FilePlus,
-  Undo,
 } from "lucide-react";
 import { Scissors } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,18 +29,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { ApplyDiffModal } from "@/components/ApplyDiffModal";
-import { MultiApplyDiffModal } from "@/components/MultiApplyDiffModal";
-
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 const filterNode = (node: FileNode, searchTerm: string): FileNode | null => {
   const term = searchTerm.toLowerCase();
@@ -150,8 +136,6 @@ export function GroupEditorPanel() {
     selectAllFiles,
     deselectAllFiles,
     applyVirtualPatch,
-    applyMultiFilePatch,
-    clearAllVirtualPatches,
   } = useAppActions();
 
   const {
@@ -179,8 +163,6 @@ export function GroupEditorPanel() {
   const [showOnlyExcluded, setShowOnlyExcluded] = useState(false);
   const [showOnlyChanged, setShowOnlyChanged] = useState(false);
   const [showOnlyPatched, setShowOnlyPatched] = useState(false);
-  const [isMultiDiffModalOpen, setIsMultiDiffModalOpen] = useState(false);
-  const [isResetAllConfirmOpen, setIsResetAllConfirmOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [diffModalFile, setDiffModalFile] = useState<string | null>(null);
 
@@ -293,42 +275,6 @@ export function GroupEditorPanel() {
             <XCircle className="mr-2 h-4 w-4" />
             {t("groupEditor.deselectAll")}
           </Button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <TooltipProvider delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsMultiDiffModalOpen(true)}
-                >
-                  <FilePlus className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t("groupEditor.applyMultiDiffTooltip")}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={patchedFilesSet.size === 0}
-                  onClick={() => setIsResetAllConfirmOpen(true)}
-                >
-                  <Undo className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t("groupEditor.resetAllPatchesTooltip")}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -473,40 +419,6 @@ export function GroupEditorPanel() {
           setDiffModalFile(null);
         }}
       />
-      <MultiApplyDiffModal
-        isOpen={isMultiDiffModalOpen}
-        onClose={() => setIsMultiDiffModalOpen(false)}
-        onApply={(diff) => {
-          applyMultiFilePatch(diff);
-          setIsMultiDiffModalOpen(false);
-        }}
-      />
-      <AlertDialog
-        open={isResetAllConfirmOpen}
-        onOpenChange={setIsResetAllConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("groupEditor.resetAllPatchesDialog.title")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("groupEditor.resetAllPatchesDialog.description", {
-                count: patchedFilesSet.size,
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={clearAllVirtualPatches}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {t("groupEditor.resetAllPatchesDialog.confirm")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
