@@ -11,7 +11,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 export interface AiActions {
   setOpenRouterApiKey: (key: string) => Promise<void>;
-  setAiModel: (model: string) => Promise<void>;
+  setSelectedAiModel: (model: string) => void;
   sendChatMessage: (prompt: string) => Promise<void>;
   fetchOpenRouterResponse: () => Promise<void>;
   saveCurrentChatSession: () => Promise<void>;
@@ -33,8 +33,8 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
   setOpenRouterApiKey: async (key: string) => {
     await get().actions.updateAppSettings({ openRouterApiKey: key });
   },
-  setAiModel: async (model: string) => {
-    await get().actions.updateAppSettings({ aiModel: model });
+  setSelectedAiModel: (model: string) => {
+    set({ selectedAiModel: model });
   },
   sendChatMessage: async (prompt: string) => {
     const { openRouterApiKey } = get();
@@ -112,7 +112,8 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
   fetchOpenRouterResponse: async () => {
     const {
       openRouterApiKey,
-      aiModel,
+      aiModels,
+      selectedAiModel,
       chatMessages,
       activeChatSession,
       streamResponse,
@@ -137,7 +138,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
 
     // Build payload with advanced parameters
     const payload: Record<string, any> = {
-      model: aiModel,
+      model: selectedAiModel || aiModels[0],
       messages: messagesToSend,
     };
 

@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface AITabProps {
   apiKey: string;
-  model: string;
+  models: string[];
   streamResponse: boolean;
   systemPrompt: string;
   temperature: number;
@@ -20,7 +21,7 @@ interface AITabProps {
   maxTokens: number;
   onSave: (settings: {
     apiKey: string;
-    model: string;
+    models: string[];
     streamResponse: boolean;
     systemPrompt: string;
     temperature: number;
@@ -32,18 +33,19 @@ interface AITabProps {
 
 export function AITab({
   apiKey,
-  model,
+  models,
   streamResponse,
   systemPrompt,
   temperature,
   topP,
   topK,
   maxTokens,
-  onSave: onSaveProp,
+  onSave,
 }: AITabProps) {
   const { t } = useTranslation();
   const [localApiKey, setLocalApiKey] = useState(apiKey);
-  const [localModel, setLocalModel] = useState(model);
+  const [localModels, setLocalModels] = useState(models);
+  const [newModelInput, setNewModelInput] = useState("");
   const [localStreamResponse, setLocalStreamResponse] =
     useState(streamResponse);
   const [localSystemPrompt, setLocalSystemPrompt] = useState(systemPrompt);
@@ -55,7 +57,7 @@ export function AITab({
 
   useEffect(() => {
     setLocalApiKey(apiKey);
-    setLocalModel(model);
+    setLocalModels(models);
     setLocalStreamResponse(streamResponse);
     setLocalSystemPrompt(systemPrompt);
     setLocalTemperature(temperature);
@@ -64,7 +66,7 @@ export function AITab({
     setLocalMaxTokens(maxTokens);
   }, [
     apiKey,
-    model,
+    models,
     streamResponse,
     systemPrompt,
     temperature,
@@ -75,9 +77,9 @@ export function AITab({
 
   const handleSave = async () => {
     setIsSaving(true);
-    await onSaveProp({
+    await onSave({
       apiKey: localApiKey,
-      model: localModel,
+      models: localModels,
       streamResponse: localStreamResponse,
       systemPrompt: localSystemPrompt,
       temperature: localTemperature,
@@ -88,9 +90,28 @@ export function AITab({
     setIsSaving(false);
   };
 
+  const handleAddModel = () => {
+    const modelToAdd = newModelInput.trim();
+    if (modelToAdd && !localModels.includes(modelToAdd)) {
+      setLocalModels([...localModels, modelToAdd]);
+      setNewModelInput("");
+    }
+  };
+
+  const handleRemoveModel = (modelToRemove: string) => {
+    // Prevent removing the last model
+    if (localModels.length > 1) {
+      setLocalModels(localModels.filter((m) => m !== modelToRemove));
+    }
+  };
+
+  // Deep equality check for array
+  const modelsChanged =
+    JSON.stringify(localModels.sort()) !== JSON.stringify(models.sort());
+
   const isChanged =
     localApiKey !== apiKey ||
-    localModel !== model ||
+    modelsChanged ||
     localStreamResponse !== streamResponse ||
     localSystemPrompt !== systemPrompt ||
     localTemperature !== temperature ||
@@ -114,14 +135,40 @@ export function AITab({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="ai-model">
-            {t("settings.ai.openRouter.modelLabel")}
-          </Label>
-          <Input
-            id="ai-model"
-            value={localModel}
-            onChange={(e) => setLocalModel(e.target.value)}
-          />
+          <Label>{t("settings.ai.openRouter.modelLabel")}</Label>
+          <div className="flex flex-wrap gap-2 rounded-lg border p-2 min-h-[40px]">
+            {localModels.map((model) => (
+              <Badge key={model} variant="secondary" className="pl-3 pr-1">
+                {model}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ml-1 h-5 w-5 rounded-full"
+                  onClick={() => handleRemoveModel(model)}
+                  disabled={localModels.length <= 1}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              id="ai-model-input"
+              placeholder="anthropic/claude-3-haiku..."
+              value={newModelInput}
+              onChange={(e) => setNewModelInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddModel();
+                }
+              }}
+            />
+            <Button onClick={handleAddModel} disabled={!newModelInput.trim()}>
+              <Plus className="h-4 w-4 mr-2" /> Thêm
+            </Button>
+          </div>
         </div>
         <div className="flex items-center justify-between pt-4 border-t">
           <Label

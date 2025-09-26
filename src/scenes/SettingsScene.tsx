@@ -39,8 +39,8 @@ export function SettingsScene() {
     alwaysApplyText,
     exportExcludeExtensions,
     gitExportModeIsContext,
-    openRouterApiKey,
-    aiModel,
+    openRouterApiKey, // This should be apiKey
+    aiModels, // This should be models
     systemPrompt,
     temperature,
     topP,
@@ -134,7 +134,7 @@ export function SettingsScene() {
         return (
           <AITab
             apiKey={openRouterApiKey}
-            model={aiModel}
+            models={aiModels}
             systemPrompt={systemPrompt}
             streamResponse={streamResponse}
             temperature={temperature}
@@ -144,7 +144,7 @@ export function SettingsScene() {
             onSave={async (newSettings) => {
               await updateAppSettings({
                 openRouterApiKey: newSettings.apiKey,
-                aiModel: newSettings.model,
+                aiModels: newSettings.models,
                 systemPrompt: newSettings.systemPrompt,
                 streamResponse: newSettings.streamResponse,
                 temperature: newSettings.temperature,

@@ -110,7 +110,8 @@ function App() {
         useAppStore.setState({
           nonAnalyzableExtensions: settings.nonAnalyzableExtensions ?? [],
           openRouterApiKey: settings.openRouterApiKey ?? "",
-          aiModel: settings.aiModel ?? "openai/gpt-3.5-turbo",
+          aiModels: settings.aiModels ?? ["openai/gpt-3.5-turbo"],
+          selectedAiModel: settings.aiModels?.[0] ?? "openai/gpt-3.5-turbo",
         });
       } catch (e) {
         console.error("Could not load app settings:", e);

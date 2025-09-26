@@ -97,7 +97,7 @@ export interface AppState {
   // AI Panel
   isAiPanelVisible: boolean;
   openRouterApiKey: string;
-  aiModel: string;
+  aiModels: string[];
   chatMessages: ChatMessage[];
   isAiPanelLoading: boolean;
   chatSessions: AIChatSessionHeader[];
@@ -110,6 +110,7 @@ export interface AppState {
   maxTokens: number;
   systemPrompt: string;
   streamResponse: boolean;
+  selectedAiModel: string;
 
   actions: ProjectActions &
     GroupActions &

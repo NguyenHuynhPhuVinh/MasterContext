@@ -286,7 +286,7 @@ export const createSettingsActions: StateCreator<
       recentPaths,
       nonAnalyzableExtensions,
       openRouterApiKey,
-      aiModel,
+      aiModels,
       streamResponse,
       systemPrompt,
       temperature,
@@ -299,7 +299,7 @@ export const createSettingsActions: StateCreator<
       nonAnalyzableExtensions:
         newSettings.nonAnalyzableExtensions ?? nonAnalyzableExtensions,
       openRouterApiKey: newSettings.openRouterApiKey ?? openRouterApiKey,
-      aiModel: newSettings.aiModel ?? aiModel,
+      aiModels: newSettings.aiModels ?? aiModels,
       streamResponse: newSettings.streamResponse ?? streamResponse,
       systemPrompt: newSettings.systemPrompt ?? systemPrompt,
       temperature: newSettings.temperature ?? temperature,
@@ -314,13 +314,18 @@ export const createSettingsActions: StateCreator<
         recentPaths: fullSettings.recentPaths,
         nonAnalyzableExtensions: fullSettings.nonAnalyzableExtensions,
         openRouterApiKey: fullSettings.openRouterApiKey ?? "",
-        aiModel: fullSettings.aiModel ?? "openai/gpt-3.5-turbo",
+        aiModels: fullSettings.aiModels ?? ["openai/gpt-3.5-turbo"],
         systemPrompt: fullSettings.systemPrompt ?? "",
         streamResponse: fullSettings.streamResponse ?? true,
         temperature: fullSettings.temperature ?? 1.0,
         topP: fullSettings.topP ?? 1.0,
         topK: fullSettings.topK ?? 0,
         maxTokens: fullSettings.maxTokens ?? 0,
+        // Cập nhật model được chọn nếu danh sách thay đổi
+        selectedAiModel:
+          fullSettings.aiModels?.find((m) => m === get().selectedAiModel) ||
+          fullSettings.aiModels?.[0] ||
+          "",
       });
     } catch (e) {
       console.error("Failed to update app settings:", e);

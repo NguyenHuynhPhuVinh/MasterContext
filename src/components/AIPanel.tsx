@@ -10,7 +10,7 @@ import { useShallow } from "zustand/react/shallow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Send, Plus, Loader2, History, X, Square } from "lucide-react";
+import { Send, Plus, Loader2, History, X, Square, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChatHistoryList } from "./ChatHistoryList";
 import {
@@ -19,6 +19,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 
 export function AIPanel() {
   const { t } = useTranslation();
@@ -28,18 +35,23 @@ export function AIPanel() {
     stopAiResponse,
     loadChatSessions,
     loadChatSession,
+    setSelectedAiModel,
   } = useAppActions();
   const {
     chatMessages,
     isAiPanelLoading,
     openRouterApiKey,
     activeChatSessionId,
+    aiModels,
+    selectedAiModel,
   } = useAppStore(
     useShallow((state) => ({
       chatMessages: state.chatMessages,
       isAiPanelLoading: state.isAiPanelLoading,
       openRouterApiKey: state.openRouterApiKey,
       activeChatSessionId: state.activeChatSessionId,
+      aiModels: state.aiModels,
+      selectedAiModel: state.selectedAiModel,
     }))
   );
 
@@ -134,27 +146,51 @@ export function AIPanel() {
           </div>
         </ScrollArea>
         <div className="p-4 border-t">
-          <div className="relative">
+          <div className="flex flex-col gap-2">
             <Textarea
               placeholder={t("aiPanel.placeholder")}
-              className="pr-20 min-h-[60px] resize-none"
+              className="min-h-[80px] resize-y"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
             />
-            <Button
-              variant={isAiPanelLoading ? "destructive" : "default"}
-              size="icon"
-              className="absolute right-2 top-2 h-8 w-8"
-              onClick={isAiPanelLoading ? stopAiResponse : handleSend}
-              disabled={!isAiPanelLoading && !prompt.trim()}
-            >
-              {isAiPanelLoading ? (
-                <Square className="h-4 w-4" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {aiModels.length > 1 && (
+                  <>
+                    <Bot className="h-4 w-4 text-muted-foreground" />
+                    <Select
+                      value={selectedAiModel || aiModels[0]}
+                      onValueChange={setSelectedAiModel}
+                    >
+                      <SelectTrigger className="w-auto h-8 text-xs gap-1">
+                        <SelectValue placeholder="Chọn model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {aiModels.map((modelId) => (
+                          <SelectItem key={modelId} value={modelId}>
+                            {modelId}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+              </div>
+              <Button
+                variant={isAiPanelLoading ? "destructive" : "default"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={isAiPanelLoading ? stopAiResponse : handleSend}
+                disabled={!isAiPanelLoading && !prompt.trim()}
+              >
+                {isAiPanelLoading ? (
+                  <Square className="h-4 w-4" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </>
