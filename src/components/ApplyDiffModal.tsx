@@ -16,7 +16,7 @@ interface ApplyDiffModalProps {
   isOpen: boolean;
   onClose: () => void;
   filePath: string | null;
-  onApply: (filePath: string, diff: string) => Promise<void>;
+  onApply: (filePath: string, diff: string) => Promise<boolean>;
 }
 
 export function ApplyDiffModal({
@@ -30,7 +30,10 @@ export function ApplyDiffModal({
 
   const handleApply = async () => {
     if (filePath && diffText.trim()) {
-      await onApply(filePath, diffText);
+      const success = await onApply(filePath, diffText);
+      if (success) {
+        setDiffText(""); // Reset text area when apply is successful
+      }
     }
   };
 
