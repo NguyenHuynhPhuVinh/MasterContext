@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ApplyDiffModalProps {
   isOpen: boolean;
@@ -50,17 +49,15 @@ export function ApplyDiffModal({
           <DialogDescription>{t("diffModal.description")}</DialogDescription>
         </DialogHeader>
         <div className="py-4 flex-1 min-h-0">
-          <ScrollArea className="h-full">
-            <Textarea
-              placeholder="--- a/file.js
+          <Textarea
+            placeholder="--- a/file.js
 +++ b/file.js
 @@ -1,4 +1,4 @@
  ..."
-              className="h-full font-mono text-xs resize-none"
-              value={diffText}
-              onChange={(e) => setDiffText(e.target.value)}
-            />
-          </ScrollArea>
+            className="h-full font-mono text-xs resize-none custom-scrollbar"
+            value={diffText}
+            onChange={(e) => setDiffText(e.target.value)}
+          />
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
