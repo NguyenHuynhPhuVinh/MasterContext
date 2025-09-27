@@ -9,11 +9,11 @@ import {
   handleStreamingResponse,
 } from "@/lib/openRouter";
 import {
-  getGoogleTools,
   handleNonStreamingResponseGoogle,
   handleStreamingResponseGoogle,
   toGooglePayload,
 } from "@/lib/googleAI";
+import { getGoogleTools, getOpenRouterTools } from "@/lib/aiTools";
 
 export interface AiChatActions {
   sendChatMessage: (prompt: string) => Promise<void>;
@@ -179,7 +179,7 @@ export const createAiChatActions: StateCreator<
     // --- Provider-specific logic ---
     if (model.provider === "google") {
       // --- GOOGLE AI LOGIC ---
-      const tools = getGoogleTools(aiChatMode, editingGroupId);
+      const tools = getGoogleTools(aiChatMode, editingGroupId); // Now from aiTools.ts
       const payload = toGooglePayload(messagesToSend, {
         systemPrompt,
         temperature,
@@ -244,6 +244,7 @@ export const createAiChatActions: StateCreator<
       }
     } else {
       // --- OPENROUTER LOGIC (existing logic) ---
+      const tools = getOpenRouterTools(aiChatMode, editingGroupId);
       const payload: Record<string, any> = {
         model: selectedAiModel || aiModels[0]?.id,
         messages: messagesToSend.map(
@@ -254,185 +255,8 @@ export const createAiChatActions: StateCreator<
             return { ...msg, content: fullContent };
           }
         ),
+        tools,
       };
-
-      if (temperature) payload.temperature = temperature;
-      if (topP) payload.top_p = topP;
-      if (topK > 0) payload.top_k = topK;
-      if (maxTokens > 0) payload.max_tokens = maxTokens;
-      if (aiChatMode === "link" || aiChatMode === "diff") {
-        payload.tools = [
-          {
-            type: "function",
-            function: {
-              name: "get_project_file_tree",
-              description:
-                "Get the complete file and directory structure of the current project.",
-              parameters: {
-                type: "object",
-                properties: {},
-              },
-            },
-          },
-          {
-            type: "function",
-            function: {
-              name: "read_file",
-              description:
-                "Reads the content of a specific file within the project. Can read the entire file or a specific range of lines.",
-              parameters: {
-                type: "object",
-                properties: {
-                  file_path: {
-                    type: "string",
-                    description:
-                      "The relative path to the file from the project root.",
-                  },
-                  start_line: {
-                    type: "number",
-                    description:
-                      "Optional. The 1-based starting line number to read from.",
-                  },
-                  end_line: {
-                    type: "number",
-                    description:
-                      "Optional. The 1-based ending line number to read to.",
-                  },
-                },
-                required: ["file_path"],
-              },
-            },
-          },
-        ];
-      }
-      // Add group-related tools only if a group is being edited
-      if ((aiChatMode === "link" || aiChatMode === "diff") && editingGroupId) {
-        if (!payload.tools) payload.tools = [];
-        payload.tools.push({
-          type: "function",
-          function: {
-            name: "get_current_context_group_files",
-            description:
-              "Gets a list of all files currently included in the context group that the user is editing.",
-            parameters: {
-              type: "object",
-              properties: {},
-              required: [],
-            },
-          },
-        });
-
-        // The "modify" tool is specific to "link" mode
-        if (aiChatMode === "link") {
-          payload.tools.push({
-            type: "function",
-            function: {
-              name: "modify_context_group",
-              description:
-                "Adds or removes files and folders from the currently selected context group. This is the primary way to help the user manage their context groups.",
-              parameters: {
-                type: "object",
-                properties: {
-                  files_to_add: {
-                    type: "array",
-                    description:
-                      "An array of file or folder paths to add to the group. Paths must be relative to the project root.",
-                    items: {
-                      type: "string",
-                    },
-                  },
-                  files_to_remove: {
-                    type: "array",
-                    description:
-                      "An array of file or folder paths to remove from the group.",
-                    items: {
-                      type: "string",
-                    },
-                  },
-                },
-              },
-            },
-          });
-        }
-      }
-
-      // Add diff tool only in diff mode
-      if (aiChatMode === "diff") {
-        if (!payload.tools) payload.tools = [];
-        payload.tools.push({
-          type: "function",
-          function: {
-            name: "write_file",
-            description:
-              "Writes or overwrites content to a specific file. Can either replace the entire file content or replace a specific range of lines. To replace specific lines, you MUST use the 'start_line' parameter. To insert new lines without deleting, set 'end_line' equal to 'start_line'. To delete lines, provide an empty string for 'content' and specify 'start_line' and 'end_line'.",
-            parameters: {
-              type: "object",
-              properties: {
-                file_path: {
-                  type: "string",
-                  description:
-                    "The relative path to the file that the content should be written to.",
-                },
-                content: {
-                  type: "string",
-                  description: "The new content to write to the file.",
-                },
-                start_line: {
-                  type: "number",
-                  description:
-                    "Optional. The 1-based line number where the replacement should start. If omitted, the entire file will be overwritten.",
-                },
-                end_line: {
-                  type: "number",
-                  description:
-                    "Optional. The 1-based line number where the replacement should end. If omitted, content is replaced from start_line to the end of the new content.",
-                },
-              },
-              required: ["file_path", "content"],
-            },
-          },
-        });
-        payload.tools.push({
-          type: "function",
-          function: {
-            name: "create_file",
-            description:
-              "Creates a new file at a specified path with optional initial content.",
-            parameters: {
-              type: "object",
-              properties: {
-                file_path: {
-                  type: "string",
-                  description:
-                    "The relative path where the new file should be created.",
-                },
-                content: {
-                  type: "string",
-                  description: "Optional. The initial content of the new file.",
-                },
-              },
-              required: ["file_path"],
-            },
-          },
-        });
-        payload.tools.push({
-          type: "function",
-          function: {
-            name: "delete_file",
-            description: "Deletes a specified file from the project.",
-            parameters: {
-              type: "object",
-              properties: {
-                file_path: {
-                  type: "string",
-                  description: "The relative path of the file to delete.",
-                },
-              },
-              required: ["file_path"],
-            },
-          },
-        });
-      }
 
       try {
         const response = await fetch(
