@@ -177,7 +177,8 @@
     "sessionTokensTooltip": "Token đã dùng / Tối đa",
     "modes": {
       "ask": "Ask",
-      "link": "Link"
+      "link": "Link",
+      "diff": "Diff"
     },
     "toolCall": {
       "listingFiles": "Liệt kê tệp dự án",

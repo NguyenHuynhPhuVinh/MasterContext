@@ -7,6 +7,7 @@ import {
   AlignJustify,
   HelpCircle,
   Link as LinkIcon,
+  FileDiff,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -31,8 +32,8 @@ interface AIPromptInputProps {
   isLoading: boolean;
   attachedFiles: string[];
   onDetachFile: (filePath: string) => void;
-  chatMode: "ask" | "link";
-  setChatMode: (mode: "ask" | "link") => void;
+  chatMode: "ask" | "link" | "diff";
+  setChatMode: (mode: "ask" | "link" | "diff") => void;
   models: AIModel[];
   selectedModel: string;
   setSelectedModel: (modelId: string) => void;
@@ -103,8 +104,10 @@ export function AIPromptInput({
                 >
                   {chatMode === "ask" ? (
                     <HelpCircle className="h-4 w-4 shrink-0" />
-                  ) : (
+                  ) : chatMode === "link" ? (
                     <LinkIcon className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <FileDiff className="h-4 w-4 shrink-0" />
                   )}
                   <span className="capitalize text-xs font-medium">
                     {t(`aiPanel.modes.${chatMode}`)}
@@ -115,7 +118,7 @@ export function AIPromptInput({
                 <DropdownMenuRadioGroup
                   value={chatMode}
                   onValueChange={(value) =>
-                    setChatMode(value as "ask" | "link")
+                    setChatMode(value as "ask" | "link" | "diff")
                   }
                 >
                   <DropdownMenuRadioItem value="ask">
@@ -123,6 +126,9 @@ export function AIPromptInput({
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="link">
                     {t("aiPanel.modes.link")}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="diff">
+                    {t("aiPanel.modes.diff")}
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>

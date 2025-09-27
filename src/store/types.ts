@@ -72,7 +72,7 @@ export interface ScanCompletePayload {
   isFirstScan: boolean;
 }
 
-export type AiChatMode = "ask" | "link";
+export type AiChatMode = "ask" | "link" | "diff";
 
 export interface AIModel {
   id: string;

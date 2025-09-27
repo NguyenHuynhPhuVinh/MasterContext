@@ -177,7 +177,8 @@
     "sessionTokensTooltip": "Session Tokens / Max Context",
     "modes": {
       "ask": "Ask",
-      "link": "Link"
+      "link": "Link",
+      "diff": "Diff"
     },
     "toolCall": {
       "listingFiles": "Listing project files",

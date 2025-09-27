@@ -165,7 +165,7 @@ export const createAiChatActions: StateCreator<
     if (topP) payload.top_p = topP;
     if (topK > 0) payload.top_k = topK;
     if (maxTokens > 0) payload.max_tokens = maxTokens;
-    if (aiChatMode === "link") {
+    if (aiChatMode === "link" || aiChatMode === "diff") {
       payload.tools = [
         {
           type: "function",
@@ -210,8 +210,9 @@ export const createAiChatActions: StateCreator<
         },
       ];
     }
-    // Chỉ thêm công cụ sửa nhóm nếu người dùng đang ở màn hình chỉnh sửa nhóm
-    if (aiChatMode === "link" && editingGroupId) {
+    // Add group-related tools only if a group is being edited
+    if ((aiChatMode === "link" || aiChatMode === "diff") && editingGroupId) {
+      if (!payload.tools) payload.tools = [];
       payload.tools.push({
         type: "function",
         function: {
@@ -225,35 +226,39 @@ export const createAiChatActions: StateCreator<
           },
         },
       });
-      payload.tools.push({
-        type: "function",
-        function: {
-          name: "modify_context_group",
-          description:
-            "Adds or removes files and folders from the currently selected context group. This is the primary way to help the user manage their context groups.",
-          parameters: {
-            type: "object",
-            properties: {
-              files_to_add: {
-                type: "array",
-                description:
-                  "An array of file or folder paths to add to the group. Paths must be relative to the project root.",
-                items: {
-                  type: "string",
+
+      // The "modify" tool is specific to "link" mode
+      if (aiChatMode === "link") {
+        payload.tools.push({
+          type: "function",
+          function: {
+            name: "modify_context_group",
+            description:
+              "Adds or removes files and folders from the currently selected context group. This is the primary way to help the user manage their context groups.",
+            parameters: {
+              type: "object",
+              properties: {
+                files_to_add: {
+                  type: "array",
+                  description:
+                    "An array of file or folder paths to add to the group. Paths must be relative to the project root.",
+                  items: {
+                    type: "string",
+                  },
                 },
-              },
-              files_to_remove: {
-                type: "array",
-                description:
-                  "An array of file or folder paths to remove from the group.",
-                items: {
-                  type: "string",
+                files_to_remove: {
+                  type: "array",
+                  description:
+                    "An array of file or folder paths to remove from the group.",
+                  items: {
+                    type: "string",
+                  },
                 },
               },
             },
           },
-        },
-      });
+        });
+      }
     }
 
     try {
