@@ -52,7 +52,7 @@ pub struct ToolCallFunction {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ToolCall {
     pub id: String,
-    // `type` is a reserved keyword in Rust, so we use `r#`
+    #[serde(rename = "type")] // Map Rust's `r#type` to JSON's `type`
     pub r#type: String,
     pub function: ToolCallFunction,
 }
@@ -74,6 +74,8 @@ pub struct ChatMessage {
     pub content: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<ToolCall>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hidden: Option<bool>,
     #[serde(default)] // Dành cho khả năng tương thích ngược
     pub generation_info: Option<GenerationInfo>,
 }
