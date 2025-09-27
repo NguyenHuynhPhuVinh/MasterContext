@@ -131,6 +131,27 @@ function App() {
             context_length: 1048576,
             pricing: { prompt: "0", completion: "0" },
           },
+          {
+            provider: "google",
+            id: "gemini-robotics-er-1.5-preview",
+            name: "Gemini Robotics ER 1.5 Preview",
+            context_length: 1048576,
+            pricing: { prompt: "0", completion: "0" },
+          },
+          {
+            provider: "google",
+            id: "gemini-2.0-flash",
+            name: "Gemini 2.0 Flash",
+            context_length: 1048576,
+            pricing: { prompt: "0", completion: "0" },
+          },
+          {
+            provider: "google",
+            id: "gemini-2.0-flash-lite",
+            name: "Gemini 2.0 Flash Lite",
+            context_length: 1048576,
+            pricing: { prompt: "0", completion: "0" },
+          },
         ];
 
         let allAvailableModels: AIModel[] = [...googleModels];
