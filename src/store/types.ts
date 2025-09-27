@@ -62,6 +62,11 @@ export interface Group {
   tokenLimit?: number; // <-- THÊM TRƯỜNG NÀY
 }
 
+export interface AIGroupUpdateResult {
+  updatedGroup: Group;
+  finalExpandedFiles: string[];
+}
+
 export interface ScanCompletePayload {
   projectData: CachedProjectData;
   isFirstScan: boolean;

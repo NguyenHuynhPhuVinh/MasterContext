@@ -84,25 +84,27 @@ export const handleToolCalls = async (
         const pathsToAdd = args.files_to_add || [];
         const pathsToRemove = args.files_to_remove || [];
 
-        const updatedGroup = await invoke<import("@/store/types").Group>(
-          "update_group_paths_from_ai",
-          {
-            path: rootPath,
-            profileName: activeProfile,
-            groupId: editingGroupId,
-            pathsToAdd,
-            pathsToRemove,
-          }
-        );
+        const result = await invoke<
+          import("@/store/types").AIGroupUpdateResult
+        >("update_group_paths_from_ai", {
+          path: rootPath,
+          profileName: activeProfile,
+          groupId: editingGroupId,
+          pathsToAdd,
+          pathsToRemove,
+        });
 
         // Update the group state in Zustand, including tempSelectedPaths
-        await getState().actions._updateGroupFromAi(updatedGroup);
+        await getState().actions._updateGroupFromAi(result.updatedGroup);
 
         let resultMessage = "Successfully modified the group.";
         if (pathsToAdd.length > 0)
           resultMessage += ` Added: ${pathsToAdd.join(", ")}.`;
         if (pathsToRemove.length > 0)
           resultMessage += ` Removed: ${pathsToRemove.join(", ")}.`;
+        resultMessage += `\n\nThe group now contains the following files:\n${result.finalExpandedFiles.join(
+          "\n"
+        )}`;
         toolResultContent = resultMessage;
       } catch (e) {
         toolResultContent = `Error modifying group: ${e}`;

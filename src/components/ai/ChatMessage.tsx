@@ -78,7 +78,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               <p className="font-medium text-foreground">
                 {t("aiPanel.toolCall.modifiedGroup")}
               </p>
-              {(filesToAdd.length > 0 || filesToRemove.length > 0) && (
+              {filesToAdd.length > 0 || filesToRemove.length > 0 ? (
                 <pre className="mt-2 bg-muted/30 dark:bg-muted/20 p-2 rounded-md text-xs font-mono max-h-40 overflow-auto custom-scrollbar">
                   <code>
                     {filesToAdd.map((file) => (
@@ -101,6 +101,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
                     ))}
                   </code>
                 </pre>
+              ) : (
+                <p className="text-xs text-muted-foreground italic mt-1">
+                  No files were added or removed.
+                </p>
               )}
             </div>
           );

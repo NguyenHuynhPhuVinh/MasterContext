@@ -186,6 +186,13 @@ pub struct CachedProjectData {
     pub git_export_mode_is_context: Option<bool>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AIGroupUpdateResult {
+    pub updated_group: Group,
+    pub final_expanded_files: Vec<String>,
+}
+
 #[derive(Debug, Clone)]
 pub enum FsEntry {
     File,

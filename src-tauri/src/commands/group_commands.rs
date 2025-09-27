@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tauri::{command, AppHandle, Emitter, Window};
 use super::utils::{perform_auto_export, sanitize_group_name};
-use crate::models::Group;
+use crate::models::AIGroupUpdateResult;
 
 #[command]
 pub fn update_groups_in_project_data(
@@ -245,7 +245,7 @@ pub fn update_group_paths_from_ai(
     group_id: String,
     paths_to_add: Vec<String>,
     paths_to_remove: Vec<String>,
-) -> Result<Group, String> {
+) -> Result<AIGroupUpdateResult, String> {
     let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
     let root_path = Path::new(&path);
     let metadata_cache_clone = project_data.file_metadata_cache.clone();
@@ -282,10 +282,20 @@ pub fn update_group_paths_from_ai(
         // Clone the modified group to return it later. This ends the borrow on `group`.
         let updated_group_clone = group.clone();
 
+        // Expand paths to get the final list of files in the group
+        let final_expanded_files = context_generator::expand_group_paths_to_files(
+            &updated_group_clone.paths,
+            &metadata_cache_clone,
+            root_path,
+        );
+
         // Now that the borrow on `group` is finished, we can save the entire `project_data`.
         file_cache::save_project_data(&app, &path, &profile_name, &project_data)?;
 
-        Ok(updated_group_clone)
+        Ok(AIGroupUpdateResult {
+            updated_group: updated_group_clone,
+            final_expanded_files,
+        })
     } else {
         Err("group.not_found".to_string())
     }
