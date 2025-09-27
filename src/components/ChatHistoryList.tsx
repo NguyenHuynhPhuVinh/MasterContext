@@ -98,10 +98,8 @@ export function ChatHistoryList({ onSelectSession }: ChatHistoryListProps) {
                     onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
-                  <span className="text-sm">
-                    {session.title.length > 20
-                      ? `${session.title.substring(0, 20)}...`
-                      : session.title}
+                  <span className="truncate max-w-[140px] text-sm">
+                    {session.title}
                   </span>
                 )}
               </div>

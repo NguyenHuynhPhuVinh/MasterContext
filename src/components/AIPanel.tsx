@@ -246,8 +246,9 @@ export function AIPanel() {
                       >
                         <div className="flex items-center gap-2">
                           <AlignJustify className="h-4 w-4 shrink-0" />
-                          <span className="truncate max-w-[120px] text-xs font-medium">
-                            {selectedModelDetails?.name || "..."}
+                          <span className="truncate max-w-[100px] text-xs font-medium">
+                            {selectedModelDetails?.name.split(":").pop() ||
+                              "..."}
                           </span>
                         </div>
                       </Button>
