@@ -141,6 +141,7 @@ export interface ToolCall {
     name: string;
     arguments: string; // JSON string
   };
+  status?: "success" | "error"; // To track execution status for UI
 }
 
 export interface AIChatSessionHeader {

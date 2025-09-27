@@ -185,7 +185,9 @@
       "readingFile": "Đang đọc file",
       "executingTool": "Thực thi công cụ",
       "modifiedGroup": "Đã sửa đổi nhóm ngữ cảnh",
-      "listingGroupFiles": "Liệt kê tệp trong nhóm hiện tại"
+      "listingGroupFiles": "Liệt kê tệp trong nhóm hiện tại",
+      "applyingDiff": "Đang áp dụng bản vá cho",
+      "applyingDiffGeneric": "Đang áp dụng bản vá cho tệp"
     }
   },
   "mainPanel": {

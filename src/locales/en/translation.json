@@ -185,7 +185,9 @@
       "readingFile": "Reading file",
       "executingTool": "Executing tool",
       "modifiedGroup": "Modified context group",
-      "listingGroupFiles": "Listing files in current group"
+      "listingGroupFiles": "Listing files in current group",
+      "applyingDiff": "Applying patch to",
+      "applyingDiffGeneric": "Applying patch to file"
     }
   },
   "mainPanel": {

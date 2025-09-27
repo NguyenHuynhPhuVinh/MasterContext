@@ -3,7 +3,14 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, FileText, Paperclip, Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  FileText,
+  Paperclip,
+  Loader2,
+  FileDiff,
+  XCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { type ChatMessage as ChatMessageType } from "@/store/types";
@@ -125,6 +132,29 @@ export function ChatMessage({ message }: ChatMessageProps) {
         }
         break;
 
+      case "apply_diff_to_file":
+        try {
+          const args = JSON.parse(tool.function.arguments);
+          const filePath = args.file_path || "unknown file";
+          const fileName = filePath.split("/").pop();
+          toolContent = (
+            <div className="flex items-center gap-2">
+              <FileDiff className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-foreground">
+                  {t("aiPanel.toolCall.applyingDiff")}
+                </span>
+                <code className="font-medium text-foreground" title={filePath}>
+                  {fileName}
+                </code>
+              </div>
+            </div>
+          );
+        } catch (e) {
+          toolContent = <p>{t("aiPanel.toolCall.applyingDiffGeneric")}</p>;
+        }
+        break;
+
       default:
         toolContent = <p>{tool.function.name}</p>;
         break;
@@ -135,7 +165,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
         key={tool.id}
         className="flex items-start gap-2.5 text-sm bg-muted/60 dark:bg-muted/30 rounded-lg p-3 border"
       >
-        <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+        {tool.status === "error" ? (
+          <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+        ) : (
+          <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+        )}
         {toolContent}
       </div>
     );

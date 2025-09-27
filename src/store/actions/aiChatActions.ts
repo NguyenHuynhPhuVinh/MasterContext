@@ -261,6 +261,34 @@ export const createAiChatActions: StateCreator<
       }
     }
 
+    // Add diff tool only in diff mode
+    if (aiChatMode === "diff") {
+      if (!payload.tools) payload.tools = [];
+      payload.tools.push({
+        type: "function",
+        function: {
+          name: "apply_diff_to_file",
+          description:
+            "Applies a diff patch to a specified file in the project. The diff must be in the standard unified diff format.",
+          parameters: {
+            type: "object",
+            properties: {
+              file_path: {
+                type: "string",
+                description:
+                  "The relative path to the file that the diff should be applied to.",
+              },
+              diff_content: {
+                type: "string",
+                description: "The content of the diff patch to apply.",
+              },
+            },
+            required: ["file_path", "diff_content"],
+          },
+        },
+      });
+    }
+
     try {
       const response = await fetch(
         "https://openrouter.ai/api/v1/chat/completions",

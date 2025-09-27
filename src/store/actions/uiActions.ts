@@ -236,10 +236,8 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       const patched = applyPatch(originalContent, diff);
       if (patched === false) {
         // This case handles logical failures, e.g., hunk doesn't match
-        await message(i18n.t("diffModal.invalidFormatError"), {
-          title: "Error",
-          kind: "error",
-        });
+        // The error is now handled in the AI chat response, not a UI dialog.
+        console.error("Invalid diff format. The patch could not be applied.");
         return false;
       }
 
@@ -252,10 +250,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     } catch (e) {
       // This catches parsing errors or file read errors
       console.error("Failed to apply patch:", e);
-      await message(i18n.t("diffModal.invalidFormatError"), {
-        title: "Error",
-        kind: "error",
-      });
+      // The error is now handled in the AI chat response, not a UI dialog.
       return false;
     }
   },

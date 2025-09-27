@@ -41,6 +41,7 @@ export const handleToolCalls = async (
 
   const tool = toolCalls[0];
   let toolResultContent = `Error: Tool '${tool.function.name}' not found or failed to execute.`;
+  let toolSucceeded = false;
   if (tool.function.name === "get_project_file_tree") {
     const fileTree = getState().fileTree;
     if (fileTree && fileTree.children) {
@@ -53,6 +54,7 @@ export const handleToolCalls = async (
           )
           .join("");
     }
+    toolSucceeded = true;
   } else if (tool.function.name === "read_file") {
     const { rootPath } = getState();
     if (!rootPath) {
@@ -69,8 +71,10 @@ export const handleToolCalls = async (
         toolResultContent = `Here is the content of ${args.file_path}${
           args.start_line ? ` from line ${args.start_line}` : ""
         }${args.end_line ? ` to line ${args.end_line}` : ""}:\n\n${content}`;
+        toolSucceeded = true;
       } catch (e) {
         toolResultContent = `Error reading file: ${e}`;
+        toolSucceeded = false;
       }
     }
   } else if (tool.function.name === "get_current_context_group_files") {
@@ -88,8 +92,10 @@ export const handleToolCalls = async (
         toolResultContent = `The current group contains the following files:\n${files.join(
           "\n"
         )}`;
+        toolSucceeded = true;
       } catch (e) {
         toolResultContent = `Error getting group files: ${e}`;
+        toolSucceeded = false;
       }
     }
   } else if (tool.function.name === "modify_context_group") {
@@ -125,13 +131,43 @@ export const handleToolCalls = async (
           "\n"
         )}`;
         toolResultContent = resultMessage;
+        toolSucceeded = true;
       } catch (e) {
         toolResultContent = `Error modifying group: ${e}`;
+        toolSucceeded = false;
       }
+    }
+  } else if (tool.function.name === "apply_diff_to_file") {
+    const { actions } = getState();
+    try {
+      const args = JSON.parse(tool.function.arguments);
+      const success = await actions.applyVirtualPatch(
+        args.file_path,
+        args.diff_content
+      );
+      toolSucceeded = success;
+      if (success) {
+        toolResultContent = `Successfully applied patch to ${args.file_path}. The user can now see the changes in the editor.`;
+      } else {
+        toolResultContent = `Error: Failed to apply patch to ${args.file_path}. The diff format might be invalid or doesn't match the file content.`;
+      }
+    } catch (e) {
+      toolResultContent = `Error applying patch: ${e}`;
+      toolSucceeded = false;
     }
   }
 
-  // 3. Add tool result as a hidden user message and re-fetch AI response
+  // 3. Update the assistant message in state with the tool's execution status
+  setState((state) => {
+    const newMessages = [...state.chatMessages];
+    const lastMessage = newMessages[newMessages.length - 1];
+    if (lastMessage?.role === "assistant" && lastMessage.tool_calls) {
+      lastMessage.tool_calls[0].status = toolSucceeded ? "success" : "error";
+    }
+    return { chatMessages: newMessages };
+  });
+
+  // 4. Add tool result as a hidden user message and re-fetch AI response
   const toolResultMessage: ChatMessage = {
     role: "user",
     content: `[TOOL_RESULT for ${tool.function.name}]\n${toolResultContent}`,
