@@ -55,18 +55,15 @@ export function ChatMessage({ message }: ChatMessageProps) {
           }
 
           toolContent = (
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <div className="flex items-baseline gap-1.5">
-                <code className="font-medium text-foreground" title={filePath}>
-                  {fileName}
-                </code>
-                {lineInfo && (
-                  <span className="text-xs text-muted-foreground">
-                    ({lineInfo})
-                  </span>
-                )}
-              </div>
+            <div className="flex items-baseline gap-1.5">
+              <code className="font-medium text-foreground" title={filePath}>
+                {fileName}
+              </code>
+              {lineInfo && (
+                <span className="text-xs text-muted-foreground">
+                  ({lineInfo})
+                </span>
+              )}
             </div>
           );
         } catch (e) {
@@ -135,19 +132,46 @@ export function ChatMessage({ message }: ChatMessageProps) {
       case "apply_diff_to_file":
         try {
           const args = JSON.parse(tool.function.arguments);
-          const filePath = args.file_path || "unknown file";
-          const fileName = filePath.split("/").pop();
+          const filePath = args.file_path ?? "unknown file";
+          const fileName = filePath.split("/").pop() ?? filePath;
+          const success = tool.status !== "error";
+          const stats = tool.diffStats;
+
           toolContent = (
-            <div className="flex items-center gap-2">
-              <FileDiff className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="flex flex-col">
               <div className="flex items-baseline gap-1.5">
-                <span className="text-foreground">
-                  {t("aiPanel.toolCall.applyingDiff")}
+                <span
+                  className={cn(
+                    "font-medium",
+                    success ? "text-foreground" : "text-destructive"
+                  )}
+                >
+                  {t(
+                    success
+                      ? "aiPanel.toolCall.applyDiffSuccess"
+                      : "aiPanel.toolCall.applyDiffError"
+                  )}
                 </span>
-                <code className="font-medium text-foreground" title={filePath}>
+                <code className="font-medium" title={filePath}>
                   {fileName}
                 </code>
               </div>
+              {stats && (
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge
+                    variant="outline"
+                    className="font-mono text-xs text-green-600 dark:text-green-500 border-green-500/50"
+                  >
+                    +{stats.added}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="font-mono text-xs text-red-600 dark:text-red-500 border-red-500/50"
+                  >
+                    -{stats.removed}
+                  </Badge>
+                </div>
+              )}
             </div>
           );
         } catch (e) {
@@ -165,11 +189,19 @@ export function ChatMessage({ message }: ChatMessageProps) {
         key={tool.id}
         className="flex items-start gap-2.5 text-sm bg-muted/60 dark:bg-muted/30 rounded-lg p-3 border"
       >
-        {tool.status === "error" ? (
-          <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-        ) : (
-          <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-        )}
+        <div className="flex items-center gap-1.5">
+          {tool.status === "error" ? (
+            <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          ) : (
+            <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+          )}
+          {tool.function.name === "apply_diff_to_file" && (
+            <FileDiff className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+          )}
+          {tool.function.name === "read_file" && (
+            <FileText className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+          )}
+        </div>
         {toolContent}
       </div>
     );

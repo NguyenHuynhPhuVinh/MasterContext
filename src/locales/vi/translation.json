@@ -186,8 +186,9 @@
       "executingTool": "Thực thi công cụ",
       "modifiedGroup": "Đã sửa đổi nhóm ngữ cảnh",
       "listingGroupFiles": "Liệt kê tệp trong nhóm hiện tại",
-      "applyingDiff": "Đang áp dụng bản vá cho",
-      "applyingDiffGeneric": "Đang áp dụng bản vá cho tệp"
+      "applyingDiffGeneric": "Đang áp dụng bản vá cho tệp",
+      "applyDiffSuccess": "Đã áp dụng bản vá cho",
+      "applyDiffError": "Áp dụng bản vá thất bại cho"
     }
   },
   "mainPanel": {

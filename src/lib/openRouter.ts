@@ -4,6 +4,17 @@ import { type AppState, useAppStore } from "@/store/appStore";
 import { type ChatMessage, type GenerationInfo } from "@/store/types";
 import axios from "axios";
 
+const calculateDiffStats = (diff: string | undefined) => {
+  if (!diff) return { added: 0, removed: 0 };
+  let added = 0;
+  let removed = 0;
+  diff.split("\n").forEach((line) => {
+    if (line.startsWith("+") && !line.startsWith("+++")) added++;
+    if (line.startsWith("-") && !line.startsWith("---")) removed++;
+  });
+  return { added, removed };
+};
+
 type StoreApi = {
   getState: () => AppState;
   setState: (
@@ -141,11 +152,25 @@ export const handleToolCalls = async (
     const { actions } = getState();
     try {
       const args = JSON.parse(tool.function.arguments);
+      const diffContent = args.diff_content;
+      const stats = calculateDiffStats(diffContent);
+
       const success = await actions.applyVirtualPatch(
         args.file_path,
-        args.diff_content
+        diffContent
       );
       toolSucceeded = success;
+
+      // Store stats on the tool call object in the state
+      setState((state) => {
+        const newMessages = [...state.chatMessages];
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage?.role === "assistant" && lastMessage.tool_calls) {
+          lastMessage.tool_calls[0].diffStats = stats;
+        }
+        return { chatMessages: newMessages };
+      });
+
       if (success) {
         toolResultContent = `Successfully applied patch to ${args.file_path}. The user can now see the changes in the editor.`;
       } else {
