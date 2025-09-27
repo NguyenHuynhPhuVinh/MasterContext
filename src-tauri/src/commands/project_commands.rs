@@ -138,6 +138,36 @@ pub fn get_file_content(root_path_str: String, file_rel_path: String) -> Result<
 }
 
 #[command]
+pub fn read_file_with_lines(
+    root_path_str: String,
+    file_rel_path: String,
+    start_line: Option<usize>,
+    end_line: Option<usize>,
+) -> Result<String, String> {
+    let root_path = std::path::Path::new(&root_path_str);
+    let full_path = root_path.join(&file_rel_path);
+    let content = fs::read_to_string(full_path)
+        .map_err(|e| format!("Không thể đọc file '{}': {}", file_rel_path, e))?;
+
+    if start_line.is_none() && end_line.is_none() {
+        return Ok(content);
+    }
+
+    let lines: Vec<&str> = content.lines().collect();
+    let total_lines = lines.len();
+
+    // Line numbers from AI are 1-based, convert to 0-based index
+    let start_index = start_line.map_or(0, |n| n.saturating_sub(1));
+    let end_index = end_line.map_or(total_lines, |n| n).min(total_lines);
+
+    if start_index >= end_index {
+        return Ok("".to_string());
+    }
+
+    Ok(lines[start_index..end_index].join("\n"))
+}
+
+#[command]
 pub fn save_file_content(
     root_path_str: String,
     file_rel_path: String,

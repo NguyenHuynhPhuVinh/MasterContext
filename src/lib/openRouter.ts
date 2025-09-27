@@ -1,4 +1,5 @@
 // src/lib/openRouter.ts
+import { invoke } from "@tauri-apps/api/core";
 import { type AppState, useAppStore } from "@/store/appStore";
 import { type ChatMessage, type GenerationInfo } from "@/store/types";
 import axios from "axios";
@@ -39,8 +40,7 @@ export const handleToolCalls = async (
   setState({ isAiPanelLoading: true }); // Keep loading state for the next AI call
 
   const tool = toolCalls[0];
-  let toolResultContent =
-    "Error: Tool 'get_project_file_tree' not found or file tree is unavailable.";
+  let toolResultContent = `Error: Tool '${tool.function.name}' not found or failed to execute.`;
   if (tool.function.name === "get_project_file_tree") {
     const fileTree = getState().fileTree;
     if (fileTree && fileTree.children) {
@@ -52,6 +52,26 @@ export const handleToolCalls = async (
             formatNode(child, "", index === children.length - 1)
           )
           .join("");
+    }
+  } else if (tool.function.name === "read_file") {
+    const { rootPath } = getState();
+    if (!rootPath) {
+      toolResultContent = "Error: Project path is not available to read file.";
+    } else {
+      try {
+        const args = JSON.parse(tool.function.arguments);
+        const content = await invoke<string>("read_file_with_lines", {
+          rootPathStr: rootPath,
+          fileRelPath: args.file_path,
+          startLine: args.start_line,
+          endLine: args.end_line,
+        });
+        toolResultContent = `Here is the content of ${args.file_path}${
+          args.start_line ? ` from line ${args.start_line}` : ""
+        }${args.end_line ? ` to line ${args.end_line}` : ""}:\n\n${content}`;
+      } catch (e) {
+        toolResultContent = `Error reading file: ${e}`;
+      }
     }
   }
 

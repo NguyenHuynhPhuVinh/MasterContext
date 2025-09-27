@@ -178,6 +178,35 @@ export const createAiChatActions: StateCreator<
             },
           },
         },
+        {
+          type: "function",
+          function: {
+            name: "read_file",
+            description:
+              "Reads the content of a specific file within the project. Can read the entire file or a specific range of lines.",
+            parameters: {
+              type: "object",
+              properties: {
+                file_path: {
+                  type: "string",
+                  description:
+                    "The relative path to the file from the project root.",
+                },
+                start_line: {
+                  type: "number",
+                  description:
+                    "Optional. The 1-based starting line number to read from.",
+                },
+                end_line: {
+                  type: "number",
+                  description:
+                    "Optional. The 1-based ending line number to read to.",
+                },
+              },
+              required: ["file_path"],
+            },
+          },
+        },
       ];
     }
 
