@@ -72,6 +72,7 @@ pub struct GenerationInfo {
 pub struct ChatMessage {
     pub role: String, // "user" | "assistant" | "system"
     pub content: Option<String>,
+    #[serde(rename = "tool_calls")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<ToolCall>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
