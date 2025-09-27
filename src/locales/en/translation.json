@@ -314,6 +314,9 @@
         "getApiKeyHint": "Get your API key from <1>OpenRouter settings</1>.",
         "modelLabel": "Model IDs"
       },
+      "google": {
+        "getApiKeyHint": "Get your API key from <1>Google AI Studio</1>."
+      },
       "streamResponse": {
         "label": "Stream responses",
         "description": "Receive AI responses chunk by chunk for a faster perceived response."

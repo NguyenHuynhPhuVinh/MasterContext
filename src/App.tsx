@@ -109,20 +109,47 @@ function App() {
         // Cập nhật state một lần với tất cả cài đặt
         _setRecentPaths(settings.recentPaths ?? []);
 
-        // Fetch all models from OpenRouter
-        const response = await axios.get("https://openrouter.ai/api/v1/models");
-        const allModelsData: any[] = response.data.data;
-        const allAvailableModels: AIModel[] = allModelsData.map((m: any) => ({
-          id: m.id,
-          name: m.name,
-          context_length: m.context_length,
-          pricing: {
-            prompt: m.pricing.prompt,
-            completion: m.pricing.completion,
+        const googleModels: AIModel[] = [
+          {
+            provider: "google",
+            id: "gemini-flash-latest",
+            name: "Gemini 2.5 Flash",
+            context_length: 1048576,
+            pricing: { prompt: "0", completion: "0" },
           },
-        }));
+          {
+            provider: "google",
+            id: "gemini-flash-lite-latest",
+            name: "Gemini 2.5 Flash Lite",
+            context_length: 1048576,
+            pricing: { prompt: "0", completion: "0" },
+          },
+        ];
 
-        const savedModelIds = settings.aiModels ?? ["openai/gpt-3.5-turbo"];
+        let allAvailableModels: AIModel[] = [...googleModels];
+
+        // Fetch all models from OpenRouter
+        try {
+          const response = await axios.get(
+            "https://openrouter.ai/api/v1/models"
+          );
+          const allModelsData: any[] = response.data.data;
+          const openRouterModels: AIModel[] = allModelsData.map((m: any) => ({
+            provider: "openrouter",
+            id: m.id,
+            name: m.name,
+            context_length: m.context_length,
+            pricing: {
+              prompt: m.pricing.prompt,
+              completion: m.pricing.completion,
+            },
+          }));
+          allAvailableModels.push(...openRouterModels);
+        } catch (e) {
+          console.warn("Could not fetch OpenRouter models", e);
+        }
+
+        const savedModelIds = settings.aiModels ?? ["gemini-flash-latest"];
 
         const projectAiModels: AIModel[] = savedModelIds
           .map((id) => allAvailableModels.find((m) => m.id === id))
@@ -132,20 +159,19 @@ function App() {
         useAppStore.setState({
           nonAnalyzableExtensions: settings.nonAnalyzableExtensions ?? [],
           openRouterApiKey: settings.openRouterApiKey ?? "",
+          googleApiKey: settings.googleApiKey ?? "",
           allAvailableModels,
           aiModels: projectAiModels.length
             ? projectAiModels
             : [
-                allAvailableModels.find(
-                  (m) => m.id === "openai/gpt-3.5-turbo"
-                )!,
+                allAvailableModels.find((m) => m.id === "gemini-flash-latest")!,
               ].filter(Boolean),
           selectedAiModel:
             projectAiModels.find(
               (m) => m.id === useAppStore.getState().selectedAiModel
             )?.id ||
             projectAiModels[0]?.id ||
-            "openai/gpt-3.5-turbo",
+            "gemini-flash-latest",
         });
       } catch (e) {
         console.error("Could not load app settings:", e);

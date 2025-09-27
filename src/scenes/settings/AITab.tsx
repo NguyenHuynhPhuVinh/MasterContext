@@ -30,6 +30,7 @@ import { type AIModel } from "@/store/types";
 
 interface AITabProps {
   apiKey: string;
+  googleApiKey: string;
   models: AIModel[]; // This is AIModel[]
   streamResponse: boolean;
   systemPrompt: string;
@@ -39,6 +40,7 @@ interface AITabProps {
   maxTokens: number;
   onSave: (settings: {
     apiKey: string;
+    googleApiKey: string;
     models: string[]; // should send back IDs
     streamResponse: boolean;
     systemPrompt: string;
@@ -51,6 +53,7 @@ interface AITabProps {
 
 export function AITab({
   apiKey,
+  googleApiKey,
   models, // This is AIModel[]
   streamResponse,
   systemPrompt,
@@ -67,6 +70,7 @@ export function AITab({
     }))
   );
   const [localApiKey, setLocalApiKey] = useState(apiKey);
+  const [localGoogleApiKey, setLocalGoogleApiKey] = useState(googleApiKey);
   const [localModels, setLocalModels] = useState(models.map((m) => m.id));
   const [localStreamResponse, setLocalStreamResponse] =
     useState(streamResponse);
@@ -80,6 +84,7 @@ export function AITab({
 
   useEffect(() => {
     setLocalApiKey(apiKey);
+    setLocalGoogleApiKey(googleApiKey);
     setLocalModels(models.map((m) => m.id));
     setLocalStreamResponse(streamResponse);
     setLocalSystemPrompt(systemPrompt);
@@ -89,6 +94,7 @@ export function AITab({
     setLocalMaxTokens(maxTokens);
   }, [
     apiKey,
+    googleApiKey,
     models,
     streamResponse,
     systemPrompt,
@@ -102,6 +108,7 @@ export function AITab({
     setIsSaving(true);
     await onSave({
       apiKey: localApiKey,
+      googleApiKey: localGoogleApiKey,
       models: localModels,
       streamResponse: localStreamResponse,
       systemPrompt: localSystemPrompt,
@@ -127,6 +134,7 @@ export function AITab({
 
   const isChanged =
     localApiKey !== apiKey ||
+    localGoogleApiKey !== googleApiKey ||
     modelsChanged ||
     localStreamResponse !== streamResponse ||
     localSystemPrompt !== systemPrompt ||
@@ -172,6 +180,32 @@ export function AITab({
             />
           </p>
         </div>
+        <div className="space-y-2 pt-4 border-t">
+          <Label htmlFor="google-api-key">Google AI API Key</Label>
+          <Input
+            id="google-api-key"
+            type="password"
+            value={localGoogleApiKey}
+            onChange={(e) => setLocalGoogleApiKey(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            <Trans
+              i18nKey="settings.ai.google.getApiKeyHint"
+              components={{
+                1: (
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openUrl("https://aistudio.google.com/app/apikey");
+                    }}
+                    className="text-primary underline hover:no-underline"
+                  />
+                ),
+              }}
+            />
+          </p>
+        </div>
         <div className="space-y-2">
           <Label>{t("settings.ai.openRouter.modelLabel")}</Label>
           <div className="flex flex-wrap gap-2 rounded-lg border p-2 min-h-[40px]">
@@ -179,7 +213,16 @@ export function AITab({
               .filter((m) => localModels.includes(m.id))
               .map((model) => (
                 <Badge key={model.id} variant="secondary" className="pl-3 pr-1">
-                  {model.id}
+                  <span
+                    className={
+                      model.provider === "google"
+                        ? "text-blue-500 font-medium"
+                        : ""
+                    }
+                  >
+                    {model.provider === "google" ? "Google" : "OpenRouter"} /
+                  </span>
+                  <span className="ml-1">{model.name}</span>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -232,7 +275,17 @@ export function AITab({
                             }}
                           >
                             <div className="flex flex-col">
-                              <span>{model.name}</span>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={
+                                    model.provider === "google"
+                                      ? "font-semibold text-blue-600 dark:text-blue-400"
+                                      : ""
+                                  }
+                                >
+                                  {model.name}
+                                </span>
+                              </div>
                               <span className="text-xs text-muted-foreground">
                                 {model.id}
                               </span>

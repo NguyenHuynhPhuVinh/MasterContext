@@ -286,6 +286,7 @@ export const createSettingsActions: StateCreator<
       recentPaths,
       nonAnalyzableExtensions,
       openRouterApiKey,
+      googleApiKey,
       aiModels,
       streamResponse,
       systemPrompt,
@@ -300,6 +301,7 @@ export const createSettingsActions: StateCreator<
       nonAnalyzableExtensions:
         newSettings.nonAnalyzableExtensions ?? nonAnalyzableExtensions,
       openRouterApiKey: newSettings.openRouterApiKey ?? openRouterApiKey,
+      googleApiKey: newSettings.googleApiKey ?? googleApiKey,
       aiModels: newSettings.aiModels ?? aiModels.map((m) => m.id),
       streamResponse: newSettings.streamResponse ?? streamResponse,
       systemPrompt: newSettings.systemPrompt ?? systemPrompt,
@@ -322,6 +324,7 @@ export const createSettingsActions: StateCreator<
         recentPaths: fullSettings.recentPaths,
         nonAnalyzableExtensions: fullSettings.nonAnalyzableExtensions,
         openRouterApiKey: fullSettings.openRouterApiKey ?? "",
+        googleApiKey: fullSettings.googleApiKey ?? "",
         aiModels: projectAiModels.length
           ? projectAiModels
           : [

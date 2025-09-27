@@ -114,6 +114,7 @@ export interface AppState {
   isAiPanelVisible: boolean;
   aiChatMode: AiChatMode;
   openRouterApiKey: string;
+  googleApiKey: string;
   allAvailableModels: AIModel[];
   aiModels: AIModel[];
   chatMessages: ChatMessage[];

@@ -314,6 +314,9 @@
         "getApiKeyHint": "Lấy API key của bạn từ <1>cài đặt OpenRouter</1>.",
         "modelLabel": "Các Model ID"
       },
+      "google": {
+        "getApiKeyHint": "Lấy API key của bạn từ <1>Google AI Studio</1>."
+      },
       "streamResponse": {
         "label": "Stream phản hồi",
         "description": "Nhận phản hồi từ AI từng phần một để có cảm giác nhanh hơn."

@@ -8,10 +8,14 @@ import {
   handleNonStreamingResponse,
   handleStreamingResponse,
 } from "@/lib/openRouter";
+import {
+  handleNonStreamingResponseGoogle,
+  handleStreamingResponseGoogle,
+} from "@/lib/googleAI";
 
 export interface AiChatActions {
   sendChatMessage: (prompt: string) => Promise<void>;
-  fetchOpenRouterResponse: () => Promise<void>;
+  fetchAiResponse: () => Promise<void>;
   stopAiResponse: () => void;
 }
 
@@ -22,8 +26,20 @@ export const createAiChatActions: StateCreator<
   AiChatActions
 > = (set, get) => ({
   sendChatMessage: async (prompt: string) => {
-    const { openRouterApiKey, aiAttachedFiles, rootPath } = get();
-    if (!openRouterApiKey) {
+    const {
+      openRouterApiKey,
+      googleApiKey,
+      aiAttachedFiles,
+      rootPath,
+      allAvailableModels,
+      selectedAiModel,
+    } = get();
+    const model = allAvailableModels.find((m) => m.id === selectedAiModel);
+
+    if (
+      (model?.provider === "openrouter" && !openRouterApiKey) ||
+      (model?.provider === "google" && !googleApiKey)
+    ) {
       return;
     }
 
@@ -96,7 +112,7 @@ export const createAiChatActions: StateCreator<
       get().actions.clearAttachedFilesFromAi();
 
       // Now proceed with the API call
-      await get().actions.fetchOpenRouterResponse();
+      await get().actions.fetchAiResponse();
     } catch (error) {
       const errorMessage =
         error instanceof Error && error.name !== "AbortError"
@@ -118,10 +134,12 @@ export const createAiChatActions: StateCreator<
       await get().actions.saveCurrentChatSession();
     }
   },
-  // New helper action to fetch response from OpenRouter
-  fetchOpenRouterResponse: async () => {
+  // New helper action to fetch response from AI provider
+  fetchAiResponse: async () => {
     const {
       openRouterApiKey,
+      googleApiKey,
+      allAvailableModels,
       aiModels,
       selectedAiModel,
       chatMessages,
@@ -136,11 +154,19 @@ export const createAiChatActions: StateCreator<
     } = get();
     const { editingGroupId } = get(); // Lấy ID nhóm đang chỉnh sửa
 
-    // Create a new AbortController for this request
     const controller = new AbortController();
     set({ abortController: controller });
 
-    if (!openRouterApiKey || !activeChatSession) return;
+    const model = allAvailableModels.find((m) => m.id === selectedAiModel);
+    if (!model || !activeChatSession) return;
+
+    const apiKey =
+      model.provider === "google" ? googleApiKey : openRouterApiKey;
+    if (!apiKey) {
+      console.error(`API key for ${model.provider} is not set.`);
+      set({ isAiPanelLoading: false });
+      return;
+    }
     const messagesToSend: ChatMessage[] = [];
     if (systemPrompt && systemPrompt.trim()) {
       messagesToSend.push({ role: "system", content: systemPrompt });
@@ -148,127 +174,195 @@ export const createAiChatActions: StateCreator<
     // Important: send the whole history for context
     messagesToSend.push(...chatMessages);
 
-    // Build payload with advanced parameters
-    const payload: Record<string, any> = {
-      model: selectedAiModel || aiModels[0]?.id,
-      messages: messagesToSend.map(
-        // Filter out UI-specific properties before sending
-        ({ hidden, hiddenContent, attachedFiles, ...msg }) => {
-          const fullContent = (hiddenContent || "") + (msg.content || "");
-          // Filter out the hidden property before sending
-          return { ...msg, content: fullContent };
-        }
-      ),
-    };
-
-    if (temperature) payload.temperature = temperature;
-    if (topP) payload.top_p = topP;
-    if (topK > 0) payload.top_k = topK;
-    if (maxTokens > 0) payload.max_tokens = maxTokens;
-    if (aiChatMode === "link" || aiChatMode === "diff") {
-      payload.tools = [
-        {
-          type: "function",
-          function: {
-            name: "get_project_file_tree",
-            description:
-              "Get the complete file and directory structure of the current project.",
-            parameters: {
-              type: "object",
-              properties: {},
-            },
-          },
-        },
-        {
-          type: "function",
-          function: {
-            name: "read_file",
-            description:
-              "Reads the content of a specific file within the project. Can read the entire file or a specific range of lines.",
-            parameters: {
-              type: "object",
-              properties: {
-                file_path: {
-                  type: "string",
-                  description:
-                    "The relative path to the file from the project root.",
-                },
-                start_line: {
-                  type: "number",
-                  description:
-                    "Optional. The 1-based starting line number to read from.",
-                },
-                end_line: {
-                  type: "number",
-                  description:
-                    "Optional. The 1-based ending line number to read to.",
-                },
-              },
-              required: ["file_path"],
-            },
-          },
-        },
-      ];
-    }
-    // Add group-related tools only if a group is being edited
-    if ((aiChatMode === "link" || aiChatMode === "diff") && editingGroupId) {
-      if (!payload.tools) payload.tools = [];
-      payload.tools.push({
-        type: "function",
-        function: {
-          name: "get_current_context_group_files",
-          description:
-            "Gets a list of all files currently included in the context group that the user is editing.",
-          parameters: {
-            type: "object",
-            properties: {},
-            required: [],
-          },
-        },
+    // --- Provider-specific logic ---
+    if (model.provider === "google") {
+      // --- GOOGLE AI LOGIC ---
+      const { toGooglePayload } = await import("@/lib/googleAI");
+      const payload = toGooglePayload(messagesToSend, {
+        systemPrompt,
+        temperature,
+        topP,
+        topK,
+        maxTokens,
       });
 
-      // The "modify" tool is specific to "link" mode
-      if (aiChatMode === "link") {
+      // TODO: Add Google tool definitions if needed
+
+      try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${
+          model.id
+        }:${streamResponse ? "streamGenerateContent" : "generateContent"}`;
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "x-goog-api-key": apiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || response.statusText);
+        }
+
+        if (streamResponse) {
+          await handleStreamingResponseGoogle(response, {
+            getState: get,
+            setState: set,
+          });
+        } else {
+          const assistantMessage = await handleNonStreamingResponseGoogle(
+            response
+          );
+          set((state) => ({
+            chatMessages: [...state.chatMessages, assistantMessage],
+          }));
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          console.log("AI response aborted by user.");
+          return;
+        }
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error("Google AI API error:", errorMessage);
+
+        const assistantErrorMessage: ChatMessage = {
+          role: "assistant",
+          content: `${t("aiPanel.error")}\n\n${errorMessage}`,
+        };
+
+        set((state) => ({
+          chatMessages: [...state.chatMessages, assistantErrorMessage],
+        }));
+      } finally {
+        set({ isAiPanelLoading: false, abortController: null });
+        await get().actions.saveCurrentChatSession();
+      }
+    } else {
+      // --- OPENROUTER LOGIC (existing logic) ---
+      const payload: Record<string, any> = {
+        model: selectedAiModel || aiModels[0]?.id,
+        messages: messagesToSend.map(
+          // Filter out UI-specific properties before sending
+          ({ hidden, hiddenContent, attachedFiles, ...msg }) => {
+            const fullContent = (hiddenContent || "") + (msg.content || "");
+            // Filter out the hidden property before sending
+            return { ...msg, content: fullContent };
+          }
+        ),
+      };
+
+      if (temperature) payload.temperature = temperature;
+      if (topP) payload.top_p = topP;
+      if (topK > 0) payload.top_k = topK;
+      if (maxTokens > 0) payload.max_tokens = maxTokens;
+      if (aiChatMode === "link" || aiChatMode === "diff") {
+        payload.tools = [
+          {
+            type: "function",
+            function: {
+              name: "get_project_file_tree",
+              description:
+                "Get the complete file and directory structure of the current project.",
+              parameters: {
+                type: "object",
+                properties: {},
+              },
+            },
+          },
+          {
+            type: "function",
+            function: {
+              name: "read_file",
+              description:
+                "Reads the content of a specific file within the project. Can read the entire file or a specific range of lines.",
+              parameters: {
+                type: "object",
+                properties: {
+                  file_path: {
+                    type: "string",
+                    description:
+                      "The relative path to the file from the project root.",
+                  },
+                  start_line: {
+                    type: "number",
+                    description:
+                      "Optional. The 1-based starting line number to read from.",
+                  },
+                  end_line: {
+                    type: "number",
+                    description:
+                      "Optional. The 1-based ending line number to read to.",
+                  },
+                },
+                required: ["file_path"],
+              },
+            },
+          },
+        ];
+      }
+      // Add group-related tools only if a group is being edited
+      if ((aiChatMode === "link" || aiChatMode === "diff") && editingGroupId) {
+        if (!payload.tools) payload.tools = [];
         payload.tools.push({
           type: "function",
           function: {
-            name: "modify_context_group",
+            name: "get_current_context_group_files",
             description:
-              "Adds or removes files and folders from the currently selected context group. This is the primary way to help the user manage their context groups.",
+              "Gets a list of all files currently included in the context group that the user is editing.",
             parameters: {
               type: "object",
-              properties: {
-                files_to_add: {
-                  type: "array",
-                  description:
-                    "An array of file or folder paths to add to the group. Paths must be relative to the project root.",
-                  items: {
-                    type: "string",
+              properties: {},
+              required: [],
+            },
+          },
+        });
+
+        // The "modify" tool is specific to "link" mode
+        if (aiChatMode === "link") {
+          payload.tools.push({
+            type: "function",
+            function: {
+              name: "modify_context_group",
+              description:
+                "Adds or removes files and folders from the currently selected context group. This is the primary way to help the user manage their context groups.",
+              parameters: {
+                type: "object",
+                properties: {
+                  files_to_add: {
+                    type: "array",
+                    description:
+                      "An array of file or folder paths to add to the group. Paths must be relative to the project root.",
+                    items: {
+                      type: "string",
+                    },
                   },
-                },
-                files_to_remove: {
-                  type: "array",
-                  description:
-                    "An array of file or folder paths to remove from the group.",
-                  items: {
-                    type: "string",
+                  files_to_remove: {
+                    type: "array",
+                    description:
+                      "An array of file or folder paths to remove from the group.",
+                    items: {
+                      type: "string",
+                    },
                   },
                 },
               },
             },
-          },
-        });
+          });
+        }
       }
-    }
 
-    // Add diff tool only in diff mode
-    if (aiChatMode === "diff") {
-      if (!payload.tools) payload.tools = [];
-      payload.tools.push({
-        type: "function",
-        function: {
-          name: "apply_diff_to_file",
-          description: `Applies a diff patch to a specified file in the project. The diff must be in the standard unified diff format.
+      // Add diff tool only in diff mode
+      if (aiChatMode === "diff") {
+        if (!payload.tools) payload.tools = [];
+        payload.tools.push({
+          type: "function",
+          function: {
+            name: "apply_diff_to_file",
+            description: `Applies a diff patch to a specified file in the project. The diff must be in the standard unified diff format.
 
 **IMPORTANT HINTS for using this tool:**
 
@@ -293,80 +387,81 @@ export const createAiChatActions: StateCreator<
  [![License]...
  ...
 `,
-          parameters: {
-            type: "object",
-            properties: {
-              file_path: {
-                type: "string",
-                description:
-                  "The relative path to the file that the diff should be applied to.",
+            parameters: {
+              type: "object",
+              properties: {
+                file_path: {
+                  type: "string",
+                  description:
+                    "The relative path to the file that the diff should be applied to.",
+                },
+                diff_content: {
+                  type: "string",
+                  description: "The content of the diff patch to apply.",
+                },
               },
-              diff_content: {
-                type: "string",
-                description: "The content of the diff patch to apply.",
-              },
+              required: ["file_path", "diff_content"],
             },
-            required: ["file_path", "diff_content"],
           },
-        },
-      });
-    }
-
-    try {
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openRouterApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ ...payload, stream: streamResponse }),
-          signal: controller.signal, // Pass the signal
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || response.statusText);
-      }
-
-      if (streamResponse) {
-        await handleStreamingResponse(response, {
-          getState: get,
-          setState: set,
         });
-      } else {
-        const assistantMessage = await handleNonStreamingResponse(
-          response,
-          openRouterApiKey
+      }
+
+      try {
+        const response = await fetch(
+          "https://openrouter.ai/api/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${openRouterApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ ...payload, stream: streamResponse }),
+            signal: controller.signal, // Pass the signal
+          }
         );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || response.statusText);
+        }
+
+        if (streamResponse) {
+          await handleStreamingResponse(response, {
+            getState: get,
+            setState: set,
+          });
+        } else {
+          const assistantMessage = await handleNonStreamingResponse(
+            response,
+            apiKey
+          );
+          set((state) => ({
+            chatMessages: [...state.chatMessages, assistantMessage],
+          }));
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          console.log("AI response aborted by user.");
+          return;
+        }
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error("OpenRouter API error:", errorMessage);
+
+        const assistantErrorMessage: ChatMessage = {
+          role: "assistant",
+          content: `${t("aiPanel.error")}\n\n${errorMessage}`,
+        };
+
         set((state) => ({
-          chatMessages: [...state.chatMessages, assistantMessage],
+          chatMessages: [...state.chatMessages, assistantErrorMessage],
         }));
+      } finally {
+        set({ isAiPanelLoading: false });
+        set({ abortController: null });
+        // Always save the session after the stream attempt is finished.
+        await get().actions.saveCurrentChatSession();
       }
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        console.log("AI response aborted by user.");
-        return;
-      }
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error("OpenRouter API error:", errorMessage);
-
-      const assistantErrorMessage: ChatMessage = {
-        role: "assistant",
-        content: `${t("aiPanel.error")}\n\n${errorMessage}`,
-      };
-
-      set((state) => ({
-        chatMessages: [...state.chatMessages, assistantErrorMessage],
-      }));
-    } finally {
-      set({ isAiPanelLoading: false });
-      set({ abortController: null });
-      // Always save the session after the stream attempt is finished.
-      await get().actions.saveCurrentChatSession();
     }
   },
 

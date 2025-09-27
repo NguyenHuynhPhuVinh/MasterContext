@@ -39,6 +39,7 @@ export function SettingsScene() {
     alwaysApplyText,
     exportExcludeExtensions,
     gitExportModeIsContext,
+    googleApiKey,
     openRouterApiKey, // This should be apiKey
     aiModels, // This should be models
     systemPrompt,
@@ -134,6 +135,7 @@ export function SettingsScene() {
         return (
           <AITab
             apiKey={openRouterApiKey}
+            googleApiKey={googleApiKey}
             models={aiModels}
             systemPrompt={systemPrompt}
             streamResponse={streamResponse}
@@ -144,6 +146,7 @@ export function SettingsScene() {
             onSave={async (newSettings) => {
               await updateAppSettings({
                 openRouterApiKey: newSettings.apiKey,
+                googleApiKey: newSettings.googleApiKey,
                 aiModels: newSettings.models,
                 systemPrompt: newSettings.systemPrompt,
                 streamResponse: newSettings.streamResponse,

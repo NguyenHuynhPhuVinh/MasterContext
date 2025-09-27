@@ -154,19 +154,44 @@ export function AIPromptInput({
                     onValueChange={setSelectedModel}
                   >
                     {models.map((model) => (
-                      <DropdownMenuRadioItem key={model.id} value={model.id}>
+                      <DropdownMenuRadioItem
+                        key={`${model.provider}-${model.id}`}
+                        value={model.id}
+                      >
                         <div className="flex flex-col">
-                          <span className="font-medium">{model.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={
+                                model.provider === "google"
+                                  ? "font-semibold text-blue-600 dark:text-blue-400"
+                                  : ""
+                              }
+                            >
+                              {model.name}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {model.provider}
+                            </Badge>
+                          </div>
                           <div className="text-xs text-muted-foreground flex gap-2">
-                            <span>
-                              {model.context_length?.toLocaleString()} ctx
-                            </span>
-                            <span>
-                              In: {formatPrice(model.pricing.prompt)}/M
-                            </span>
-                            <span>
-                              Out: {formatPrice(model.pricing.completion)}/M
-                            </span>
+                            {model.provider === "openrouter" ? (
+                              <>
+                                <span>
+                                  {model.context_length?.toLocaleString()} ctx
+                                </span>
+                                <span>
+                                  In: {formatPrice(model.pricing.prompt)}/M
+                                </span>
+                                <span>
+                                  Out: {formatPrice(model.pricing.completion)}
+                                  /M
+                                </span>
+                              </>
+                            ) : (
+                              <span>
+                                {model.context_length?.toLocaleString()} context
+                              </span>
+                            )}
                           </div>
                         </div>
                       </DropdownMenuRadioItem>

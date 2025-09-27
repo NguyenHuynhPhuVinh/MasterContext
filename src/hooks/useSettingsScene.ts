@@ -27,6 +27,7 @@ export function useSettingsScene() {
     alwaysApplyText,
     exportExcludeExtensions,
     gitExportModeIsContext,
+    googleApiKey,
     openRouterApiKey,
     aiModels, // This should be models
     systemPrompt,
@@ -51,6 +52,7 @@ export function useSettingsScene() {
       alwaysApplyText: state.alwaysApplyText,
       exportExcludeExtensions: state.exportExcludeExtensions,
       gitExportModeIsContext: state.gitExportModeIsContext,
+      googleApiKey: state.googleApiKey,
       openRouterApiKey: state.openRouterApiKey,
       aiModels: state.aiModels,
       systemPrompt: state.systemPrompt,
@@ -150,6 +152,7 @@ export function useSettingsScene() {
     alwaysApplyText,
     exportExcludeExtensions,
     showDashboard,
+    googleApiKey,
     openRouterApiKey,
     aiModels,
     systemPrompt,

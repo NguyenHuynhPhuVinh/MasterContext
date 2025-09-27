@@ -112,6 +112,7 @@ pub struct AppSettings {
     pub recent_paths: Vec<String>,
     pub non_analyzable_extensions: Option<Vec<String>>,
     pub open_router_api_key: Option<String>,
+    pub google_api_key: Option<String>,
     pub ai_models: Option<Vec<String>>,
     pub stream_response: Option<bool>,
     pub system_prompt: Option<String>,

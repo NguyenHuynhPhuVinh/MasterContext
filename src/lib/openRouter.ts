@@ -202,7 +202,7 @@ export const handleToolCalls = async (
     chatMessages: [...state.chatMessages, toolResultMessage],
   }));
   await getState().actions.saveCurrentChatSession();
-  await getState().actions.fetchOpenRouterResponse();
+  await getState().actions.fetchAiResponse();
 };
 
 /**

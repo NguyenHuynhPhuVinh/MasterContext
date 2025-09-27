@@ -34,13 +34,11 @@ export function AIPanelHeader({
   const { t } = useTranslation();
   const { aiModels, selectedAiModel } = useAppStore(
     useShallow((s) => ({
-      aiModels: s.aiModels,
+      aiModels: s.allAvailableModels, // Use all models to find details
       selectedAiModel: s.selectedAiModel,
     }))
   );
-  const selectedModelDetails = aiModels.find(
-    (m) => m.id === (selectedAiModel || aiModels[0]?.id)
-  );
+  const selectedModelDetails = aiModels.find((m) => m.id === selectedAiModel);
 
   const handleNewChat = () => {
     if (isLoading) {
@@ -70,7 +68,8 @@ export function AIPanelHeader({
         </h1>
         {view === "chat" && activeChatSession && (
           <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
-            {activeChatSession.totalTokens != null &&
+            {selectedModelDetails?.provider !== "google" &&
+              activeChatSession.totalTokens != null &&
               selectedModelDetails?.context_length != null && (
                 <div
                   className={cn(
@@ -98,7 +97,8 @@ export function AIPanelHeader({
                   </span>
                 </div>
               )}
-            {activeChatSession.totalCost != null &&
+            {selectedModelDetails?.provider !== "google" &&
+              activeChatSession.totalCost != null &&
               activeChatSession.totalCost > 0 && (
                 <div
                   className="flex items-center gap-1.5"

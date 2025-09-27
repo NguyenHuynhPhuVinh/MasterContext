@@ -59,6 +59,7 @@ export const initialState = {
   isAiPanelVisible: false,
   aiChatMode: "ask" as "ask" | "link" | "diff",
   openRouterApiKey: "",
+  googleApiKey: "",
   allAvailableModels: [],
   aiModels: [],
   chatMessages: [],

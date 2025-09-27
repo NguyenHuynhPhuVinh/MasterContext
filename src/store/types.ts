@@ -75,6 +75,7 @@ export interface ScanCompletePayload {
 export type AiChatMode = "ask" | "link" | "diff";
 
 export interface AIModel {
+  provider: "openrouter" | "google";
   id: string;
   name: string;
   context_length: number | null;
@@ -89,6 +90,7 @@ export interface AppSettings {
   nonAnalyzableExtensions?: string[];
   openRouterApiKey?: string;
   aiModels?: string[];
+  googleApiKey?: string;
   streamResponse?: boolean;
   systemPrompt?: string;
   temperature?: number;
@@ -233,6 +235,7 @@ export interface AppState {
   isAiPanelVisible: boolean;
   aiChatMode: AiChatMode;
   openRouterApiKey: string;
+  googleApiKey: string;
   allAvailableModels: AIModel[];
   aiModels: AIModel[];
   chatMessages: ChatMessage[];
