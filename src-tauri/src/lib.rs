@@ -28,6 +28,8 @@ pub fn run() {
             commands::get_file_content,
             commands::read_file_with_lines,
             commands::save_file_content,
+            commands::create_file,
+            commands::delete_file,
             commands::update_groups_in_project_data,
             commands::start_group_update,
             commands::start_group_export,

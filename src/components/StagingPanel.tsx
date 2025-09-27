@@ -6,6 +6,8 @@ import { useShallow } from "zustand/react/shallow";
 import {
   ChevronUp,
   GitMerge,
+  FilePlus,
+  FileMinus,
   FileDiff,
   Check,
   X,
@@ -48,52 +50,78 @@ export function StagingPanel() {
 
   const StagedFileItem = ({
     filePath,
+    changeType,
     stats,
   }: {
     filePath: string;
+    changeType: "create" | "modify" | "delete";
     stats: { added: number; removed: number };
-  }) => (
-    <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted">
-      <FileDiff className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <span
-        className="flex-1 font-mono text-sm truncate cursor-pointer hover:underline"
-        onClick={() => openFileInEditor(filePath)}
-        title={filePath}
-      >
-        {filePath}
-      </span>
-      <Badge
-        variant="outline"
-        className="font-mono text-xs text-green-600 dark:text-green-500 border-green-500/50"
-      >
-        +{stats.added}
-      </Badge>
-      <Badge
-        variant="outline"
-        className="font-mono text-xs text-red-600 dark:text-red-500 border-red-500/50"
-      >
-        -{stats.removed}
-      </Badge>
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-7 w-7"
-        onClick={() => applyStagedChange(filePath)}
-        title={t("stagingPanel.acceptChange")}
-      >
-        <Check className="h-4 w-4 text-green-500" />
-      </Button>
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-7 w-7"
-        onClick={() => discardStagedChange(filePath)}
-        title={t("stagingPanel.discardChange")}
-      >
-        <X className="h-4 w-4 text-destructive" />
-      </Button>
-    </div>
-  );
+  }) => {
+    const colorClass =
+      changeType === "create"
+        ? "text-green-600 dark:text-green-500"
+        : changeType === "delete"
+        ? "text-destructive"
+        : "";
+
+    return (
+      <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted">
+        {changeType === "create" ? (
+          <FilePlus
+            className={cn("h-4 w-4 shrink-0 text-muted-foreground", colorClass)}
+          />
+        ) : changeType === "delete" ? (
+          <FileMinus
+            className={cn("h-4 w-4 shrink-0 text-muted-foreground", colorClass)}
+          />
+        ) : (
+          <FileDiff
+            className={cn("h-4 w-4 shrink-0 text-muted-foreground", colorClass)}
+          />
+        )}
+        <span
+          className={cn(
+            "flex-1 font-mono text-sm truncate cursor-pointer hover:underline",
+            colorClass
+          )}
+          onClick={() => openFileInEditor(filePath)}
+          title={filePath}
+        >
+          {filePath}
+        </span>
+        <Badge
+          variant="outline"
+          className="font-mono text-xs text-green-600 dark:text-green-500 border-green-500/50"
+        >
+          +{stats.added}
+        </Badge>
+        <Badge
+          variant="outline"
+          className="font-mono text-xs text-red-600 dark:text-red-500 border-red-500/50"
+        >
+          -{stats.removed}
+        </Badge>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7"
+          onClick={() => applyStagedChange(filePath)}
+          title={t("stagingPanel.acceptChange")}
+        >
+          <Check className="h-4 w-4 text-green-500" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7"
+          onClick={() => discardStagedChange(filePath)}
+          title={t("stagingPanel.discardChange")}
+        >
+          <X className="h-4 w-4 text-destructive" />
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -175,6 +203,7 @@ export function StagingPanel() {
                   <StagedFileItem
                     key={filePath}
                     filePath={filePath}
+                    changeType={change.changeType}
                     stats={change.stats}
                   />
                 )

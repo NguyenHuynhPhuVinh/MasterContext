@@ -144,6 +144,40 @@ export const getGoogleTools = (
         required: ["file_path", "content"],
       },
     });
+    function_declarations.push({
+      name: "create_file",
+      description:
+        "Creates a new file at a specified path with optional initial content.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          file_path: {
+            type: "STRING",
+            description:
+              "The relative path where the new file should be created.",
+          },
+          content: {
+            type: "STRING",
+            description: "Optional. The initial content of the new file.",
+          },
+        },
+        required: ["file_path"],
+      },
+    });
+    function_declarations.push({
+      name: "delete_file",
+      description: "Deletes a specified file from the project.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          file_path: {
+            type: "STRING",
+            description: "The relative path of the file to delete.",
+          },
+        },
+        required: ["file_path"],
+      },
+    });
   }
 
   return { function_declarations };

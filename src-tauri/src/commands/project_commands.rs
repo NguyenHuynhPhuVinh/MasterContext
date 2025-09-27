@@ -178,6 +178,31 @@ pub fn save_file_content(
     fs::write(full_path, content).map_err(|e| format!("Không thể ghi file: {}", e))
 }
 #[command]
+pub fn create_file(
+    root_path_str: String,
+    file_rel_path: String,
+    content: String,
+) -> Result<(), String> {
+    let root_path = std::path::Path::new(&root_path_str);
+    let full_path = root_path.join(&file_rel_path);
+    if let Some(parent_dir) = full_path.parent() {
+        fs::create_dir_all(parent_dir)
+            .map_err(|e| format!("Không thể tạo thư mục cha: {}", e))?;
+    }
+    fs::write(full_path, content).map_err(|e| format!("Không thể tạo file: {}", e))
+}
+
+#[command]
+pub fn delete_file(root_path_str: String, file_rel_path: String) -> Result<(), String> {
+    let root_path = std::path::Path::new(&root_path_str);
+    let full_path = root_path.join(file_rel_path);
+    if full_path.exists() {
+        fs::remove_file(full_path).map_err(|e| format!("Không thể xóa file: {}", e))
+    } else {
+        Ok(()) // File không tồn tại, coi như đã xóa thành công
+    }
+}
+#[command]
 pub fn update_file_exclusions(
     app: AppHandle,
     path: String,

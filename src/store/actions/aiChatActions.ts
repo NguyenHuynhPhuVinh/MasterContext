@@ -392,6 +392,46 @@ export const createAiChatActions: StateCreator<
             },
           },
         });
+        payload.tools.push({
+          type: "function",
+          function: {
+            name: "create_file",
+            description:
+              "Creates a new file at a specified path with optional initial content.",
+            parameters: {
+              type: "object",
+              properties: {
+                file_path: {
+                  type: "string",
+                  description:
+                    "The relative path where the new file should be created.",
+                },
+                content: {
+                  type: "string",
+                  description: "Optional. The initial content of the new file.",
+                },
+              },
+              required: ["file_path"],
+            },
+          },
+        });
+        payload.tools.push({
+          type: "function",
+          function: {
+            name: "delete_file",
+            description: "Deletes a specified file from the project.",
+            parameters: {
+              type: "object",
+              properties: {
+                file_path: {
+                  type: "string",
+                  description: "The relative path of the file to delete.",
+                },
+              },
+              required: ["file_path"],
+            },
+          },
+        });
       }
 
       try {

@@ -33,7 +33,8 @@ export interface UIActions {
   stageFileChange: (
     filePath: string,
     patch: string,
-    stats: { added: number; removed: number }
+    stats: { added: number; removed: number },
+    changeType: "create" | "modify" | "delete"
   ) => Promise<void>;
   discardStagedChange: (filePath: string) => void;
   discardAllStagedChanges: () => void;
@@ -227,10 +228,10 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       console.error("Failed to clear exclusion ranges:", e);
     }
   },
-  stageFileChange: async (filePath, patch, stats) => {
+  stageFileChange: async (filePath, patch, stats, changeType) => {
     set((state) => {
       const newChanges = new Map(state.stagedFileChanges);
-      newChanges.set(filePath, { patch, stats });
+      newChanges.set(filePath, { patch, stats, changeType });
       return { stagedFileChanges: newChanges };
     });
   },
@@ -252,21 +253,38 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     if (!change) return;
 
     try {
-      const originalContent = await invoke<string>("get_file_content", {
-        rootPathStr: rootPath,
-        fileRelPath: filePath,
-      });
-
-      const newContent = applyPatch(originalContent, change.patch);
-      if (newContent === false) {
-        throw new Error("Patch could not be applied logically.");
+      switch (change.changeType) {
+        case "create":
+          // applyPatch with empty string as base gives the new content
+          const createContent = applyPatch("", change.patch);
+          await invoke("create_file", {
+            rootPathStr: rootPath,
+            fileRelPath: filePath,
+            content: createContent,
+          });
+          break;
+        case "delete":
+          await invoke("delete_file", {
+            rootPathStr: rootPath,
+            fileRelPath: filePath,
+          });
+          break;
+        case "modify":
+          const originalContent = await invoke<string>("get_file_content", {
+            rootPathStr: rootPath,
+            fileRelPath: filePath,
+          });
+          const newContent = applyPatch(originalContent, change.patch);
+          if (newContent === false) {
+            throw new Error("Patch could not be applied logically.");
+          }
+          await invoke("save_file_content", {
+            rootPathStr: rootPath,
+            fileRelPath: filePath,
+            content: newContent,
+          });
+          break;
       }
-
-      await invoke("save_file_content", {
-        rootPathStr: rootPath,
-        fileRelPath: filePath,
-        content: newContent,
-      });
 
       // If successful, remove the change from staging
       _get().actions.discardStagedChange(filePath);
@@ -287,9 +305,9 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     const { stagedFileChanges } = _get();
     const allFiles = Array.from(stagedFileChanges.keys());
     for (const filePath of allFiles) {
-      // We await each one to ensure they are processed sequentially
-      // and to avoid race conditions if multiple changes affect the same file (unlikely but possible).
       await _get().actions.applyStagedChange(filePath);
     }
+    // Rescan after all changes are applied to refresh the entire file tree
+    await _get().actions.rescanProject();
   },
 });

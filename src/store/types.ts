@@ -200,8 +200,12 @@ export interface AppState {
   activeEditorFileExclusions: [number, number][] | null;
   stagedFileChanges: Map<
     string,
-    { patch: string; stats: { added: number; removed: number } }
-  >; // filePath -> { patch, stats }
+    {
+      patch: string;
+      stats: { added: number; removed: number };
+      changeType: "create" | "modify" | "delete";
+    }
+  >; // filePath -> { patch, stats, changeType }
 
   // Dữ liệu riêng của hồ sơ active
   syncEnabled: boolean;
