@@ -178,46 +178,6 @@ pub fn save_file_content(
     fs::write(full_path, content).map_err(|e| format!("Không thể ghi file: {}", e))
 }
 #[command]
-pub fn write_file_lines(
-    root_path_str: String,
-    file_rel_path: String,
-    content_to_write: String,
-    start_line: Option<usize>,
-    end_line: Option<usize>,
-) -> Result<(), String> {
-    let root_path = std::path::Path::new(&root_path_str);
-    let full_path = root_path.join(&file_rel_path);
-
-    // Trường hợp 1: Ghi đè toàn bộ file (không có start_line)
-    if start_line.is_none() {
-        return fs::write(full_path, content_to_write)
-            .map_err(|e| format!("Không thể ghi toàn bộ file: {}", e));
-    }
-
-    // Trường hợp 2: Ghi vào một khoảng dòng cụ thể
-    let original_content = fs::read_to_string(&full_path)
-        .map_err(|e| format!("Không thể đọc file gốc để ghi đè: {}", e))?;
-
-    let mut original_lines: Vec<&str> = original_content.lines().collect();
-    let new_lines: Vec<&str> = content_to_write.lines().collect();
-
-    // AI cung cấp dòng 1-based, chuyển thành 0-based index
-    let start_index = start_line.unwrap_or(1).saturating_sub(1);
-    // Nếu không có end_line, mặc định là thay thế cho đến hết các dòng mới
-    let end_index = end_line.unwrap_or(start_index + new_lines.len()).min(original_lines.len());
-
-    // Đảm bảo start_index không vượt quá độ dài file
-    let safe_start_index = start_index.min(original_lines.len());
-
-    // Thay thế các dòng
-    original_lines.splice(safe_start_index..end_index, new_lines);
-
-    let final_content = original_lines.join("\n");
-
-    fs::write(full_path, final_content)
-        .map_err(|e| format!("Không thể ghi các dòng đã thay đổi vào file: {}", e))
-}
-#[command]
 pub fn update_file_exclusions(
     app: AppHandle,
     path: String,

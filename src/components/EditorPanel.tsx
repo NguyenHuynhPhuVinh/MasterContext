@@ -5,26 +5,8 @@ import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { applyPatch, diffLines } from "diff";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  X,
-  Loader2,
-  Scissors,
-  FileX,
-  Undo,
-  RotateCcw,
-  Save,
-} from "lucide-react";
+import { X, Loader2, Scissors, FileX, Undo, RotateCcw } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -39,22 +21,21 @@ export function EditorPanel() {
     addExclusionRange,
     removeExclusionRange,
     clearExclusionRanges,
-    discardVirtualPatch,
-    applyPatchToRealFile,
+    discardStagedChange,
   } = useAppActions();
   const {
     activeEditorFile,
     activeEditorFileContent,
     isEditorLoading,
     activeEditorFileExclusions,
-    virtualPatches,
+    stagedFileChanges,
   } = useAppStore(
     useShallow((state) => ({
       activeEditorFile: state.activeEditorFile,
       activeEditorFileContent: state.activeEditorFileContent,
       isEditorLoading: state.isEditorLoading,
       activeEditorFileExclusions: state.activeEditorFileExclusions,
-      virtualPatches: state.virtualPatches,
+      stagedFileChanges: state.stagedFileChanges,
     }))
   );
 
@@ -63,17 +44,18 @@ export function EditorPanel() {
     end: number;
   } | null>(null);
   const codeContainerRef = useRef<HTMLElement>(null);
-  const [isApplyConfirmOpen, setIsApplyConfirmOpen] = useState(false);
 
-  const activePatch = activeEditorFile && virtualPatches.get(activeEditorFile);
+  const activeChange =
+    activeEditorFile && stagedFileChanges.get(activeEditorFile);
 
   const patchedContent = useMemo(() => {
-    if (!activePatch || !activeEditorFileContent) {
+    if (!activeChange || !activeEditorFileContent) {
       return null;
     }
-    const result = applyPatch(activeEditorFileContent, activePatch);
+    // Sửa đổi: sử dụng `patch` từ `activeChange`
+    const result = applyPatch(activeEditorFileContent, activeChange.patch);
     return result === false ? null : result;
-  }, [activeEditorFileContent, activePatch]);
+  }, [activeEditorFileContent, activeChange]);
 
   const handleMouseUp = () => {
     const sel = window.getSelection();
@@ -125,7 +107,7 @@ export function EditorPanel() {
 
     // If a patch is active, we don't show exclusions to avoid visual clutter.
     // The patch is a temporary override.
-    if (activePatch) {
+    if (activeChange) {
       return renderContentWithDiff();
     }
 
@@ -190,11 +172,11 @@ export function EditorPanel() {
           <p className="font-mono text-sm truncate" title={activeEditorFile}>
             {activeEditorFile}
           </p>
-          {activePatch && (
+          {activeChange && (
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-yellow-500 font-bold text-xs">
+                  <span className="text-yellow-500 font-bold text-xs animate-pulse">
                     [PATCHED]
                   </span>
                 </TooltipTrigger>
@@ -206,27 +188,17 @@ export function EditorPanel() {
           )}
         </div>
         <div className="flex items-center gap-1">
-          {activePatch && activeEditorFile && (
+          {activeChange && activeEditorFile && (
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsApplyConfirmOpen(true)}
-              title={t("editorPanel.applyToFileTooltip")}
-            >
-              <Save className="h-4 w-4 text-green-500" />
-            </Button>
-          )}
-          {activePatch && activeEditorFile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => discardVirtualPatch(activeEditorFile)}
+              onClick={() => discardStagedChange(activeEditorFile)}
               title={t("editorPanel.resetPatch")}
             >
-              <RotateCcw className="h-4 w-4 text-yellow-500" />
+              <RotateCcw className="h-4 w-4 text-destructive" />
             </Button>
           )}
-          {!activePatch &&
+          {!activeChange &&
             activeEditorFileExclusions &&
             activeEditorFileExclusions.length > 0 && (
               <Button
@@ -244,7 +216,7 @@ export function EditorPanel() {
         </div>
       </header>
       <main className="flex-1 overflow-auto relative">
-        {!activePatch && selection && (
+        {!activeChange && selection && (
           <Button
             className="absolute z-10 top-2 right-2 animate-in fade-in"
             size="sm"
@@ -272,30 +244,6 @@ export function EditorPanel() {
           </ScrollArea>
         )}
       </main>
-      <AlertDialog
-        open={isApplyConfirmOpen}
-        onOpenChange={setIsApplyConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("editorPanel.applyConfirmDialog.title")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("editorPanel.applyConfirmDialog.description")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={applyPatchToRealFile}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {t("editorPanel.applyConfirmDialog.confirm")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

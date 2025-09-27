@@ -30,7 +30,7 @@ export const initialState = {
   activeEditorFileContent: null,
   isEditorLoading: false,
   activeEditorFileExclusions: null,
-  virtualPatches: new Map(),
+  stagedFileChanges: new Map(),
   syncEnabled: false,
   syncPath: null,
   customIgnorePatterns: [],

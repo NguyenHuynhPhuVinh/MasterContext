@@ -59,7 +59,6 @@ interface FileTreeViewProps {
   onToggle: (node: FileNode, isSelected: boolean) => void; // <-- Sửa prop để truyền cả node
   gitStatus: Record<string, string> | null;
   onAttachFile: (filePath: string) => void;
-  onOpenDiffModal: (filePath: string) => void;
   level?: number;
 }
 
@@ -69,14 +68,13 @@ export function FileTreeView({
   onToggle,
   gitStatus,
   onAttachFile,
-  onOpenDiffModal,
   level = 0,
 }: FileTreeViewProps) {
   const { openFileInEditor } = useAppActions();
-  const { fileMetadataCache, virtualPatches, aiAttachedFiles } = useAppStore(
+  const { fileMetadataCache, stagedFileChanges, aiAttachedFiles } = useAppStore(
     useShallow((state) => ({
       fileMetadataCache: state.fileMetadataCache,
-      virtualPatches: state.virtualPatches,
+      stagedFileChanges: state.stagedFileChanges,
       aiAttachedFiles: state.aiAttachedFiles,
     }))
   );
@@ -100,7 +98,7 @@ export function FileTreeView({
     node.path in fileMetadataCache &&
     (fileMetadataCache[node.path]?.excluded_ranges?.length ?? 0) > 0;
 
-  const hasPatch = virtualPatches.has(node.path);
+  const hasPatch = stagedFileChanges.has(node.path);
 
   const selectionState = isDirectory
     ? getNodeSelectionState(node, selectedPaths)
@@ -193,18 +191,6 @@ export function FileTreeView({
                 />
               </button>
             )}
-            {!isDirectory && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenDiffModal(node.path);
-                }}
-                className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded hover:bg-muted"
-                title="Áp dụng Diff"
-              >
-                <FileDiff className="h-4 w-4 text-muted-foreground" />
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -218,7 +204,6 @@ export function FileTreeView({
               onToggle={onToggle}
               gitStatus={gitStatus}
               onAttachFile={onAttachFile}
-              onOpenDiffModal={onOpenDiffModal}
               level={level + 1}
             />
           ))}

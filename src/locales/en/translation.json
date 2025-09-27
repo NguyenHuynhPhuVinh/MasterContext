@@ -62,24 +62,20 @@
     "extensionsPlaceholder": "png, svg, lock, jpg...",
     "extensionsHint": "Separate extensions with a comma (,)."
   },
-  "diffModal": {
-    "title": "Apply Diff to '{{file}}'",
-    "description": "Paste the diff content into the text area below.",
-    "apply": "Apply",
-    "invalidFormatError": "Invalid diff format. The patch could not be applied."
-  },
   "editorPanel": {
     "excludeSelection": "Exclude selection",
     "clearExclusionsTooltip": "Clear all exclusion ranges",
     "undoExclude": "Undo exclusion",
     "patchedTooltip": "This file has a virtual patch applied.",
     "resetPatch": "Discard Diff",
-    "applyToFileTooltip": "Apply patch to the actual file",
-    "applyConfirmDialog": {
-      "title": "Apply Changes to File?",
-      "description": "This will permanently overwrite the original file on your disk. This action cannot be undone.",
-      "confirm": "Yes, Overwrite File"
-    }
+    "applyToFileTooltip": "Apply patch to the actual file"
+  },
+  "stagingPanel": {
+    "title": "{{count}} Staged Changes",
+    "acceptChange": "Accept Change",
+    "discardChange": "Discard Change",
+    "acceptAll": "Accept All",
+    "discardAll": "Discard All"
   },
   "gitPanel": {
     "checking": "Checking Git repository...",
@@ -186,9 +182,9 @@
       "executingTool": "Executing tool",
       "modifiedGroup": "Modified context group",
       "listingGroupFiles": "Listing files in current group",
-      "writingFileGeneric": "Writing to file",
-      "writeFileSuccess": "Wrote content to",
-      "writeFileError": "Failed to write to"
+      "writingFileGeneric": "Staging file changes",
+      "writeFileSuccess": "Staged changes for",
+      "writeFileError": "Failed to stage changes for"
     }
   },
   "mainPanel": {

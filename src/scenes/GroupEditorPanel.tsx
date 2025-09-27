@@ -28,7 +28,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { ApplyDiffModal } from "@/components/ApplyDiffModal";
 
 const filterNode = (node: FileNode, searchTerm: string): FileNode | null => {
   const term = searchTerm.toLowerCase();
@@ -136,7 +135,6 @@ export function GroupEditorPanel() {
     selectAllFiles,
     deselectAllFiles,
     attachFileToAi,
-    applyVirtualPatch,
   } = useAppActions();
 
   const {
@@ -147,7 +145,7 @@ export function GroupEditorPanel() {
     tempSelectedPaths,
     isCrossLinkingEnabled,
     gitStatus,
-    virtualPatches,
+    stagedFileChanges,
   } = useAppStore(
     useShallow((state) => ({
       group: state.groups.find((g) => g.id === state.editingGroupId),
@@ -157,7 +155,7 @@ export function GroupEditorPanel() {
       tempSelectedPaths: state.tempSelectedPaths,
       isCrossLinkingEnabled: state.isCrossLinkingEnabled,
       gitStatus: state.gitStatus,
-      virtualPatches: state.virtualPatches,
+      stagedFileChanges: state.stagedFileChanges,
     }))
   );
 
@@ -165,7 +163,6 @@ export function GroupEditorPanel() {
   const [showOnlyChanged, setShowOnlyChanged] = useState(false);
   const [showOnlyPatched, setShowOnlyPatched] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [diffModalFile, setDiffModalFile] = useState<string | null>(null);
 
   const changedFilesSet = useMemo(() => {
     if (!gitStatus || !gitStatus.files) {
@@ -182,8 +179,8 @@ export function GroupEditorPanel() {
   }, [fileMetadataCache]);
 
   const patchedFilesSet = useMemo(() => {
-    return new Set(virtualPatches.keys());
-  }, [virtualPatches]);
+    return new Set(stagedFileChanges.keys());
+  }, [stagedFileChanges]);
 
   const hasAnyPatches = useMemo(
     () => patchedFilesSet.size > 0,
@@ -395,7 +392,6 @@ export function GroupEditorPanel() {
               onToggle={handleTogglePath}
               gitStatus={gitStatus?.files ?? null}
               onAttachFile={attachFileToAi}
-              onOpenDiffModal={setDiffModalFile}
             />
           ) : (
             <div className="text-center text-muted-foreground p-4">
@@ -412,18 +408,6 @@ export function GroupEditorPanel() {
           )}
         </ScrollArea>
       </main>
-      <ApplyDiffModal
-        isOpen={!!diffModalFile}
-        onClose={() => setDiffModalFile(null)}
-        filePath={diffModalFile}
-        onApply={async (filePath, diff) => {
-          const success = await applyVirtualPatch(filePath, diff);
-          if (success) {
-            setDiffModalFile(null);
-          }
-          return success;
-        }}
-      />
     </div>
   );
 }

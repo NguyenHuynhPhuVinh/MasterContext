@@ -176,20 +176,11 @@ export const handleToolCalls = async (
       const patch = createPatch(file_path, originalContent, newContent, "", "");
       const stats = calculateDiffStats(patch);
 
-      // Save the generated patch for UI display
-      await actions.applyVirtualPatch(file_path, patch);
-
-      // Now, call the backend to actually write the file
-      await invoke("write_file_lines", {
-        rootPathStr: getState().rootPath,
-        fileRelPath: file_path,
-        contentToWrite: content,
-        startLine: start_line,
-        endLine: end_line,
-      });
+      // Stage the change instead of writing it
+      await actions.stageFileChange(file_path, patch, stats);
 
       toolSucceeded = true;
-      toolResultContent = `Successfully wrote content to ${file_path}. The user can now see the changes in the editor.`;
+      toolResultContent = `Successfully staged changes for ${file_path}. The user must review and accept them to save to disk.`;
 
       // Update the message with diff stats
       setState((state: AppState) => {

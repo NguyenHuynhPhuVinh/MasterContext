@@ -30,9 +30,15 @@ export interface UIActions {
   addExclusionRange: (start: number, end: number) => Promise<void>;
   removeExclusionRange: (rangeToRemove: [number, number]) => Promise<void>;
   clearExclusionRanges: () => Promise<void>;
-  applyVirtualPatch: (filePath: string, diff: string) => Promise<boolean>;
-  discardVirtualPatch: (filePath: string) => void;
-  applyPatchToRealFile: () => Promise<void>;
+  stageFileChange: (
+    filePath: string,
+    patch: string,
+    stats: { added: number; removed: number }
+  ) => Promise<void>;
+  discardStagedChange: (filePath: string) => void;
+  discardAllStagedChanges: () => void;
+  applyStagedChange: (filePath: string) => Promise<void>;
+  applyAllStagedChanges: () => Promise<void>;
 }
 
 export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
@@ -221,79 +227,69 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       console.error("Failed to clear exclusion ranges:", e);
     }
   },
-  applyVirtualPatch: async (filePath, diff) => {
-    const { rootPath } = _get();
-    if (!rootPath) return false;
+  stageFileChange: async (filePath, patch, stats) => {
+    set((state) => {
+      const newChanges = new Map(state.stagedFileChanges);
+      newChanges.set(filePath, { patch, stats });
+      return { stagedFileChanges: newChanges };
+    });
+  },
+  discardStagedChange: (filePath) => {
+    set((state) => {
+      const newChanges = new Map(state.stagedFileChanges);
+      newChanges.delete(filePath);
+      return { stagedFileChanges: newChanges };
+    });
+  },
+  discardAllStagedChanges: () => {
+    set({ stagedFileChanges: new Map() });
+  },
+  applyStagedChange: async (filePath: string) => {
+    const { rootPath, stagedFileChanges } = _get();
+    if (!rootPath) return;
+
+    const change = stagedFileChanges.get(filePath);
+    if (!change) return;
 
     try {
-      // Lấy nội dung gốc của file cần vá lỗi trực tiếp từ backend
       const originalContent = await invoke<string>("get_file_content", {
         rootPathStr: rootPath,
         fileRelPath: filePath,
       });
 
-      // Test the patch first
-      const patched = applyPatch(originalContent, diff);
-      if (patched === false) {
-        // This case handles logical failures, e.g., hunk doesn't match
-        // The error is now handled in the AI chat response, not a UI dialog.
-        console.error("Invalid diff format. The patch could not be applied.");
-        return false;
-      }
-
-      set((state) => {
-        const newPatches = new Map(state.virtualPatches);
-        newPatches.set(filePath, diff);
-        return { virtualPatches: newPatches };
-      });
-      return true;
-    } catch (e) {
-      // This catches parsing errors or file read errors
-      console.error("Failed to apply patch:", e);
-      // The error is now handled in the AI chat response, not a UI dialog.
-      return false;
-    }
-  },
-  discardVirtualPatch: (filePath) => {
-    set((state) => {
-      const newPatches = new Map(state.virtualPatches);
-      newPatches.delete(filePath);
-      return { virtualPatches: newPatches };
-    });
-  },
-  applyPatchToRealFile: async () => {
-    const { rootPath, activeEditorFile, virtualPatches, activeProfile } =
-      _get();
-    if (!rootPath || !activeEditorFile || !activeProfile) return;
-
-    const patch = virtualPatches.get(activeEditorFile);
-    if (!patch) return;
-
-    try {
-      const originalContent = await invoke<string>("get_file_content", {
-        rootPathStr: rootPath,
-        fileRelPath: activeEditorFile,
-      });
-
-      const newContent = applyPatch(originalContent, patch);
+      const newContent = applyPatch(originalContent, change.patch);
       if (newContent === false) {
         throw new Error("Patch could not be applied logically.");
       }
 
       await invoke("save_file_content", {
         rootPathStr: rootPath,
-        fileRelPath: activeEditorFile,
+        fileRelPath: filePath,
         content: newContent,
       });
 
-      // If successful, remove the virtual patch
-      _get().actions.discardVirtualPatch(activeEditorFile);
+      // If successful, remove the change from staging
+      _get().actions.discardStagedChange(filePath);
+
+      // If this file is currently in the editor, refresh its content
+      if (_get().activeEditorFile === filePath) {
+        _get().actions.openFileInEditor(filePath);
+      }
     } catch (e) {
-      console.error("Failed to apply patch to real file:", e);
+      console.error(`Failed to apply staged change for ${filePath}:`, e);
       message(i18n.t("errors.fileSaveFailed", { error: e }), {
         title: i18n.t("common.error"),
         kind: "error",
       });
+    }
+  },
+  applyAllStagedChanges: async () => {
+    const { stagedFileChanges } = _get();
+    const allFiles = Array.from(stagedFileChanges.keys());
+    for (const filePath of allFiles) {
+      // We await each one to ensure they are processed sequentially
+      // and to avoid race conditions if multiple changes affect the same file (unlikely but possible).
+      await _get().actions.applyStagedChange(filePath);
     }
   },
 });

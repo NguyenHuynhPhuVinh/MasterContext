@@ -62,24 +62,20 @@
     "extensionsPlaceholder": "png, svg, lock, jpg...",
     "extensionsHint": "Phân cách các phần mở rộng bằng dấu phẩy (,)."
   },
-  "diffModal": {
-    "title": "Áp dụng Diff cho '{{file}}'",
-    "description": "Dán nội dung diff vào ô bên dưới.",
-    "apply": "Áp dụng",
-    "invalidFormatError": "Định dạng diff không hợp lệ. Không thể áp dụng bản vá."
-  },
   "editorPanel": {
     "excludeSelection": "Loại trừ vùng đã chọn",
     "clearExclusionsTooltip": "Xóa tất cả các vùng loại trừ",
     "undoExclude": "Bỏ loại trừ",
     "patchedTooltip": "File này đang được áp dụng một bản vá ảo.",
     "resetPatch": "Hủy bỏ Diff",
-    "applyToFileTooltip": "Áp dụng bản vá vào file thực tế",
-    "applyConfirmDialog": {
-      "title": "Áp dụng thay đổi vào file?",
-      "description": "Hành động này sẽ ghi đè vĩnh viễn lên file gốc trên ổ đĩa của bạn. Hành động này không thể hoàn tác.",
-      "confirm": "Đồng ý, Ghi đè file"
-    }
+    "applyToFileTooltip": "Áp dụng bản vá vào file thực tế"
+  },
+  "stagingPanel": {
+    "title": "{{count}} thay đổi đang chờ",
+    "acceptChange": "Chấp nhận thay đổi",
+    "discardChange": "Hủy bỏ thay đổi",
+    "acceptAll": "Chấp nhận tất cả",
+    "discardAll": "Hủy bỏ tất cả"
   },
   "gitPanel": {
     "checking": "Đang kiểm tra kho Git...",
@@ -186,9 +182,9 @@
       "executingTool": "Thực thi công cụ",
       "modifiedGroup": "Đã sửa đổi nhóm ngữ cảnh",
       "listingGroupFiles": "Liệt kê tệp trong nhóm hiện tại",
-      "writingFileGeneric": "Đang ghi vào tệp",
-      "writeFileSuccess": "Đã ghi nội dung vào",
-      "writeFileError": "Ghi nội dung thất bại vào"
+      "writingFileGeneric": "Đưa thay đổi vào hàng đợi",
+      "writeFileSuccess": "Đã đưa thay đổi vào hàng đợi cho",
+      "writeFileError": "Không thể đưa thay đổi vào hàng đợi cho"
     }
   },
   "mainPanel": {

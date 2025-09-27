@@ -3,6 +3,7 @@ import { useAppStore } from "@/store/appStore";
 import { useTranslation } from "react-i18next";
 import { GroupEditorPanel } from "./GroupEditorPanel";
 import { EditorPanel } from "@/components/EditorPanel";
+import { StagingPanel } from "@/components/StagingPanel";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -38,37 +39,40 @@ export function MainPanel() {
   }
 
   return (
-    <ResizablePanelGroup direction="horizontal">
-      {isGroupEditorPanelVisible && (
-        <ResizablePanel defaultSize={50} minSize={30}>
-          {editingGroupId ? (
-            <GroupEditorPanel />
-          ) : (
-            <Placeholder
-              message={t("mainPanel.placeholder.noGroupSelected")}
-              icon={ListChecks}
-              t={t}
-            />
-          )}
-        </ResizablePanel>
-      )}
-      {isGroupEditorPanelVisible && isEditorPanelVisible && (
-        <ResizableHandle withHandle />
-      )}
-      {isEditorPanelVisible && (
-        <ResizablePanel defaultSize={50} minSize={30}>
-          {activeEditorFile ? (
-            <EditorPanel />
-          ) : (
-            <Placeholder
-              message={t("mainPanel.placeholder.noFileSelected")}
-              icon={FileCode}
-              t={t}
-            />
-          )}
-        </ResizablePanel>
-      )}
-    </ResizablePanelGroup>
+    <div className="relative h-full w-full">
+      <ResizablePanelGroup direction="horizontal">
+        {isGroupEditorPanelVisible && (
+          <ResizablePanel defaultSize={50} minSize={30}>
+            {editingGroupId ? (
+              <GroupEditorPanel />
+            ) : (
+              <Placeholder
+                message={t("mainPanel.placeholder.noGroupSelected")}
+                icon={ListChecks}
+                t={t}
+              />
+            )}
+          </ResizablePanel>
+        )}
+        {isGroupEditorPanelVisible && isEditorPanelVisible && (
+          <ResizableHandle withHandle />
+        )}
+        {isEditorPanelVisible && (
+          <ResizablePanel defaultSize={50} minSize={30}>
+            {activeEditorFile ? (
+              <EditorPanel />
+            ) : (
+              <Placeholder
+                message={t("mainPanel.placeholder.noFileSelected")}
+                icon={FileCode}
+                t={t}
+              />
+            )}
+          </ResizablePanel>
+        )}
+      </ResizablePanelGroup>
+      <StagingPanel />
+    </div>
   );
 }
 
