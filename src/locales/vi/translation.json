@@ -179,6 +179,11 @@
       "title": "Xác nhận xóa cuộc trò chuyện?",
       "description": "Hành động này sẽ xóa vĩnh viễn cuộc trò chuyện. Không thể hoàn tác."
     },
+    "clearAllHistory": "Xóa toàn bộ lịch sử",
+    "clearAllDialog": {
+      "title": "Xác nhận xóa toàn bộ lịch sử?",
+      "description": "Hành động này sẽ xóa vĩnh viễn TẤT CẢ các cuộc trò chuyện. Không thể hoàn tác."
+    },
     "sessionTokensTooltip": "Token đã dùng / Tối đa",
     "modes": {
       "ask": "Ask",

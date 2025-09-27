@@ -70,7 +70,7 @@ export function ChatHistoryList({ onSelectSession }: ChatHistoryListProps) {
 
   return (
     <>
-      <ScrollArea className="flex-1 p-2">
+      <ScrollArea className="flex-1 p-2 min-h-0">
         <div className="space-y-1">
           {chatSessions.map((session) => (
             <div

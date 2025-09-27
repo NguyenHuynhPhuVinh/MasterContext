@@ -179,6 +179,11 @@
       "title": "Confirm Chat Deletion?",
       "description": "This action will permanently delete the chat session. This cannot be undone."
     },
+    "clearAllHistory": "Clear all history",
+    "clearAllDialog": {
+      "title": "Confirm Clear All History?",
+      "description": "This action will permanently delete ALL chat sessions. This cannot be undone."
+    },
     "sessionTokensTooltip": "Session Tokens / Max Context",
     "modes": {
       "ask": "Ask",

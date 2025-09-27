@@ -94,6 +94,23 @@ pub fn delete_chat_session(
 }
 
 #[command]
+pub fn delete_all_chat_sessions(
+    app: AppHandle,
+    project_path: String,
+    profile_name: String,
+) -> Result<(), String> {
+    let chats_dir = get_chats_dir(&app, &project_path, &profile_name)?;
+    if chats_dir.exists() {
+        fs::remove_dir_all(&chats_dir)
+            .map_err(|e| format!("Không thể xóa thư mục chats: {}", e))?;
+    }
+    // Recreate the directory so new chats can be saved
+    fs::create_dir_all(&chats_dir)
+        .map_err(|e| format!("Không thể tạo lại thư mục chats: {}", e))?;
+    Ok(())
+}
+
+#[command]
 pub fn update_chat_session_title(
     app: AppHandle,
     project_path: String,

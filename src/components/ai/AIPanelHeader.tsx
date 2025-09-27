@@ -1,6 +1,7 @@
 // src/components/ai/AIPanelHeader.tsx
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, History, X, BrainCircuit, Coins } from "lucide-react";
+import { Plus, History, X, BrainCircuit, Coins, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,9 +10,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { type AIChatSession } from "@/store/types";
-import { useAppStore } from "@/store/appStore";
+import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 
 interface AIPanelHeaderProps {
@@ -32,13 +44,18 @@ export function AIPanelHeader({
   isLoading,
 }: AIPanelHeaderProps) {
   const { t } = useTranslation();
-  const { aiModels, selectedAiModel } = useAppStore(
+  const { deleteAllChatSessions } = useAppActions();
+  const { aiModels, selectedAiModel, chatSessions } = useAppStore(
     useShallow((s) => ({
       aiModels: s.allAvailableModels, // Use all models to find details
       selectedAiModel: s.selectedAiModel,
+      chatSessions: s.chatSessions,
     }))
   );
   const selectedModelDetails = aiModels.find((m) => m.id === selectedAiModel);
+  const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
+
+  const handleConfirmClearAll = () => deleteAllChatSessions();
 
   const handleNewChat = () => {
     if (isLoading) {
@@ -153,9 +170,50 @@ export function AIPanelHeader({
             </TooltipProvider>
           </>
         ) : (
-          <Button variant="outline" size="icon" onClick={() => setView("chat")}>
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <AlertDialog
+              open={isClearAllDialogOpen}
+              onOpenChange={setIsClearAllDialogOpen}
+            >
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="h-9 w-9"
+                  disabled={chatSessions.length === 0}
+                  title={t("aiPanel.clearAllHistory")}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {t("aiPanel.clearAllDialog.title")}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("aiPanel.clearAllDialog.description")}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleConfirmClearAll}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    {t("common.delete")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setView("chat")}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
     </header>

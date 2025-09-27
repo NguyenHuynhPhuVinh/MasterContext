@@ -18,6 +18,7 @@ export interface AiSessionActions {
     sessionId: string,
     newTitle: string
   ) => Promise<void>;
+  deleteAllChatSessions: () => Promise<void>;
 }
 
 export const createAiSessionActions: StateCreator<
@@ -94,6 +95,20 @@ export const createAiSessionActions: StateCreator<
         s.id === sessionId ? { ...s, title: newTitle } : s
       ),
     }));
+  },
+  deleteAllChatSessions: async () => {
+    const { rootPath, activeProfile } = get();
+    if (!rootPath || !activeProfile) return;
+    try {
+      await invoke("delete_all_chat_sessions", {
+        projectPath: rootPath,
+        profileName: activeProfile,
+      });
+      set({ chatSessions: [] });
+      get().actions.createNewChatSession();
+    } catch (e) {
+      console.error("Failed to delete all chat sessions:", e);
+    }
   },
   saveCurrentChatSession: async (messagesOverride?: ChatMessage[]) => {
     const {
