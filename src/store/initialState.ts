@@ -74,6 +74,7 @@ export const initialState = {
   systemPrompt: "",
   streamResponse: true,
   selectedAiModel: "openai/gpt-3.5-turbo",
+  aiAttachedFiles: [],
 };
 
 export type InitialState = typeof initialState;

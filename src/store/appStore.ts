@@ -14,6 +14,7 @@ import {
   type AIChatSessionHeader,
   type AIChatSession,
   type ChatMessage,
+  type AiFileActions,
 } from "./types";
 import { initialState } from "./initialState";
 import {
@@ -43,6 +44,8 @@ import {
   createAiSessionActions,
   type AiSessionActions,
 } from "./actions/aiSessionActions";
+
+import { createAiFileActions } from "./actions/aiFileActions";
 
 export interface AppState {
   rootPath: string | null;
@@ -126,6 +129,7 @@ export interface AppState {
   systemPrompt: string;
   streamResponse: boolean;
   selectedAiModel: string;
+  aiAttachedFiles: string[];
 
   actions: ProjectActions &
     GroupActions &
@@ -135,7 +139,8 @@ export interface AppState {
     GitActions &
     AiSettingsActions &
     AiChatActions &
-    AiSessionActions;
+    AiSessionActions &
+    AiFileActions;
 }
 
 export const useAppStore = create<AppState>()((set, get, store) => ({
@@ -150,6 +155,7 @@ export const useAppStore = create<AppState>()((set, get, store) => ({
     ...createAiSettingsActions(set, get, store),
     ...createAiChatActions(set, get, store),
     ...createAiSessionActions(set, get, store),
+    ...createAiFileActions(set, get, store),
   },
 }));
 

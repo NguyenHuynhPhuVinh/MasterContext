@@ -22,7 +22,7 @@ export const createAiChatActions: StateCreator<
   AiChatActions
 > = (set, get) => ({
   sendChatMessage: async (prompt: string) => {
-    const { openRouterApiKey } = get();
+    const { openRouterApiKey, aiAttachedFiles, rootPath } = get();
     if (!openRouterApiKey) {
       return;
     }
@@ -34,7 +34,7 @@ export const createAiChatActions: StateCreator<
 
       // If there's no active session, create one on the backend first
       if (!currentSession) {
-        const { rootPath, activeProfile } = get();
+        const { activeProfile } = get();
         if (!rootPath || !activeProfile) {
           throw new Error("Project path or profile not set.");
         }
@@ -61,13 +61,38 @@ export const createAiChatActions: StateCreator<
         }));
       }
 
-      const newUserMessage: ChatMessage = { role: "user", content: prompt };
+      let hiddenContent: string | undefined = undefined;
+      if (aiAttachedFiles.length > 0 && rootPath) {
+        const fileContents = await Promise.all(
+          aiAttachedFiles.map((filePath) =>
+            invoke<string>("get_file_content", {
+              rootPathStr: rootPath,
+              fileRelPath: filePath,
+            })
+          )
+        );
+
+        hiddenContent = aiAttachedFiles
+          .map(
+            (filePath, index) =>
+              `--- START OF FILE ${filePath} ---\n${fileContents[index]}\n--- END OF FILE ${filePath} ---`
+          )
+          .join("\n\n");
+      }
+      const newUserMessage: ChatMessage = {
+        role: "user",
+        content: prompt,
+        hiddenContent,
+      };
 
       const newMessages = [...get().chatMessages, newUserMessage];
       // Optimistically update UI
       set({ chatMessages: newMessages });
 
       await get().actions.saveCurrentChatSession(newMessages); // Save with the new user message
+
+      // Clear attachments after preparing the message
+      get().actions.clearAttachedFilesFromAi();
 
       // Now proceed with the API call
       await get().actions.fetchOpenRouterResponse();
@@ -124,7 +149,11 @@ export const createAiChatActions: StateCreator<
     // Build payload with advanced parameters
     const payload: Record<string, any> = {
       model: selectedAiModel || aiModels[0]?.id,
-      messages: messagesToSend.map(({ hidden, ...msg }) => msg), // Filter out the hidden property before sending
+      messages: messagesToSend.map(({ hidden, hiddenContent, ...msg }) => {
+        const fullContent = (hiddenContent || "") + (msg.content || "");
+        // Filter out the hidden property before sending
+        return { ...msg, content: fullContent };
+      }),
     };
 
     if (temperature) payload.temperature = temperature;

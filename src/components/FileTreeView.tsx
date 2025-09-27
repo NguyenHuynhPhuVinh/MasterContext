@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Folder,
   File as FileIcon,
+  Paperclip,
   Scissors,
   FileDiff,
 } from "lucide-react";
@@ -57,6 +58,7 @@ interface FileTreeViewProps {
   selectedPaths: Set<string>;
   onToggle: (node: FileNode, isSelected: boolean) => void; // <-- Sửa prop để truyền cả node
   gitStatus: Record<string, string> | null;
+  onAttachFile: (filePath: string) => void;
   onOpenDiffModal: (filePath: string) => void;
   level?: number;
 }
@@ -66,14 +68,16 @@ export function FileTreeView({
   selectedPaths,
   onToggle,
   gitStatus,
+  onAttachFile,
   onOpenDiffModal,
   level = 0,
 }: FileTreeViewProps) {
   const { openFileInEditor } = useAppActions();
-  const { fileMetadataCache, virtualPatches } = useAppStore(
+  const { fileMetadataCache, virtualPatches, aiAttachedFiles } = useAppStore(
     useShallow((state) => ({
       fileMetadataCache: state.fileMetadataCache,
       virtualPatches: state.virtualPatches,
+      aiAttachedFiles: state.aiAttachedFiles,
     }))
   );
   const checkboxRef = useRef<HTMLInputElement>(null);
@@ -176,6 +180,23 @@ export function FileTreeView({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  onAttachFile(node.path);
+                }}
+                className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded hover:bg-muted"
+                title="Đính kèm vào AI Chat"
+              >
+                <Paperclip
+                  className={cn(
+                    "h-4 w-4 text-muted-foreground",
+                    aiAttachedFiles.includes(node.path) && "text-primary"
+                  )}
+                />
+              </button>
+            )}
+            {!isDirectory && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
                   onOpenDiffModal(node.path);
                 }}
                 className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded hover:bg-muted"
@@ -196,6 +217,7 @@ export function FileTreeView({
               selectedPaths={selectedPaths}
               onToggle={onToggle}
               gitStatus={gitStatus}
+              onAttachFile={onAttachFile}
               onOpenDiffModal={onOpenDiffModal}
               level={level + 1}
             />

@@ -125,6 +125,7 @@ export interface ChatMessage {
   generationInfo?: GenerationInfo;
   tool_calls?: ToolCall[]; // Add tool_calls
   hidden?: boolean; // For hidden user messages
+  hiddenContent?: string;
 }
 
 export interface ToolCall {
@@ -149,6 +150,12 @@ export interface AIChatSession {
   messages: ChatMessage[];
   totalTokens?: number;
   totalCost?: number;
+}
+
+export interface AiFileActions {
+  attachFileToAi: (filePath: string) => void;
+  detachFileFromAi: (filePath: string) => void;
+  clearAttachedFilesFromAi: () => void;
 }
 
 export interface AppState {
@@ -233,4 +240,5 @@ export interface AppState {
   systemPrompt: string;
   streamResponse: boolean;
   selectedAiModel: string;
+  aiAttachedFiles: string[];
 }

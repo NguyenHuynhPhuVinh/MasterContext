@@ -135,6 +135,7 @@ export function GroupEditorPanel() {
     setCrossLinkingEnabled,
     selectAllFiles,
     deselectAllFiles,
+    attachFileToAi,
     applyVirtualPatch,
   } = useAppActions();
 
@@ -393,6 +394,7 @@ export function GroupEditorPanel() {
               selectedPaths={tempSelectedPaths}
               onToggle={handleTogglePath}
               gitStatus={gitStatus?.files ?? null}
+              onAttachFile={attachFileToAi}
               onOpenDiffModal={setDiffModalFile}
             />
           ) : (

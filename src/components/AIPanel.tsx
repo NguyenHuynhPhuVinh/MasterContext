@@ -51,6 +51,7 @@ export function AIPanel() {
     loadChatSession,
     setAiChatMode,
     setSelectedAiModel,
+    detachFileFromAi,
   } = useAppActions();
   const {
     chatMessages,
@@ -61,6 +62,7 @@ export function AIPanel() {
     selectedAiModel,
     aiChatMode,
     activeChatSession,
+    aiAttachedFiles,
   } = useAppStore(
     useShallow((state) => ({
       chatMessages: state.chatMessages,
@@ -71,6 +73,7 @@ export function AIPanel() {
       selectedAiModel: state.selectedAiModel,
       aiChatMode: state.aiChatMode,
       activeChatSession: state.activeChatSession,
+      aiAttachedFiles: state.aiAttachedFiles,
     }))
   );
 
@@ -195,13 +198,29 @@ export function AIPanel() {
         </ScrollArea>
         <div className="p-4 border-t">
           <div className="relative flex flex-col min-h-[80px] max-h-48 w-full rounded-md border bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
-            {selectedModelDetails?.context_length && (
-              <div className="flex-shrink-0 flex items-center justify-end gap-1.5 px-3 py-1 text-xs text-muted-foreground border-b bg-muted/50">
-                <BrainCircuit className="h-3 w-3" />
-                <span>
-                  Max Context:{" "}
-                  {selectedModelDetails.context_length.toLocaleString()} tokens
-                </span>
+            {aiAttachedFiles.length > 0 && (
+              <div className="flex-shrink-0 px-3 py-2 text-xs text-muted-foreground border-b bg-muted/50">
+                <ScrollArea className="max-h-16 custom-scrollbar">
+                  <div className="flex flex-wrap gap-2">
+                    {aiAttachedFiles.map((filePath) => (
+                      <Badge
+                        key={filePath}
+                        variant="secondary"
+                        className="pl-2 pr-1"
+                      >
+                        {filePath.split("/").pop()}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="ml-1 h-4 w-4 rounded-full"
+                          onClick={() => detachFileFromAi(filePath)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                </ScrollArea>
               </div>
             )}
             <Textarea
