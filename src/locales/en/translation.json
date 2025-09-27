@@ -155,7 +155,13 @@
     "noSearchResults": "No results found for \"{{searchTerm}}\".",
     "filterPatchedTooltip": "Filter for patched files",
     "unfilterPatchedTooltip": "Remove patch filter",
-    "noPatchedFiles": "No patched files found."
+    "noPatchedFiles": "No patched files found.",
+    "filterAddedTooltip": "Filter for new files",
+    "unfilterAddedTooltip": "Remove new file filter",
+    "noAddedFiles": "No new files staged.",
+    "filterDeletedTooltip": "Filter for deleted files",
+    "unfilterDeletedTooltip": "Remove deleted file filter",
+    "noDeletedFiles": "No deleted files staged."
   },
   "aiPanel": {
     "title": "AI Chat",

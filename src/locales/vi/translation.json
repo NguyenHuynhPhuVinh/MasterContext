@@ -155,7 +155,13 @@
     "noSearchResults": "Không tìm thấy kết quả nào khớp với \"{{searchTerm}}\".",
     "filterPatchedTooltip": "Lọc file đã áp dụng vá lỗi",
     "unfilterPatchedTooltip": "Bỏ lọc file vá lỗi",
-    "noPatchedFiles": "Không tìm thấy file nào đã áp dụng vá lỗi."
+    "noPatchedFiles": "Không tìm thấy file nào đã áp dụng vá lỗi.",
+    "filterAddedTooltip": "Lọc các file mới",
+    "unfilterAddedTooltip": "Bỏ lọc file mới",
+    "noAddedFiles": "Không có file mới nào đang chờ.",
+    "filterDeletedTooltip": "Lọc các file đã xóa",
+    "unfilterDeletedTooltip": "Bỏ lọc file đã xóa",
+    "noDeletedFiles": "Không có file đã xóa nào đang chờ."
   },
   "aiPanel": {
     "title": "Trò chuyện AI",
