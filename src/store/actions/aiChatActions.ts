@@ -268,8 +268,31 @@ export const createAiChatActions: StateCreator<
         type: "function",
         function: {
           name: "apply_diff_to_file",
-          description:
-            "Applies a diff patch to a specified file in the project. The diff must be in the standard unified diff format.",
+          description: `Applies a diff patch to a specified file in the project. The diff must be in the standard unified diff format.
+
+**IMPORTANT HINTS for using this tool:**
+
+1.  **Be Precise:** The line numbers and original content in the diff (lines starting with ' ' or '-') MUST EXACTLY match the current file content, including whitespace. Use the 'read_file' tool first if you are unsure of the exact content.
+2.  **Be Minimal:** Create the smallest possible diff. Only include the lines that are changing, plus a minimal number of surrounding (unchanged) context lines (usually 1-3) if absolutely necessary for uniqueness.
+3.  **Focus on the Change:** If you only need to change one line, your diff should ideally target only that one line.
+
+**GOOD EXAMPLE (Changing only line 2 of a file):**
+--- a/README.md
++++ b/README.md
+@@ -2 +2 @@
+-[![Version](https://img.shields.io/badge/version-0.1.4-blue.svg)](src-tauri/tauri.conf.json)
++[![Version](https://img.shields.io/badge/version-0.1.5-blue.svg)](src-tauri/tauri.conf.json)
+
+**BAD EXAMPLE (Too broad, likely to fail because other lines might not match exactly):**
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,5 @@
+ # Master Context...
+-[![Version](https://img.shields.io/badge/version-0.1.4-blue.svg)](src-tauri/tauri.conf.json)
++[![Version](https://img.shields.io/badge/version-0.1.5-blue.svg)](src-tauri/tauri.conf.json)
+ [![License]...
+ ...
+`,
           parameters: {
             type: "object",
             properties: {
