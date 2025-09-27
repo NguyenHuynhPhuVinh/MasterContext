@@ -319,7 +319,7 @@ export function GroupEditorPanel() {
                       showOnlyExcluded && "bg-accent text-accent-foreground"
                     )}
                     onClick={() => setShowOnlyExcluded(!showOnlyExcluded)}
-                    disabled={!hasAnyExclusions}
+                    disabled={!showOnlyExcluded && !hasAnyExclusions}
                   >
                     <Scissors className="h-4 w-4" />
                   </Button>
@@ -344,7 +344,7 @@ export function GroupEditorPanel() {
                       showOnlyChanged && "bg-accent text-accent-foreground"
                     )}
                     onClick={() => setShowOnlyChanged(!showOnlyChanged)}
-                    disabled={changedFilesSet.size === 0}
+                    disabled={!showOnlyChanged && changedFilesSet.size === 0}
                   >
                     <GitMerge className="h-4 w-4" />
                   </Button>
@@ -369,7 +369,7 @@ export function GroupEditorPanel() {
                       showOnlyPatched && "bg-accent text-accent-foreground"
                     )}
                     onClick={() => setShowOnlyPatched(!showOnlyPatched)}
-                    disabled={!hasAnyPatches}
+                    disabled={!showOnlyPatched && !hasAnyPatches}
                   >
                     <FileDiff className="h-4 w-4" />
                   </Button>
