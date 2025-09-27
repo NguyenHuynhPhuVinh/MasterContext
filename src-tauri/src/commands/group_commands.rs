@@ -258,19 +258,29 @@ pub fn update_group_paths_from_ai(
         // The borrow on `group` is confined within this block.
         let group = &mut project_data.groups[index];
 
-        let mut current_paths: HashSet<String> = group.paths.iter().cloned().collect();
+        // --- START OF NEW LOGIC ---
+        // 1. Expand the current group paths into a full set of individual files.
+        let mut final_paths: HashSet<String> = context_generator::expand_group_paths_to_files(
+            &group.paths,
+            &metadata_cache_clone,
+            root_path,
+        )
+        .into_iter()
+        .collect();
 
-        // Remove paths
-        for p in paths_to_remove {
-            current_paths.remove(&p);
+        // 2. Remove the requested files from the expanded set.
+        for p in &paths_to_remove {
+            final_paths.remove(p);
         }
 
-        // Add paths
-        for p in paths_to_add {
-            current_paths.insert(p);
+        // 3. Add the new files/folders directly. The user/AI can add a folder back if needed.
+        for p in &paths_to_add {
+            final_paths.insert(p.clone());
         }
 
-        group.paths = current_paths.into_iter().collect();
+        // 4. The group's paths are now an explicit list of files.
+        group.paths = final_paths.into_iter().collect();
+        // --- END OF NEW LOGIC ---
 
         // Recalculate stats
         group.stats = group_updater::recalculate_stats_for_paths(
