@@ -6,7 +6,17 @@ import { useShallow } from "zustand/react/shallow";
 import { applyPatch, diffLines } from "diff";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Loader2, Scissors, FileX, Undo, RotateCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  X,
+  Loader2,
+  Scissors,
+  FileX,
+  Undo,
+  RotateCcw,
+  FilePlus,
+  FileMinus,
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -83,32 +93,15 @@ export function EditorPanel() {
     }
   };
 
-  const renderContentWithDiff = () => {
-    if (!patchedContent || !activeEditorFileContent) return null;
-
-    const diff = diffLines(activeEditorFileContent, patchedContent);
-
-    return diff.map((part, index) => {
-      const className = part.added
-        ? "bg-green-500/20"
-        : part.removed
-        ? "bg-red-500/20"
-        : "";
-      return (
-        <span key={index} className={className}>
-          {part.value}
-        </span>
-      );
-    });
-  };
-
-  const renderContentWithExclusions = (content: string | null) => {
+  const renderContentWithExclusions = (
+    content: string | null
+  ): React.ReactNode => {
     if (!content) return null;
 
     // If a patch is active, we don't show exclusions to avoid visual clutter.
     // The patch is a temporary override.
     if (activeChange) {
-      return renderContentWithDiff();
+      return renderContent();
     }
 
     if (
@@ -161,6 +154,74 @@ export function EditorPanel() {
     return parts;
   };
 
+  const renderContent = (): React.ReactNode => {
+    if (isEditorLoading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+
+    if (activeChange) {
+      switch (activeChange.changeType) {
+        case "create": {
+          const newContent = applyPatch("", activeChange.patch) as string;
+          return newContent.split("\n").map((line, index) => (
+            <div key={index} className="flex bg-green-500/10">
+              <span className="w-8 text-right pr-2 select-none text-muted-foreground">
+                +
+              </span>
+              <span className="flex-1">{line}</span>
+            </div>
+          ));
+        }
+        case "delete": {
+          return (activeEditorFileContent || "")
+            .split("\n")
+            .map((line, index) => (
+              <div key={index} className="flex bg-red-500/10">
+                <span className="w-8 text-right pr-2 select-none text-muted-foreground">
+                  -
+                </span>
+                <span className="flex-1">{line}</span>
+              </div>
+            ));
+        }
+        case "modify": {
+          if (!patchedContent || !activeEditorFileContent) return null;
+          const diff = diffLines(activeEditorFileContent, patchedContent);
+          let lineNum = 1;
+          return diff.map((part, index) => {
+            const className = part.added
+              ? "bg-green-500/20"
+              : part.removed
+              ? "bg-red-500/20"
+              : "";
+            const lines = part.value.split("\n").slice(0, -1); // remove last empty line
+            return lines.map((line, lineIndex) => {
+              const prefix = part.added ? "+" : part.removed ? "-" : " ";
+              const currentLineNum = part.removed ? "" : lineNum++;
+              return (
+                <div key={`${index}-${lineIndex}`} className={className}>
+                  <span className="inline-block w-8 text-right pr-2 select-none text-muted-foreground">
+                    {currentLineNum}
+                  </span>
+                  <span className="inline-block w-4 text-center select-none text-muted-foreground">
+                    {prefix}
+                  </span>
+                  <span>{line}</span>
+                </div>
+              );
+            });
+          });
+        }
+      }
+    }
+
+    return renderContentWithExclusions(activeEditorFileContent);
+  };
+
   if (!activeEditorFile) {
     return null;
   }
@@ -176,9 +237,23 @@ export function EditorPanel() {
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-yellow-500 font-bold text-xs animate-pulse">
-                    [PATCHED]
-                  </span>
+                  {activeChange.changeType === "create" && (
+                    <Badge variant="outline" className="text-green-500">
+                      <FilePlus className="h-3 w-3 mr-1" />
+                      {t("editorPanel.newFileBadge")}
+                    </Badge>
+                  )}
+                  {activeChange.changeType === "delete" && (
+                    <Badge variant="destructive">
+                      <FileMinus className="h-3 w-3 mr-1" />
+                      {t("editorPanel.deletedFileBadge")}
+                    </Badge>
+                  )}
+                  {activeChange.changeType === "modify" && (
+                    <span className="text-yellow-500 font-bold text-xs animate-pulse">
+                      [PATCHED]
+                    </span>
+                  )}
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{t("editorPanel.patchedTooltip")}</p>
@@ -237,9 +312,7 @@ export function EditorPanel() {
             onMouseDown={() => setSelection(null)}
           >
             <pre className="p-4 text-xs">
-              <code ref={codeContainerRef}>
-                {renderContentWithExclusions(activeEditorFileContent)}
-              </code>
+              <code ref={codeContainerRef}>{renderContent()}</code>
             </pre>
           </ScrollArea>
         )}

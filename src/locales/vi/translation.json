@@ -68,7 +68,9 @@
     "undoExclude": "Bỏ loại trừ",
     "patchedTooltip": "File này đang được áp dụng một bản vá ảo.",
     "resetPatch": "Hủy bỏ Diff",
-    "applyToFileTooltip": "Áp dụng bản vá vào file thực tế"
+    "applyToFileTooltip": "Áp dụng bản vá vào file thực tế",
+    "newFileBadge": "Mới",
+    "deletedFileBadge": "Đã xóa"
   },
   "stagingPanel": {
     "title": "{{count}} thay đổi đang chờ",
@@ -182,9 +184,13 @@
       "executingTool": "Thực thi công cụ",
       "modifiedGroup": "Đã sửa đổi nhóm ngữ cảnh",
       "listingGroupFiles": "Liệt kê tệp trong nhóm hiện tại",
-      "writingFileGeneric": "Đưa thay đổi vào hàng đợi",
-      "writeFileSuccess": "Đã đưa thay đổi vào hàng đợi cho",
-      "writeFileError": "Không thể đưa thay đổi vào hàng đợi cho"
+      "writingFileGeneric": "Đưa thao tác tệp vào hàng đợi",
+      "writeFileSuccess": "Đã đưa vào hàng đợi sửa đổi cho",
+      "writeFileError": "Không thể đưa vào hàng đợi sửa đổi cho",
+      "createFileSuccess": "Đã đưa vào hàng đợi tạo tệp",
+      "createFileError": "Không thể đưa vào hàng đợi tạo tệp",
+      "deleteFileSuccess": "Đã đưa vào hàng đợi xóa tệp",
+      "deleteFileError": "Không thể đưa vào hàng đợi xóa tệp"
     }
   },
   "mainPanel": {

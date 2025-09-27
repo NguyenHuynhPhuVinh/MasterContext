@@ -68,7 +68,9 @@
     "undoExclude": "Undo exclusion",
     "patchedTooltip": "This file has a virtual patch applied.",
     "resetPatch": "Discard Diff",
-    "applyToFileTooltip": "Apply patch to the actual file"
+    "applyToFileTooltip": "Apply patch to the actual file",
+    "newFileBadge": "New",
+    "deletedFileBadge": "Deleted"
   },
   "stagingPanel": {
     "title": "{{count}} Staged Changes",
@@ -182,9 +184,13 @@
       "executingTool": "Executing tool",
       "modifiedGroup": "Modified context group",
       "listingGroupFiles": "Listing files in current group",
-      "writingFileGeneric": "Staging file changes",
-      "writeFileSuccess": "Staged changes for",
-      "writeFileError": "Failed to stage changes for"
+      "writingFileGeneric": "Staging file operation",
+      "writeFileSuccess": "Staged modification for",
+      "writeFileError": "Failed to stage modification for",
+      "createFileSuccess": "Staged creation for",
+      "createFileError": "Failed to stage creation for",
+      "deleteFileSuccess": "Staged deletion for",
+      "deleteFileError": "Failed to stage deletion for"
     }
   },
   "mainPanel": {

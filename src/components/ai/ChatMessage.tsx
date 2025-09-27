@@ -8,6 +8,8 @@ import {
   FileText,
   Paperclip,
   Loader2,
+  FilePlus,
+  FileMinus,
   FileEdit,
   XCircle,
 } from "lucide-react";
@@ -129,6 +131,68 @@ export function ChatMessage({ message }: ChatMessageProps) {
         }
         break;
 
+      case "create_file":
+        try {
+          const args = JSON.parse(tool.function.arguments);
+          const filePath = args.file_path ?? "unknown file";
+          const fileName = filePath.split("/").pop() ?? filePath;
+          const success = tool.status !== "error";
+
+          toolContent = (
+            <div className="flex items-baseline gap-1.5">
+              <span
+                className={cn(
+                  "font-medium",
+                  success ? "text-foreground" : "text-destructive"
+                )}
+              >
+                {t(
+                  success
+                    ? "aiPanel.toolCall.createFileSuccess"
+                    : "aiPanel.toolCall.createFileError"
+                )}
+              </span>
+              <code className="font-medium" title={filePath}>
+                {fileName}
+              </code>
+            </div>
+          );
+        } catch (e) {
+          toolContent = <p>{t("aiPanel.toolCall.writingFileGeneric")}</p>;
+        }
+        break;
+
+      case "delete_file":
+        try {
+          const args = JSON.parse(tool.function.arguments);
+          const filePath = args.file_path ?? "unknown file";
+          const fileName = filePath.split("/").pop() ?? filePath;
+          const success = tool.status !== "error";
+
+          toolContent = (
+            <div className="flex items-baseline gap-1.5">
+              <span
+                className={cn(
+                  "font-medium",
+                  success ? "text-foreground" : "text-destructive"
+                )}
+              >
+                {t(
+                  success
+                    ? "aiPanel.toolCall.deleteFileSuccess"
+                    : "aiPanel.toolCall.deleteFileError"
+                )}
+              </span>
+              <code className="font-medium" title={filePath}>
+                {fileName}
+              </code>
+            </div>
+          );
+        } catch (e) {
+          toolContent = <p>{t("aiPanel.toolCall.writingFileGeneric")}</p>;
+        }
+        break;
+
       case "write_file":
         try {
           const args = JSON.parse(tool.function.arguments);
@@ -194,6 +258,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
             <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
           ) : (
             <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+          )}
+          {tool.function.name === "create_file" && (
+            <FilePlus className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+          )}
+          {tool.function.name === "delete_file" && (
+            <FileMinus className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           )}
           {tool.function.name === "write_file" && (
             <FileEdit className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
