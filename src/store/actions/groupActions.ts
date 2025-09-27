@@ -27,6 +27,7 @@ export interface GroupActions {
   saveEditingGroup: () => Promise<void>;
   selectAllFiles: () => void;
   deselectAllFiles: () => void;
+  _updateGroupFromAi: (updatedGroup: Group) => void;
 }
 
 export const createGroupActions: StateCreator<
@@ -218,6 +219,26 @@ export const createGroupActions: StateCreator<
     },
     deselectAllFiles: () => {
       set({ tempSelectedPaths: new Set([""]) });
+    },
+    _updateGroupFromAi: (updatedGroup) => {
+      const { fileTree, editingGroupId } = get();
+      set((state) => {
+        const newAllGroups = new Map(state.allGroups);
+        const currentGroups = newAllGroups.get(state.activeProfile) || [];
+        const updatedGroups = currentGroups.map((g) =>
+          g.id === updatedGroup.id ? updatedGroup : g
+        );
+        newAllGroups.set(state.activeProfile, updatedGroups);
+        return {
+          allGroups: newAllGroups,
+          groups: updatedGroups,
+        };
+      });
+      // If the updated group is the one currently being edited, refresh the selection tree
+      if (fileTree && updatedGroup.id === editingGroupId) {
+        const expanded = expandPaths(fileTree, new Set(updatedGroup.paths));
+        set({ tempSelectedPaths: expanded });
+      }
     },
   };
 };

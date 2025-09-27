@@ -54,6 +54,7 @@ pub fn run() {
             commands::set_export_without_comments_setting, // <-- COMMAND MỚI
             commands::set_export_remove_debug_logs_setting, // <-- COMMAND MỚI
             commands::set_export_super_compressed_setting,
+            commands::update_group_paths_from_ai,
             commands::set_export_exclude_extensions_setting, // <-- COMMAND MỚI
             commands::set_always_apply_text_setting,
             commands::get_app_settings,

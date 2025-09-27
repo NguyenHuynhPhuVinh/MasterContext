@@ -182,7 +182,8 @@
     "toolCall": {
       "listingFiles": "Listing project files",
       "readingFile": "Reading file",
-      "executingTool": "Executing tool"
+      "executingTool": "Executing tool",
+      "modifyingGroup": "Modifying context group"
     }
   },
   "mainPanel": {

@@ -134,6 +134,7 @@ export const createAiChatActions: StateCreator<
       maxTokens,
       aiChatMode,
     } = get();
+    const { editingGroupId } = get(); // Lấy ID nhóm đang chỉnh sửa
 
     // Create a new AbortController for this request
     const controller = new AbortController();
@@ -208,6 +209,38 @@ export const createAiChatActions: StateCreator<
           },
         },
       ];
+    }
+    // Chỉ thêm công cụ sửa nhóm nếu người dùng đang ở màn hình chỉnh sửa nhóm
+    if (aiChatMode === "link" && editingGroupId) {
+      payload.tools.push({
+        type: "function",
+        function: {
+          name: "modify_context_group",
+          description:
+            "Adds or removes files and folders from the currently selected context group. This is the primary way to help the user manage their context groups.",
+          parameters: {
+            type: "object",
+            properties: {
+              files_to_add: {
+                type: "array",
+                description:
+                  "An array of file or folder paths to add to the group. Paths must be relative to the project root.",
+                items: {
+                  type: "string",
+                },
+              },
+              files_to_remove: {
+                type: "array",
+                description:
+                  "An array of file or folder paths to remove from the group.",
+                items: {
+                  type: "string",
+                },
+              },
+            },
+          },
+        },
+      });
     }
 
     try {

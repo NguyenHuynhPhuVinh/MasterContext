@@ -73,6 +73,41 @@ export const handleToolCalls = async (
         toolResultContent = `Error reading file: ${e}`;
       }
     }
+  } else if (tool.function.name === "modify_context_group") {
+    const { editingGroupId, rootPath, activeProfile } = getState();
+    if (!editingGroupId || !rootPath || !activeProfile) {
+      toolResultContent =
+        "Error: No group is currently being edited. The user must select a group to modify first.";
+    } else {
+      try {
+        const args = JSON.parse(tool.function.arguments);
+        const pathsToAdd = args.files_to_add || [];
+        const pathsToRemove = args.files_to_remove || [];
+
+        const updatedGroup = await invoke<import("@/store/types").Group>(
+          "update_group_paths_from_ai",
+          {
+            path: rootPath,
+            profileName: activeProfile,
+            groupId: editingGroupId,
+            pathsToAdd,
+            pathsToRemove,
+          }
+        );
+
+        // Update the group state in Zustand, including tempSelectedPaths
+        await getState().actions._updateGroupFromAi(updatedGroup);
+
+        let resultMessage = "Successfully modified the group.";
+        if (pathsToAdd.length > 0)
+          resultMessage += ` Added: ${pathsToAdd.join(", ")}.`;
+        if (pathsToRemove.length > 0)
+          resultMessage += ` Removed: ${pathsToRemove.join(", ")}.`;
+        toolResultContent = resultMessage;
+      } catch (e) {
+        toolResultContent = `Error modifying group: ${e}`;
+      }
+    }
   }
 
   // 3. Add tool result as a hidden user message and re-fetch AI response

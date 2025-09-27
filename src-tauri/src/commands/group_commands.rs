@@ -1,10 +1,11 @@
 // src-tauri/src/commands/group_commands.rs
 use crate::{context_generator, file_cache, group_updater, models};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tauri::{command, AppHandle, Emitter, Window};
 use super::utils::{perform_auto_export, sanitize_group_name};
+use crate::models::Group;
 
 #[command]
 pub fn update_groups_in_project_data(
@@ -234,4 +235,58 @@ pub fn set_group_cross_sync(
         return Err("group.not_found".to_string());
     }
     file_cache::save_project_data(&app, &path, &profile_name, &project_data)
+}
+
+#[command]
+pub fn update_group_paths_from_ai(
+    app: AppHandle,
+    path: String,
+    profile_name: String,
+    group_id: String,
+    paths_to_add: Vec<String>,
+    paths_to_remove: Vec<String>,
+) -> Result<Group, String> {
+    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+    let root_path = Path::new(&path);
+    let metadata_cache_clone = project_data.file_metadata_cache.clone();
+
+    // Find the index of the group first to manage borrow scopes correctly.
+    let group_index = project_data.groups.iter().position(|g| g.id == group_id);
+
+    if let Some(index) = group_index {
+        // Get a mutable reference to the group using its index.
+        // The borrow on `group` is confined within this block.
+        let group = &mut project_data.groups[index];
+
+        let mut current_paths: HashSet<String> = group.paths.iter().cloned().collect();
+
+        // Remove paths
+        for p in paths_to_remove {
+            current_paths.remove(&p);
+        }
+
+        // Add paths
+        for p in paths_to_add {
+            current_paths.insert(p);
+        }
+
+        group.paths = current_paths.into_iter().collect();
+
+        // Recalculate stats
+        group.stats = group_updater::recalculate_stats_for_paths(
+            &group.paths,
+            &metadata_cache_clone,
+            root_path,
+        );
+
+        // Clone the modified group to return it later. This ends the borrow on `group`.
+        let updated_group_clone = group.clone();
+
+        // Now that the borrow on `group` is finished, we can save the entire `project_data`.
+        file_cache::save_project_data(&app, &path, &profile_name, &project_data)?;
+
+        Ok(updated_group_clone)
+    } else {
+        Err("group.not_found".to_string())
+    }
 }
