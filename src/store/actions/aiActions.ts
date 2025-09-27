@@ -23,7 +23,7 @@ const fetchGenerationInfoWithRetry = async (
   generationId: string,
   apiKey: string,
   retries = 3,
-  delay = 1500 // Increased delay to 1.5 seconds
+  delay = 500 // Increased delay to 1.5 seconds
 ): Promise<GenerationInfo | null> => {
   for (let i = 0; i < retries; i++) {
     try {

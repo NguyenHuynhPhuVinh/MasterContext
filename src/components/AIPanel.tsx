@@ -321,6 +321,9 @@ export function AIPanel() {
                       size="icon"
                       className="h-9 w-9"
                       onClick={() => {
+                        if (isAiPanelLoading) {
+                          stopAiResponse();
+                        }
                         createNewChatSession();
                         setView("chat");
                       }}
@@ -340,7 +343,12 @@ export function AIPanel() {
                       variant={"outline"}
                       size="icon"
                       className="h-9 w-9"
-                      onClick={() => setView("history")}
+                      onClick={() => {
+                        if (isAiPanelLoading) {
+                          stopAiResponse();
+                        }
+                        setView("history");
+                      }}
                     >
                       <History className="h-4 w-4" />
                     </Button>
