@@ -178,6 +178,11 @@
     "modes": {
       "ask": "Ask",
       "link": "Link"
+    },
+    "toolCall": {
+      "listingFiles": "Liệt kê tệp dự án",
+      "readingFile": "Đang đọc file",
+      "executingTool": "Thực thi công cụ"
     }
   },
   "mainPanel": {

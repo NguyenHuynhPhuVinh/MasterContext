@@ -178,6 +178,11 @@
     "modes": {
       "ask": "Ask",
       "link": "Link"
+    },
+    "toolCall": {
+      "listingFiles": "Listing project files",
+      "readingFile": "Reading file",
+      "executingTool": "Executing tool"
     }
   },
   "mainPanel": {

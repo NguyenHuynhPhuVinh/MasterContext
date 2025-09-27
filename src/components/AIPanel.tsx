@@ -17,6 +17,7 @@ import {
   History,
   CheckCircle2,
   X,
+  FileText,
   Square,
   AlignJustify,
   Paperclip,
@@ -172,33 +173,88 @@ export function AIPanel() {
                       </div>
                     ) : msg.role === "assistant" && msg.tool_calls ? (
                       <div className="space-y-2">
-                        {msg.tool_calls.map((tool) => (
-                          <div
-                            key={tool.id}
-                            className="flex items-center gap-2.5 text-sm bg-muted/60 dark:bg-muted/30 rounded-lg p-3 border"
-                          >
-                            <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-                            <div className="flex flex-col">
-                              <span className="font-medium text-foreground">
-                                Thực thi công cụ
-                              </span>
-                              <code className="text-xs text-muted-foreground bg-background rounded px-1.5 py-0.5 mt-1">
-                                {tool.function.name}
-                              </code>
+                        {msg.tool_calls.map((tool) => {
+                          let toolContent: React.ReactNode;
+
+                          switch (tool.function.name) {
+                            case "get_project_file_tree":
+                              toolContent = (
+                                <p className="font-medium text-foreground">
+                                  {t("aiPanel.toolCall.listingFiles")}
+                                </p>
+                              );
+                              break;
+
+                            case "read_file":
+                              try {
+                                const args = JSON.parse(
+                                  tool.function.arguments
+                                );
+                                const filePath =
+                                  args.file_path || "unknown file";
+                                const fileName = filePath.split("/").pop();
+                                let lineInfo = "";
+                                if (args.start_line && args.end_line) {
+                                  lineInfo = `${args.start_line}-${args.end_line}`;
+                                } else if (args.start_line) {
+                                  lineInfo = `${args.start_line}-...`;
+                                } else if (args.end_line) {
+                                  lineInfo = `...-${args.end_line}`;
+                                }
+
+                                toolContent = (
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                    <div className="flex items-baseline gap-1.5">
+                                      <code
+                                        className="font-medium text-foreground"
+                                        title={filePath}
+                                      >
+                                        {fileName}
+                                      </code>
+                                      {lineInfo && (
+                                        <span className="text-xs text-muted-foreground">
+                                          ({lineInfo})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              } catch (e) {
+                                // Fallback on parse error
+                                toolContent = (
+                                  <p>{t("aiPanel.toolCall.readingFile")}</p>
+                                );
+                              }
+                              break;
+
+                            default:
+                              toolContent = <p>{tool.function.name}</p>;
+                              break;
+                          }
+
+                          return (
+                            <div
+                              key={tool.id}
+                              className="flex items-center gap-2.5 text-sm bg-muted/60 dark:bg-muted/30 rounded-lg p-3 border"
+                            >
+                              <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                              {toolContent}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="markdown-content">
-                        {msg.role === "assistant" ? (
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeHighlight]}
-                          >
-                            {msg.content || ""}
-                          </ReactMarkdown>
-                        ) : null // User content is handled above
+                        {
+                          msg.role === "assistant" ? (
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeHighlight]}
+                            >
+                              {msg.content || ""}
+                            </ReactMarkdown>
+                          ) : null // User content is handled above
                         }
                       </div>
                     )}
