@@ -115,22 +115,33 @@ export const getGoogleTools = (
   // Add diff tool only in diff mode
   if (aiChatMode === "diff") {
     function_declarations.push({
-      name: "apply_diff_to_file",
-      description: `Applies a diff patch to a specified file in the project. The diff must be in the standard unified diff format.`,
+      name: "write_file",
+      description:
+        "Writes or overwrites content to a specific file. Can either replace the entire file content or replace a specific range of lines.",
       parameters: {
         type: "OBJECT",
         properties: {
           file_path: {
             type: "STRING",
             description:
-              "The relative path to the file that the diff should be applied to.",
+              "The relative path to the file that the content should be written to.",
           },
-          diff_content: {
+          content: {
             type: "STRING",
-            description: "The content of the diff patch to apply.",
+            description: "The new content to write to the file.",
+          },
+          start_line: {
+            type: "NUMBER",
+            description:
+              "Optional. The 1-based line number where the replacement should start. If omitted, the entire file will be overwritten.",
+          },
+          end_line: {
+            type: "NUMBER",
+            description:
+              "Optional. The 1-based line number where the replacement should end. If omitted, content is replaced from start_line to the end of the new content.",
           },
         },
-        required: ["file_path", "diff_content"],
+        required: ["file_path", "content"],
       },
     });
   }

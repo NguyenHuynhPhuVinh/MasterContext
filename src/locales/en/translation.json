@@ -186,9 +186,9 @@
       "executingTool": "Executing tool",
       "modifiedGroup": "Modified context group",
       "listingGroupFiles": "Listing files in current group",
-      "applyingDiffGeneric": "Applying patch to file",
-      "applyDiffSuccess": "Applied patch to",
-      "applyDiffError": "Failed to apply patch to"
+      "writingFileGeneric": "Writing to file",
+      "writeFileSuccess": "Wrote content to",
+      "writeFileError": "Failed to write to"
     }
   },
   "mainPanel": {

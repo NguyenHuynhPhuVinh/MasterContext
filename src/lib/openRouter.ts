@@ -1,4 +1,5 @@
 // src/lib/openRouter.ts
+import { createPatch } from "diff";
 import { invoke } from "@tauri-apps/api/core";
 import { type AppState, useAppStore } from "@/store/appStore";
 import { type ChatMessage, type GenerationInfo } from "@/store/types";
@@ -148,21 +149,50 @@ export const handleToolCalls = async (
         toolSucceeded = false;
       }
     }
-  } else if (tool.function.name === "apply_diff_to_file") {
+  } else if (tool.function.name === "write_file") {
     const { actions } = getState();
     try {
       const args = JSON.parse(tool.function.arguments);
-      const diffContent = args.diff_content;
-      const stats = calculateDiffStats(diffContent);
+      const { file_path, content, start_line, end_line } = args;
 
-      const success = await actions.applyVirtualPatch(
-        args.file_path,
-        diffContent
-      );
-      toolSucceeded = success;
+      // UI Logic: Create a diff for visualization before writing
+      const originalContent = await invoke<string>("get_file_content", {
+        rootPathStr: getState().rootPath,
+        fileRelPath: file_path,
+      });
 
-      // Store stats on the tool call object in the state
-      setState((state) => {
+      let newContent;
+      if (start_line) {
+        const originalLines = originalContent.split("\n");
+        const newLines = content.split("\n");
+        const startIndex = start_line - 1;
+        const endIndex = end_line ? end_line : startIndex + newLines.length;
+        originalLines.splice(startIndex, endIndex - startIndex, ...newLines);
+        newContent = originalLines.join("\n");
+      } else {
+        newContent = content;
+      }
+
+      const patch = createPatch(file_path, originalContent, newContent, "", "");
+      const stats = calculateDiffStats(patch);
+
+      // Save the generated patch for UI display
+      await actions.applyVirtualPatch(file_path, patch);
+
+      // Now, call the backend to actually write the file
+      await invoke("write_file_lines", {
+        rootPathStr: getState().rootPath,
+        fileRelPath: file_path,
+        contentToWrite: content,
+        startLine: start_line,
+        endLine: end_line,
+      });
+
+      toolSucceeded = true;
+      toolResultContent = `Successfully wrote content to ${file_path}. The user can now see the changes in the editor.`;
+
+      // Update the message with diff stats
+      setState((state: AppState) => {
         const newMessages = [...state.chatMessages];
         const lastMessage = newMessages[newMessages.length - 1];
         if (lastMessage?.role === "assistant" && lastMessage.tool_calls) {
@@ -170,14 +200,8 @@ export const handleToolCalls = async (
         }
         return { chatMessages: newMessages };
       });
-
-      if (success) {
-        toolResultContent = `Successfully applied patch to ${args.file_path}. The user can now see the changes in the editor.`;
-      } else {
-        toolResultContent = `Error: The patch failed to apply to ${args.file_path}. This is almost always because the original lines in the diff (lines starting with ' ' or '-') do not EXACTLY match the current content of the file. Common causes are: invisible trailing whitespace, different line endings (CRLF vs LF), or other subtle changes. **Your next step should be to use the 'read_file' tool on the specific lines you want to change. Then, use that exact output to create a new, precise diff and try again.**`;
-      }
     } catch (e) {
-      toolResultContent = `Error applying patch: ${e}`;
+      toolResultContent = `Error writing to file: ${e}`;
       toolSucceeded = false;
     }
   }

@@ -362,46 +362,33 @@ export const createAiChatActions: StateCreator<
         payload.tools.push({
           type: "function",
           function: {
-            name: "apply_diff_to_file",
-            description: `Applies a diff patch to a specified file in the project. The diff must be in the standard unified diff format.
-
-**IMPORTANT HINTS for using this tool:**
-
-1.  **Be Precise:** The line numbers and original content in the diff (lines starting with ' ' or '-') MUST EXACTLY match the current file content, including whitespace. Use the 'read_file' tool first if you are unsure of the exact content.
-2.  **Be Minimal:** Create the smallest possible diff. Only include the lines that are changing, plus a minimal number of surrounding (unchanged) context lines (usually 1-3) if absolutely necessary for uniqueness.
-3.  **Focus on the Change:** If you only need to change one line, your diff should ideally target only that one line.
-
-**GOOD EXAMPLE (Changing only line 2 of a file):**
---- a/README.md
-+++ b/README.md
-@@ -2 +2 @@
--[![Version](https://img.shields.io/badge/version-0.1.4-blue.svg)](src-tauri/tauri.conf.json)
-+[![Version](https://img.shields.io/badge/version-0.1.5-blue.svg)](src-tauri/tauri.conf.json)
-
-**BAD EXAMPLE (Too broad, likely to fail because other lines might not match exactly):**
---- a/README.md
-+++ b/README.md
-@@ -1,5 +1,5 @@
- # Master Context...
--[![Version](https://img.shields.io/badge/version-0.1.4-blue.svg)](src-tauri/tauri.conf.json)
-+[![Version](https://img.shields.io/badge/version-0.1.5-blue.svg)](src-tauri/tauri.conf.json)
- [![License]...
- ...
-`,
+            name: "write_file",
+            description:
+              "Writes or overwrites content to a specific file. Can either replace the entire file content or replace a specific range of lines. To replace specific lines, you MUST use the 'start_line' parameter. To insert new lines without deleting, set 'end_line' equal to 'start_line'. To delete lines, provide an empty string for 'content' and specify 'start_line' and 'end_line'.",
             parameters: {
               type: "object",
               properties: {
                 file_path: {
                   type: "string",
                   description:
-                    "The relative path to the file that the diff should be applied to.",
+                    "The relative path to the file that the content should be written to.",
                 },
-                diff_content: {
+                content: {
                   type: "string",
-                  description: "The content of the diff patch to apply.",
+                  description: "The new content to write to the file.",
+                },
+                start_line: {
+                  type: "number",
+                  description:
+                    "Optional. The 1-based line number where the replacement should start. If omitted, the entire file will be overwritten.",
+                },
+                end_line: {
+                  type: "number",
+                  description:
+                    "Optional. The 1-based line number where the replacement should end. If omitted, content is replaced from start_line to the end of the new content.",
                 },
               },
-              required: ["file_path", "diff_content"],
+              required: ["file_path", "content"],
             },
           },
         });

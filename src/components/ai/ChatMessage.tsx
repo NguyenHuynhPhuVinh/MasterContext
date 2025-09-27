@@ -8,7 +8,7 @@ import {
   FileText,
   Paperclip,
   Loader2,
-  FileDiff,
+  FileEdit,
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -129,7 +129,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         }
         break;
 
-      case "apply_diff_to_file":
+      case "write_file":
         try {
           const args = JSON.parse(tool.function.arguments);
           const filePath = args.file_path ?? "unknown file";
@@ -148,8 +148,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 >
                   {t(
                     success
-                      ? "aiPanel.toolCall.applyDiffSuccess"
-                      : "aiPanel.toolCall.applyDiffError"
+                      ? "aiPanel.toolCall.writeFileSuccess"
+                      : "aiPanel.toolCall.writeFileError"
                   )}
                 </span>
                 <code className="font-medium" title={filePath}>
@@ -175,7 +175,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             </div>
           );
         } catch (e) {
-          toolContent = <p>{t("aiPanel.toolCall.applyingDiffGeneric")}</p>;
+          toolContent = <p>{t("aiPanel.toolCall.writingFileGeneric")}</p>;
         }
         break;
 
@@ -195,8 +195,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
           ) : (
             <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
           )}
-          {tool.function.name === "apply_diff_to_file" && (
-            <FileDiff className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+          {tool.function.name === "write_file" && (
+            <FileEdit className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           )}
           {tool.function.name === "read_file" && (
             <FileText className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
