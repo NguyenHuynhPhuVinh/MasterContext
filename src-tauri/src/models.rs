@@ -42,7 +42,21 @@ pub struct GitStatus {
     pub files: BTreeMap<String, String>, // Path -> Status Code (e.g., "M", "A", "D")
 }
 
-// --- THÊM CÁC STRUCT CHO LỊCH SỬ CHAT AI ---
+// --- STRUCTS FOR AI CHAT & TOOL CALLING ---
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ToolCallFunction {
+    pub name: String,
+    pub arguments: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ToolCall {
+    pub id: String,
+    // `type` is a reserved keyword in Rust, so we use `r#`
+    pub r#type: String,
+    pub function: ToolCallFunction,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct GenerationInfo {
     #[serde(default)]
@@ -57,7 +71,9 @@ pub struct GenerationInfo {
 #[serde(rename_all = "camelCase")]
 pub struct ChatMessage {
     pub role: String, // "user" | "assistant" | "system"
-    pub content: String,
+    pub content: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<ToolCall>>,
     #[serde(default)] // Dành cho khả năng tương thích ngược
     pub generation_info: Option<GenerationInfo>,
 }
@@ -80,7 +96,6 @@ pub struct AIChatSessionHeader {
     pub title: String,
     pub created_at: DateTime<Utc>,
 }
-// --- KẾT THÚC PHẦN THÊM MỚI ---
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]

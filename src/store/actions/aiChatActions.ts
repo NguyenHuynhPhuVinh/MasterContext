@@ -106,6 +106,7 @@ export const createAiChatActions: StateCreator<
       topP,
       topK,
       maxTokens,
+      aiChatMode,
     } = get();
 
     // Create a new AbortController for this request
@@ -122,14 +123,30 @@ export const createAiChatActions: StateCreator<
 
     // Build payload with advanced parameters
     const payload: Record<string, any> = {
-      model: selectedAiModel || aiModels[0],
-      messages: messagesToSend,
+      model: selectedAiModel || aiModels[0]?.id,
+      messages: messagesToSend.map(({ hidden, ...msg }) => msg), // Filter out the hidden property before sending
     };
 
     if (temperature) payload.temperature = temperature;
     if (topP) payload.top_p = topP;
     if (topK > 0) payload.top_k = topK;
     if (maxTokens > 0) payload.max_tokens = maxTokens;
+    if (aiChatMode === "link") {
+      payload.tools = [
+        {
+          type: "function",
+          function: {
+            name: "get_project_file_tree",
+            description:
+              "Get the complete file and directory structure of the current project.",
+            parameters: {
+              type: "object",
+              properties: {},
+            },
+          },
+        },
+      ];
+    }
 
     try {
       const response = await fetch(

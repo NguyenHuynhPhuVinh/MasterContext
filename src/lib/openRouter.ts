@@ -1,5 +1,5 @@
 // src/lib/openRouter.ts
-import { type AppState } from "@/store/appStore";
+import { type AppState, useAppStore } from "@/store/appStore";
 import { type ChatMessage, type GenerationInfo } from "@/store/types";
 import axios from "axios";
 
@@ -12,6 +12,60 @@ type StoreApi = {
       | ((state: AppState) => AppState | Partial<AppState>),
     replace?: false | undefined
   ) => void;
+};
+
+/**
+ * Handles a tool call from the AI, executes the tool, and triggers a new response fetch.
+ */
+export const handleToolCalls = async (
+  toolCalls: ChatMessage["tool_calls"],
+  storeApi: StoreApi
+) => {
+  if (!toolCalls) return;
+  const { getState, setState } = storeApi;
+
+  // 1. Add assistant's tool call message to history (hidden)
+  const assistantMessage: ChatMessage = {
+    role: "assistant",
+    content: null,
+    tool_calls: toolCalls,
+    hidden: false,
+  };
+  setState((state: AppState) => ({
+    chatMessages: [...state.chatMessages, assistantMessage],
+  }));
+
+  // 2. Execute tool
+  setState({ isAiPanelLoading: true }); // Keep loading state for the next AI call
+
+  const tool = toolCalls[0];
+  let toolResultContent =
+    "Error: Tool 'get_project_file_tree' not found or file tree is unavailable.";
+  if (tool.function.name === "get_project_file_tree") {
+    const fileTree = getState().fileTree;
+    if (fileTree && fileTree.children) {
+      const children = fileTree.children;
+      toolResultContent =
+        "Current project structure:\n" +
+        children
+          .map((child, index) =>
+            formatNode(child, "", index === children.length - 1)
+          )
+          .join("");
+    }
+  }
+
+  // 3. Add tool result as a hidden user message and re-fetch AI response
+  const toolResultMessage: ChatMessage = {
+    role: "user",
+    content: `[TOOL_RESULT for ${tool.function.name}]\n${toolResultContent}`,
+    hidden: true,
+  };
+  setState((state: AppState) => ({
+    chatMessages: [...state.chatMessages, toolResultMessage],
+  }));
+  await getState().actions.saveCurrentChatSession();
+  await getState().actions.fetchOpenRouterResponse();
 };
 
 /**
@@ -69,6 +123,16 @@ export const handleNonStreamingResponse = async (
       assistantMessage.generationInfo = fetchedInfo;
     }
   }
+
+  // Check for tool calls
+  if (assistantMessage.tool_calls) {
+    await handleToolCalls(assistantMessage.tool_calls, {
+      getState: useAppStore.getState,
+      setState: useAppStore.setState,
+    });
+    return assistantMessage; // Return immediately, the recursive call will handle the final message
+  }
+
   return assistantMessage;
 };
 
@@ -108,6 +172,13 @@ export const handleStreamingResponse = async (
         const json = JSON.parse(line.substring(5));
         if (json.id && !generationId) {
           generationId = json.id;
+        }
+
+        const toolCallsChunk = json.choices[0]?.delta?.tool_calls;
+        if (toolCallsChunk && toolCallsChunk.length > 0) {
+          reader.cancel(); // Stop stream processing
+          await handleToolCalls(toolCallsChunk, storeApi);
+          return; // Exit fetch function
         }
 
         const delta = json.choices[0]?.delta?.content;
@@ -172,4 +243,29 @@ export const handleStreamingResponse = async (
       });
     }
   }
+};
+
+const formatNode = (
+  node: import("@/store/types").FileNode,
+  prefix: string,
+  isLast: boolean
+): string => {
+  let res = prefix;
+  if (prefix.length > 0 || node.children) {
+    res += isLast ? "└── " : "├── ";
+  } else {
+    res += "    "; // for top-level files
+  }
+  res += `${node.name}\n`;
+  if (node.children) {
+    const childPrefix = prefix + (isLast ? "    " : "│   ");
+    node.children.forEach((child, index) => {
+      res += formatNode(
+        child,
+        childPrefix,
+        index === node.children!.length - 1
+      );
+    });
+  }
+  return res;
 };

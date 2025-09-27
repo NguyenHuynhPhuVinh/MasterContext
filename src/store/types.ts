@@ -121,8 +121,19 @@ export interface GenerationInfo {
 
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
-  content: string;
+  content: string | null; // Allow null content for tool calls
   generationInfo?: GenerationInfo;
+  tool_calls?: ToolCall[]; // Add tool_calls
+  hidden?: boolean; // For hidden user messages
+}
+
+export interface ToolCall {
+  id: string;
+  type: "function";
+  function: {
+    name: string;
+    arguments: string; // JSON string
+  };
 }
 
 export interface AIChatSessionHeader {

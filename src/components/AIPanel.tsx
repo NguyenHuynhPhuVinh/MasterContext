@@ -15,6 +15,7 @@ import {
   Plus,
   Loader2,
   History,
+  CheckCircle2,
   X,
   Square,
   AlignJustify,
@@ -128,53 +129,81 @@ export function AIPanel() {
       <>
         <ScrollArea className="flex-1 p-4 min-h-0">
           <div className="space-y-4">
-            {chatMessages.map((msg, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex",
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                )}
-              >
+            {chatMessages
+              .filter((msg) => !msg.hidden)
+              .map((msg, index) => (
                 <div
+                  key={index}
                   className={cn(
-                    "max-w-xs md:max-w-md lg:max-w-lg text-sm",
-                    msg.role === "user"
-                      ? "bg-muted rounded-lg px-4 py-2 whitespace-pre-wrap"
-                      : "markdown-content"
+                    "flex",
+                    msg.role === "user" ? "justify-end" : "justify-start"
                   )}
                 >
-                  {msg.role === "assistant" ? (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeHighlight]}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
-                  ) : (
-                    msg.content
-                  )}
-                  {msg.role === "assistant" && msg.generationInfo && (
-                    <div className="mt-2 pt-2 border-t border-border/50 text-xs text-muted-foreground flex items-center justify-end gap-3">
-                      <span
-                        className="flex items-center gap-1"
-                        title="Prompt Tokens + Completion Tokens"
-                      >
-                        <BrainCircuit className="h-3 w-3" />
-                        {msg.generationInfo.tokens_prompt} +{" "}
-                        {msg.generationInfo.tokens_completion}
-                      </span>
-                      {msg.generationInfo.total_cost > 0 && (
-                        <span className="flex items-center gap-1" title="Cost">
-                          <Coins className="h-3 w-3" />$
-                          {msg.generationInfo.total_cost.toFixed(6)}
+                  <div
+                    className={cn(
+                      "max-w-xs md:max-w-md lg:max-w-lg text-sm",
+                      msg.role === "user"
+                        ? "bg-muted rounded-lg px-4 py-2 whitespace-pre-wrap"
+                        : "" // Remove markdown-content class from the container
+                    )}
+                  >
+                    {msg.role === "assistant" && msg.tool_calls ? (
+                      <div className="space-y-2">
+                        {msg.tool_calls.map((tool) => (
+                          <div
+                            key={tool.id}
+                            className="flex items-center gap-2.5 text-sm bg-muted/60 dark:bg-muted/30 rounded-lg p-3 border"
+                          >
+                            <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                            <div className="flex flex-col">
+                              <span className="font-medium text-foreground">
+                                Thực thi công cụ
+                              </span>
+                              <code className="text-xs text-muted-foreground bg-background rounded px-1.5 py-0.5 mt-1">
+                                {tool.function.name}
+                              </code>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="markdown-content">
+                        {msg.role === "assistant" ? (
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeHighlight]}
+                          >
+                            {msg.content || ""}
+                          </ReactMarkdown>
+                        ) : (
+                          msg.content
+                        )}
+                      </div>
+                    )}
+                    {msg.role === "assistant" && msg.generationInfo && (
+                      <div className="mt-2 pt-2 border-t border-border/50 text-xs text-muted-foreground flex items-center justify-end gap-3">
+                        <span
+                          className="flex items-center gap-1"
+                          title="Prompt Tokens + Completion Tokens"
+                        >
+                          <BrainCircuit className="h-3 w-3" />
+                          {msg.generationInfo.tokens_prompt} +{" "}
+                          {msg.generationInfo.tokens_completion}
                         </span>
-                      )}
-                    </div>
-                  )}
+                        {msg.generationInfo.total_cost > 0 && (
+                          <span
+                            className="flex items-center gap-1"
+                            title="Cost"
+                          >
+                            <Coins className="h-3 w-3" />$
+                            {msg.generationInfo.total_cost.toFixed(6)}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
             {isAiPanelLoading && (
               <div className="flex items-center justify-start gap-2 text-muted-foreground italic text-sm">
                 <Loader2 className="h-4 w-4 animate-spin" />
