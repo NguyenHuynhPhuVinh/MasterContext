@@ -90,6 +90,8 @@ pub struct AIChatSession {
     pub messages: Vec<ChatMessage>,
     #[serde(default)] // Dành cho khả năng tương thích ngược
     pub total_tokens: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total_cost: Option<f64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

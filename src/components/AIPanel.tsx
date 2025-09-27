@@ -180,27 +180,6 @@ export function AIPanel() {
                         )}
                       </div>
                     )}
-                    {msg.role === "assistant" && msg.generationInfo && (
-                      <div className="mt-2 pt-2 border-t border-border/50 text-xs text-muted-foreground flex items-center justify-end gap-3">
-                        <span
-                          className="flex items-center gap-1"
-                          title="Prompt Tokens + Completion Tokens"
-                        >
-                          <BrainCircuit className="h-3 w-3" />
-                          {msg.generationInfo.tokens_prompt} +{" "}
-                          {msg.generationInfo.tokens_completion}
-                        </span>
-                        {msg.generationInfo.total_cost > 0 && (
-                          <span
-                            className="flex items-center gap-1"
-                            title="Cost"
-                          >
-                            <Coins className="h-3 w-3" />$
-                            {msg.generationInfo.total_cost.toFixed(6)}
-                          </span>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
@@ -346,35 +325,48 @@ export function AIPanel() {
               ? t("aiPanel.history")
               : activeChatSession?.title || t("aiPanel.title")}
           </h1>
-          {view === "chat" &&
-            activeChatSession?.totalTokens != null &&
-            selectedModelDetails?.context_length != null && (
-              <div
-                className={cn(
-                  "text-xs text-muted-foreground flex items-center gap-1.5 mt-1",
-                  selectedModelDetails.context_length > 0 &&
-                    activeChatSession.totalTokens /
-                      selectedModelDetails.context_length >
-                      0.9 &&
-                    "text-destructive",
-                  selectedModelDetails.context_length > 0 &&
-                    activeChatSession.totalTokens /
-                      selectedModelDetails.context_length >
-                      0.75 &&
-                    activeChatSession.totalTokens /
-                      selectedModelDetails.context_length <=
-                      0.9 &&
-                    "text-yellow-500"
+          {view === "chat" && activeChatSession && (
+            <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
+              {activeChatSession.totalTokens != null &&
+                selectedModelDetails?.context_length != null && (
+                  <div
+                    className={cn(
+                      "flex items-center gap-1.5",
+                      selectedModelDetails.context_length > 0 &&
+                        activeChatSession.totalTokens /
+                          selectedModelDetails.context_length >
+                          0.9 &&
+                        "text-destructive",
+                      selectedModelDetails.context_length > 0 &&
+                        activeChatSession.totalTokens /
+                          selectedModelDetails.context_length >
+                          0.75 &&
+                        activeChatSession.totalTokens /
+                          selectedModelDetails.context_length <=
+                          0.9 &&
+                        "text-yellow-500"
+                    )}
+                    title={t("aiPanel.sessionTokensTooltip")}
+                  >
+                    <BrainCircuit className="h-3 w-3" />
+                    <span>
+                      {activeChatSession.totalTokens.toLocaleString()} /{" "}
+                      {selectedModelDetails.context_length.toLocaleString()}
+                    </span>
+                  </div>
                 )}
-                title={t("aiPanel.sessionTokensTooltip")}
-              >
-                <BrainCircuit className="h-3 w-3" />
-                <span>
-                  {activeChatSession.totalTokens.toLocaleString()} /{" "}
-                  {selectedModelDetails.context_length.toLocaleString()}
-                </span>
-              </div>
-            )}
+              {activeChatSession.totalCost != null &&
+                activeChatSession.totalCost > 0 && (
+                  <div
+                    className="flex items-center gap-1.5"
+                    title="Total Session Cost"
+                  >
+                    <Coins className="h-3 w-3" />
+                    <span>${activeChatSession.totalCost.toFixed(6)}</span>
+                  </div>
+                )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {view === "chat" ? (

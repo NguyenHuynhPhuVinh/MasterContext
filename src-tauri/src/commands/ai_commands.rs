@@ -120,6 +120,7 @@ pub fn create_chat_session(
         created_at: chrono::Utc::now(),
         messages: Vec::new(),
         total_tokens: None,
+        total_cost: None,
     };
 
     save_chat_session(

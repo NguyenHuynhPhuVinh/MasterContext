@@ -148,6 +148,7 @@ export interface AIChatSession {
   createdAt: string;
   messages: ChatMessage[];
   totalTokens?: number;
+  totalCost?: number;
 }
 
 export interface AppState {
