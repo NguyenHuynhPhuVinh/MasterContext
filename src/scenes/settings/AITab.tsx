@@ -10,6 +10,13 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Save, Loader2, X, ChevronsUpDown } from "lucide-react";
 import { useAppStore } from "@/store/appStore";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useShallow } from "zustand/react/shallow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +34,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { type AIModel } from "@/store/types";
+import { cn } from "@/lib/utils";
 
 interface AITabProps {
   apiKey: string;
@@ -38,6 +46,9 @@ interface AITabProps {
   topP: number;
   topK: number;
   maxTokens: number;
+  thinkingBudget: number;
+  reasoningEffort: "low" | "medium" | "high";
+  includeThoughts: boolean;
   onSave: (settings: {
     apiKey: string;
     googleApiKey: string;
@@ -48,6 +59,9 @@ interface AITabProps {
     topP: number;
     topK: number;
     maxTokens: number;
+    thinkingBudget: number;
+    reasoningEffort: "low" | "medium" | "high";
+    includeThoughts: boolean;
   }) => Promise<void>;
 }
 
@@ -61,6 +75,9 @@ export function AITab({
   topP,
   topK,
   maxTokens,
+  thinkingBudget,
+  reasoningEffort,
+  includeThoughts,
   onSave,
 }: AITabProps) {
   const { t } = useTranslation();
@@ -79,6 +96,15 @@ export function AITab({
   const [localTopP, setLocalTopP] = useState(topP);
   const [localTopK, setLocalTopK] = useState(topK);
   const [localMaxTokens, setLocalMaxTokens] = useState(maxTokens);
+  const [, setLocalThinkingBudget] = useState(thinkingBudget);
+  const [localReasoningEffort, setLocalReasoningEffort] =
+    useState(reasoningEffort);
+  const [localIncludeThoughts, setLocalIncludeThoughts] =
+    useState(includeThoughts);
+  // State riêng cho input dạng text để xử lý số âm và rỗng
+  const [localThinkingBudgetText, setLocalThinkingBudgetText] = useState(
+    thinkingBudget.toString()
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
 
@@ -92,6 +118,10 @@ export function AITab({
     setLocalTopP(topP);
     setLocalTopK(topK);
     setLocalMaxTokens(maxTokens);
+    setLocalThinkingBudget(thinkingBudget);
+    setLocalReasoningEffort(reasoningEffort);
+    setLocalIncludeThoughts(includeThoughts);
+    setLocalThinkingBudgetText(thinkingBudget.toString());
   }, [
     apiKey,
     googleApiKey,
@@ -102,10 +132,14 @@ export function AITab({
     topP,
     topK,
     maxTokens,
+    thinkingBudget,
+    reasoningEffort,
+    includeThoughts,
   ]);
 
   const handleSave = async () => {
     setIsSaving(true);
+    const budget = parseInt(localThinkingBudgetText, 10);
     await onSave({
       apiKey: localApiKey,
       googleApiKey: localGoogleApiKey,
@@ -116,6 +150,9 @@ export function AITab({
       topP: localTopP,
       topK: localTopK,
       maxTokens: localMaxTokens,
+      includeThoughts: localIncludeThoughts,
+      thinkingBudget: isNaN(budget) ? -1 : budget, // Mặc định là -1 nếu không hợp lệ
+      reasoningEffort: localReasoningEffort,
     });
     setIsSaving(false);
   };
@@ -132,6 +169,13 @@ export function AITab({
     JSON.stringify(localModels.sort()) !==
     JSON.stringify(models.map((m) => m.id).sort());
 
+  const budgetChanged =
+    parseInt(localThinkingBudgetText, 10) !== thinkingBudget;
+
+  const isBudgetSpecific =
+    !isNaN(parseInt(localThinkingBudgetText, 10)) &&
+    parseInt(localThinkingBudgetText, 10) > 0;
+
   const isChanged =
     localApiKey !== apiKey ||
     localGoogleApiKey !== googleApiKey ||
@@ -141,7 +185,10 @@ export function AITab({
     localTemperature !== temperature ||
     localTopP !== topP ||
     localTopK !== topK ||
-    localMaxTokens !== maxTokens;
+    localMaxTokens !== maxTokens ||
+    localIncludeThoughts !== includeThoughts ||
+    localReasoningEffort !== reasoningEffort ||
+    budgetChanged;
 
   return (
     <div className="space-y-6">
@@ -397,6 +444,82 @@ export function AITab({
                 }
               />
             </div>
+          </div>
+        </div>
+        <div className="space-y-4 rounded-lg border p-4">
+          <h3 className="font-semibold">{t("settings.ai.thinking.title")}</h3>
+          <div className="flex items-center justify-between">
+            <Label
+              htmlFor="include-thoughts-toggle"
+              className="flex flex-col items-start gap-1"
+            >
+              <span>{t("settings.ai.thinking.includeThoughts.label")}</span>
+              <span className="text-xs text-muted-foreground">
+                {t("settings.ai.thinking.includeThoughts.description")}
+              </span>
+            </Label>
+            <Switch
+              id="include-thoughts-toggle"
+              checked={localIncludeThoughts}
+              onCheckedChange={setLocalIncludeThoughts}
+            />
+          </div>
+          <div className="space-y-2 pt-4 border-t">
+            <Label htmlFor="thinking-budget-input">
+              {t("settings.ai.thinking.budget.label")}
+            </Label>
+            <Input
+              id="thinking-budget-input"
+              type="text" // Đổi thành text để cho phép nhập '-'
+              pattern="^-?[0-9]*$" // Pattern để chỉ cho phép số và dấu trừ ở đầu
+              value={localThinkingBudgetText}
+              onChange={(e) => setLocalThinkingBudgetText(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("settings.ai.thinking.budget.description")}
+            </p>
+          </div>
+          <div className="space-y-2 pt-4 border-t">
+            <Label
+              htmlFor="reasoning-effort-select"
+              className={isBudgetSpecific ? "text-muted-foreground/50" : ""}
+            >
+              {t("settings.ai.thinking.effort.label")}
+            </Label>
+            <Select
+              value={localReasoningEffort}
+              onValueChange={(v) =>
+                setLocalReasoningEffort(v as "low" | "medium" | "high")
+              }
+              disabled={isBudgetSpecific}
+            >
+              <SelectTrigger id="reasoning-effort-select">
+                <SelectValue
+                  placeholder={t("settings.ai.thinking.effort.placeholder")}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">
+                  {t("settings.ai.thinking.effort.low")}
+                </SelectItem>
+                <SelectItem value="medium">
+                  {t("settings.ai.thinking.effort.medium")}
+                </SelectItem>
+                <SelectItem value="high">
+                  {t("settings.ai.thinking.effort.high")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p
+              className={cn(
+                "text-xs text-muted-foreground",
+                isBudgetSpecific && "text-muted-foreground/50"
+              )}
+            >
+              {t("settings.ai.thinking.effort.description")}
+              {isBudgetSpecific &&
+                ` ${t("settings.ai.thinking.effort.disabledHint")}`}
+            </p>
           </div>
         </div>
         <div className="pt-2">

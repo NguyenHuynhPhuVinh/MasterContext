@@ -97,6 +97,9 @@ export interface AppSettings {
   topP?: number;
   topK?: number;
   maxTokens?: number;
+  thinkingBudget?: number;
+  reasoningEffort?: "low" | "medium" | "high";
+  includeThoughts?: boolean;
 }
 
 export interface GitRepositoryInfo {
@@ -137,6 +140,7 @@ export interface ChatMessage {
   content: string | null; // Allow null content for tool calls
   attachedFiles?: AttachedItem[]; // Files attached to this specific message
   hiddenContent?: string;
+  reasoning?: string | null;
   generationInfo?: GenerationInfo;
   tool_calls?: ToolCall[]; // Add tool_calls
   hidden?: boolean; // For hidden user messages
@@ -265,5 +269,8 @@ export interface AppState {
   systemPrompt: string;
   streamResponse: boolean;
   selectedAiModel: string;
+  thinkingBudget: number;
+  reasoningEffort: "low" | "medium" | "high";
+  includeThoughts: boolean;
   aiAttachedFiles: AttachedItem[];
 }

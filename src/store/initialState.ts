@@ -76,6 +76,9 @@ export const initialState = {
   systemPrompt: "",
   streamResponse: true,
   selectedAiModel: "openai/gpt-3.5-turbo",
+  thinkingBudget: -1, // -1 for dynamic
+  reasoningEffort: "medium",
+  includeThoughts: true,
   aiAttachedFiles: [] as AttachedItem[],
 };
 

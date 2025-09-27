@@ -48,6 +48,9 @@ export function SettingsScene() {
     topK,
     maxTokens,
     streamResponse,
+    thinkingBudget,
+    reasoningEffort,
+    includeThoughts,
     updateAppSettings,
     setGitExportMode,
     showDashboard,
@@ -143,6 +146,9 @@ export function SettingsScene() {
             topP={topP}
             topK={topK}
             maxTokens={maxTokens}
+            thinkingBudget={thinkingBudget}
+            reasoningEffort={reasoningEffort}
+            includeThoughts={includeThoughts}
             onSave={async (newSettings) => {
               await updateAppSettings({
                 openRouterApiKey: newSettings.apiKey,
@@ -154,6 +160,9 @@ export function SettingsScene() {
                 topP: newSettings.topP,
                 topK: newSettings.topK,
                 maxTokens: newSettings.maxTokens,
+                thinkingBudget: newSettings.thinkingBudget,
+                reasoningEffort: newSettings.reasoningEffort,
+                includeThoughts: newSettings.includeThoughts,
               });
             }}
           />

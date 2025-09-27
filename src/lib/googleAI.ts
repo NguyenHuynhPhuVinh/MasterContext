@@ -33,6 +33,8 @@ export const toGooglePayload = (
     topP: number;
     topK: number;
     maxTokens: number;
+    thinkingBudget: number;
+    includeThoughts: boolean;
     tools?: { function_declarations: any[] };
   }
 ) => {
@@ -58,6 +60,11 @@ export const toGooglePayload = (
       topP: config.topP,
       topK: config.topK > 0 ? config.topK : undefined,
       maxOutputTokens: config.maxTokens > 0 ? config.maxTokens : undefined,
+    },
+    // Add thinking config
+    thinkingConfig: {
+      thinkingBudget: config.thinkingBudget,
+      includeThoughts: config.includeThoughts,
     },
     tools: config.tools ? [config.tools] : undefined,
   };
@@ -201,28 +208,59 @@ export const handleStreamingResponseGoogle = async (
     if (objectsToProcess.length > 0) {
       let combinedText = "";
       for (const chunk of objectsToProcess) {
-        const part = chunk?.candidates?.[0]?.content?.parts?.[0];
-        if (!part) continue;
+        const parts = chunk?.candidates?.[0]?.content?.parts;
+        if (!parts || parts.length === 0) continue;
 
-        // Handle tool call chunk
-        if (part.functionCall) {
-          reader.cancel(); // Stop processing stream
-          const { name, args } = part.functionCall;
-          const toolCall: ToolCall = {
-            id: `call_${Date.now()}`,
-            type: "function",
-            function: { name, arguments: JSON.stringify(args) },
-          };
-          await handleToolCalls([toolCall], storeApi);
-          return; // Exit function, tool handler will take over
+        // In Gemini, thoughts and text can come in separate parts within the same chunk
+        for (const part of parts) {
+          if (!part) continue;
+
+          // Handle tool call chunk
+          if (part.functionCall) {
+            reader.cancel(); // Stop processing stream
+            const { name, args } = part.functionCall;
+            const toolCall: ToolCall = {
+              id: `call_${Date.now()}`,
+              type: "function",
+              function: {
+                name: name,
+                arguments: JSON.stringify(args),
+              },
+            };
+            await handleToolCalls([toolCall], storeApi);
+            return; // Exit function, tool handler will take over
+          }
+
+          if (part.thought) {
+            // This is a thought summary part
+            setState((state) => {
+              const lastMessage =
+                state.chatMessages[state.chatMessages.length - 1];
+              if (lastMessage && lastMessage.role === "assistant") {
+                const updatedMessage = {
+                  ...lastMessage,
+                  reasoning: (lastMessage.reasoning || "") + (part.text || ""),
+                };
+                return {
+                  chatMessages: [
+                    ...state.chatMessages.slice(0, -1),
+                    updatedMessage,
+                  ],
+                };
+              }
+              return state;
+            });
+          } else {
+            // This is a regular text part
+            combinedText += part.text || "";
+          }
         }
 
-        combinedText += part.text || "";
         if (chunk.usageMetadata) {
           finalUsage = {
             tokens_prompt: chunk.usageMetadata.promptTokenCount || 0,
             tokens_completion: chunk.usageMetadata.candidatesTokenCount || 0,
-            total_cost: 0,
+            total_cost: 0, // Not available in stream for Google
           };
         }
       }
@@ -235,29 +273,25 @@ export const handleStreamingResponseGoogle = async (
         isFirstChunk = false;
         const newAssistantMessage: ChatMessage = {
           role: "assistant",
-          content: combinedText,
+          content: "", // Start with empty content, could receive thoughts first
         };
         setState((state) => ({
           chatMessages: [...state.chatMessages, newAssistantMessage],
         }));
-      } else {
-        setState((state) => {
-          const lastMessage = state.chatMessages[state.chatMessages.length - 1];
-          if (lastMessage && lastMessage.role === "assistant") {
-            const updatedMessage = {
-              ...lastMessage,
-              content: (lastMessage.content || "") + combinedText,
-            };
-            return {
-              chatMessages: [
-                ...state.chatMessages.slice(0, -1),
-                updatedMessage,
-              ],
-            };
-          }
-          return state;
-        });
       }
+      setState((state) => {
+        const lastMessage = state.chatMessages[state.chatMessages.length - 1];
+        if (lastMessage && lastMessage.role === "assistant") {
+          const updatedMessage = {
+            ...lastMessage,
+            content: (lastMessage.content || "") + combinedText,
+          };
+          return {
+            chatMessages: [...state.chatMessages.slice(0, -1), updatedMessage],
+          };
+        }
+        return state;
+      });
     }
   }
 

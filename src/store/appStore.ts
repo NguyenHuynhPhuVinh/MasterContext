@@ -139,6 +139,9 @@ export interface AppState {
   systemPrompt: string;
   streamResponse: boolean;
   selectedAiModel: string;
+  thinkingBudget: number;
+  reasoningEffort: "low" | "medium" | "high";
+  includeThoughts: boolean;
   aiAttachedFiles: AttachedItem[];
 
   actions: ProjectActions &
@@ -154,7 +157,7 @@ export interface AppState {
 }
 
 export const useAppStore = create<AppState>()((set, get, store) => ({
-  ...initialState,
+  ...(initialState as Omit<AppState, "actions">),
   actions: {
     ...createProjectActions(set, get, store),
     ...createGroupActions(set, get, store),

@@ -390,13 +390,16 @@ export const handleStreamingResponse = async (
           return; // Exit fetch function
         }
 
+        const reasoningDelta = json.choices[0]?.delta?.reasoning;
         const delta = json.choices[0]?.delta?.content;
-        if (delta) {
+
+        if (delta || reasoningDelta) {
           if (isFirstChunk) {
             isFirstChunk = false;
             const newAssistantMessage: ChatMessage = {
               role: "assistant",
-              content: delta,
+              content: delta || "",
+              reasoning: reasoningDelta || "",
             };
             setState((state) => ({
               chatMessages: [...state.chatMessages, newAssistantMessage],
@@ -408,7 +411,9 @@ export const handleStreamingResponse = async (
               if (lastMessage && lastMessage.role === "assistant") {
                 const updatedMessage = {
                   ...lastMessage,
-                  content: lastMessage.content + delta,
+                  content: (lastMessage.content || "") + (delta || ""),
+                  reasoning:
+                    (lastMessage.reasoning || "") + (reasoningDelta || ""),
                 };
                 return {
                   chatMessages: [

@@ -36,6 +36,9 @@ export function useSettingsScene() {
     topK,
     maxTokens,
     streamResponse,
+    thinkingBudget,
+    reasoningEffort,
+    includeThoughts,
   } = useAppStore(
     useShallow((state) => ({
       syncEnabled: state.syncEnabled,
@@ -61,6 +64,9 @@ export function useSettingsScene() {
       topK: state.topK,
       maxTokens: state.maxTokens,
       streamResponse: state.streamResponse,
+      thinkingBudget: state.thinkingBudget,
+      reasoningEffort: state.reasoningEffort,
+      includeThoughts: state.includeThoughts,
     }))
   );
 
@@ -161,6 +167,9 @@ export function useSettingsScene() {
     topK,
     maxTokens,
     streamResponse,
+    thinkingBudget,
+    reasoningEffort,
+    includeThoughts,
     updateAppSettings,
     setSyncSettings,
     setCustomIgnorePatterns,
