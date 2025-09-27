@@ -5,9 +5,56 @@ import {
   type ChatMessage,
   type AIChatSession,
   type AIChatSessionHeader,
+  type GenerationInfo,
 } from "../types";
 import i18n from "@/i18n";
 import { invoke } from "@tauri-apps/api/core";
+
+/**
+ * Fetches generation info from OpenRouter with a retry mechanism to handle delays.
+ * @param generationId The ID of the generation to fetch.
+ * @param apiKey The OpenRouter API key.
+ * @param retries Number of times to retry on failure.
+ * @param delay Delay in milliseconds between retries.
+ * @returns The generation info or null if all retries fail.
+ */
+const fetchGenerationInfoWithRetry = async (
+  generationId: string,
+  apiKey: string,
+  retries = 3,
+  delay = 1500 // Increased delay to 1.5 seconds
+): Promise<GenerationInfo | null> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(
+        `https://openrouter.ai/api/v1/generation?id=${generationId}`,
+        {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.data as GenerationInfo; // Success
+      }
+
+      if (response.status === 404) {
+        console.log(`Attempt ${i + 1} failed (404). Retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        console.error(`Failed with status ${response.status}. Not retrying.`);
+        return null; // Don't retry on other errors like 401, 500 etc.
+      }
+    } catch (error) {
+      console.error("Fetch generation info network error:", error);
+      return null; // Network or other fatal error
+    }
+  }
+  console.warn(
+    `All ${retries} attempts to fetch generation info failed for id: ${generationId}`
+  );
+  return null;
+};
 
 export interface AiActions {
   setOpenRouterApiKey: (key: string) => Promise<void>;
@@ -122,6 +169,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
       topP,
       topK,
       maxTokens,
+      actions,
     } = get();
 
     // Create a new AbortController for this request
@@ -173,6 +221,17 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
 
         const data = await response.json();
         const assistantMessage = data.choices[0].message;
+        const generationId = data.id;
+
+        if (generationId) {
+          const fetchedInfo = await fetchGenerationInfoWithRetry(
+            generationId,
+            openRouterApiKey
+          );
+          if (fetchedInfo) {
+            assistantMessage.generationInfo = fetchedInfo;
+          }
+        }
 
         set((state) => ({
           chatMessages: [...state.chatMessages, assistantMessage],
@@ -196,12 +255,13 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
       } finally {
         // Always save and clean up
         set({ abortController: null });
-        await get().actions.saveCurrentChatSession();
+        await actions.saveCurrentChatSession(); // Use destructured actions
       }
       return;
     }
 
     // --- Streaming Logic ---
+    let generationId: string | null = null;
     try {
       const response = await fetch(
         "https://openrouter.ai/api/v1/chat/completions",
@@ -250,6 +310,10 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
 
           try {
             const json = JSON.parse(line.substring(5)); // Remove "data: "
+            if (json.id && !generationId) {
+              generationId = json.id;
+            }
+
             const delta = json.choices[0]?.delta?.content;
 
             if (delta) {
@@ -308,10 +372,36 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         isAiPanelLoading: false,
       });
     } finally {
+      // Fetch generation info after stream is complete
+      if (generationId) {
+        const generationInfo = await fetchGenerationInfoWithRetry(
+          generationId,
+          openRouterApiKey
+        );
+
+        if (generationInfo) {
+          // Update the last message with the generation info
+          set((state) => {
+            const lastMessage =
+              state.chatMessages[state.chatMessages.length - 1];
+            if (lastMessage && lastMessage.role === "assistant") {
+              const updatedMessage = { ...lastMessage, generationInfo };
+              return {
+                chatMessages: [
+                  ...state.chatMessages.slice(0, -1),
+                  updatedMessage,
+                ],
+              };
+            }
+            return state;
+          });
+        }
+      }
+
       set({ isAiPanelLoading: false });
       set({ abortController: null });
       // Always save the session after the stream attempt is finished.
-      await get().actions.saveCurrentChatSession();
+      await actions.saveCurrentChatSession();
     }
   },
   createNewChatSession: () => {
@@ -386,9 +476,24 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
   saveCurrentChatSession: async () => {
     const { rootPath, activeProfile, activeChatSession, chatMessages } = get();
     if (rootPath && activeProfile && activeChatSession) {
+      // Recalculate total tokens for the session
+      const totalTokens = chatMessages.reduce((acc, msg) => {
+        if (msg.generationInfo) {
+          return (
+            acc +
+            (msg.generationInfo.tokens_prompt || 0) +
+            (msg.generationInfo.tokens_completion || 0)
+          );
+        }
+        // A simple approximation for user messages if needed, though prompt_tokens is better
+        // For now, we only sum up assistant messages with generationInfo
+        return acc;
+      }, 0);
+
       const sessionToSave: AIChatSession = {
         ...activeChatSession,
         messages: chatMessages, // Use the latest messages from the UI state
+        totalTokens: totalTokens > 0 ? totalTokens : undefined,
       };
       await invoke("save_chat_session", {
         projectPath: rootPath,
@@ -396,7 +501,9 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
         session: sessionToSave,
       });
       // Keep the state in sync after saving
-      set({ activeChatSession: sessionToSave });
+      set({
+        activeChatSession: sessionToSave,
+      });
     }
   },
   stopAiResponse: () => {

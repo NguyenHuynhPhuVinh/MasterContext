@@ -19,6 +19,7 @@ import {
   Square,
   AlignJustify,
   BrainCircuit,
+  Coins,
 } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { ChatHistoryList } from "./ChatHistoryList";
@@ -53,6 +54,7 @@ export function AIPanel() {
     activeChatSessionId,
     aiModels,
     selectedAiModel,
+    activeChatSession,
   } = useAppStore(
     useShallow((state) => ({
       chatMessages: state.chatMessages,
@@ -61,6 +63,7 @@ export function AIPanel() {
       activeChatSessionId: state.activeChatSessionId,
       aiModels: state.aiModels,
       selectedAiModel: state.selectedAiModel,
+      activeChatSession: state.activeChatSession,
     }))
   );
 
@@ -145,6 +148,24 @@ export function AIPanel() {
                     </ReactMarkdown>
                   ) : (
                     msg.content
+                  )}
+                  {msg.role === "assistant" && msg.generationInfo && (
+                    <div className="mt-2 pt-2 border-t border-border/50 text-xs text-muted-foreground flex items-center justify-end gap-3">
+                      <span
+                        className="flex items-center gap-1"
+                        title="Prompt Tokens + Completion Tokens"
+                      >
+                        <BrainCircuit className="h-3 w-3" />
+                        {msg.generationInfo.tokens_prompt} +{" "}
+                        {msg.generationInfo.tokens_completion}
+                      </span>
+                      {msg.generationInfo.total_cost > 0 && (
+                        <span className="flex items-center gap-1" title="Cost">
+                          <Coins className="h-3 w-3" />$
+                          {msg.generationInfo.total_cost.toFixed(6)}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -249,10 +270,41 @@ export function AIPanel() {
 
   return (
     <div className="flex flex-col h-full bg-card">
-      <header className="flex items-center justify-between p-4 border-b shrink-0">
-        <h1 className="text-xl font-bold">
-          {view === "history" ? t("aiPanel.history") : t("aiPanel.title")}
-        </h1>
+      <header className="flex items-center justify-between p-4 pl-5 border-b shrink-0">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold">
+            {view === "history" ? t("aiPanel.history") : t("aiPanel.title")}
+          </h1>
+          {view === "chat" &&
+            activeChatSession?.totalTokens != null &&
+            selectedModelDetails?.context_length != null && (
+              <div
+                className={cn(
+                  "text-xs text-muted-foreground flex items-center gap-1.5 mt-1",
+                  selectedModelDetails.context_length > 0 &&
+                    activeChatSession.totalTokens /
+                      selectedModelDetails.context_length >
+                      0.9 &&
+                    "text-destructive",
+                  selectedModelDetails.context_length > 0 &&
+                    activeChatSession.totalTokens /
+                      selectedModelDetails.context_length >
+                      0.75 &&
+                    activeChatSession.totalTokens /
+                      selectedModelDetails.context_length <=
+                      0.9 &&
+                    "text-yellow-500"
+                )}
+              >
+                <BrainCircuit className="h-3 w-3" />
+                <span>
+                  {activeChatSession.totalTokens.toLocaleString()} /{" "}
+                  {selectedModelDetails.context_length.toLocaleString()} Session
+                  Tokens
+                </span>
+              </div>
+            )}
+        </div>
         <div className="flex items-center gap-2">
           {view === "chat" ? (
             <>

@@ -45,9 +45,22 @@ pub struct GitStatus {
 // --- THÊM CÁC STRUCT CHO LỊCH SỬ CHAT AI ---
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct GenerationInfo {
+    #[serde(default)]
+    pub tokens_prompt: u32,
+    #[serde(default)]
+    pub tokens_completion: u32,
+    #[serde(default)]
+    pub total_cost: f64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatMessage {
     pub role: String, // "user" | "assistant" | "system"
     pub content: String,
+    #[serde(default)] // Dành cho khả năng tương thích ngược
+    pub generation_info: Option<GenerationInfo>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -57,6 +70,8 @@ pub struct AIChatSession {
     pub title: String,
     pub created_at: DateTime<Utc>,
     pub messages: Vec<ChatMessage>,
+    #[serde(default)] // Dành cho khả năng tương thích ngược
+    pub total_tokens: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

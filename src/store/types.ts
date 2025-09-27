@@ -111,9 +111,16 @@ export interface GitStatus {
 
 export type GitLogState = "idle" | "loading_repo" | "loading_commits" | "error";
 
+export interface GenerationInfo {
+  tokens_prompt: number;
+  tokens_completion: number;
+  total_cost: number;
+}
+
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
+  generationInfo?: GenerationInfo;
 }
 
 export interface AIChatSessionHeader {
@@ -127,6 +134,7 @@ export interface AIChatSession {
   title: string;
   createdAt: string;
   messages: ChatMessage[];
+  totalTokens?: number;
 }
 
 export interface AppState {
