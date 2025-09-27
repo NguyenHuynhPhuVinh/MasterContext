@@ -174,7 +174,7 @@ export const handleToolCalls = async (
       if (success) {
         toolResultContent = `Successfully applied patch to ${args.file_path}. The user can now see the changes in the editor.`;
       } else {
-        toolResultContent = `Error: Failed to apply patch to ${args.file_path}. The diff format might be invalid or doesn't match the file content.`;
+        toolResultContent = `Error: The patch failed to apply to ${args.file_path}. This is almost always because the original lines in the diff (lines starting with ' ' or '-') do not EXACTLY match the current content of the file. Common causes are: invisible trailing whitespace, different line endings (CRLF vs LF), or other subtle changes. **Your next step should be to use the 'read_file' tool on the specific lines you want to change. Then, use that exact output to create a new, precise diff and try again.**`;
       }
     } catch (e) {
       toolResultContent = `Error applying patch: ${e}`;
