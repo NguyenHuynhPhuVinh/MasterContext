@@ -43,8 +43,7 @@ pub struct GitStatus {
 }
 
 // --- THÊM CÁC STRUCT CHO LỊCH SỬ CHAT AI ---
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct GenerationInfo {
     #[serde(default)]
     pub tokens_prompt: u32,

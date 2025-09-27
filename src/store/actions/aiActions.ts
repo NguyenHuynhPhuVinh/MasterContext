@@ -56,7 +56,7 @@ export interface AiActions {
   setSelectedAiModel: (model: string) => void;
   sendChatMessage: (prompt: string) => Promise<void>;
   fetchOpenRouterResponse: () => Promise<void>;
-  saveCurrentChatSession: () => Promise<void>;
+  saveCurrentChatSession: (messagesOverride?: ChatMessage[]) => Promise<void>;
   stopAiResponse: () => void;
   createNewChatSession: () => void;
   loadChatSessions: () => Promise<void>;
@@ -120,12 +120,11 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
 
       const newUserMessage: ChatMessage = { role: "user", content: prompt };
 
+      const newMessages = [...get().chatMessages, newUserMessage];
       // Optimistically update UI
-      set((state) => ({
-        chatMessages: [...state.chatMessages, newUserMessage],
-      }));
+      set({ chatMessages: newMessages });
 
-      await get().actions.saveCurrentChatSession(); // Save with the new user message
+      await get().actions.saveCurrentChatSession(newMessages); // Save with the new user message
 
       // Now proceed with the API call
       await get().actions.fetchOpenRouterResponse();
@@ -228,10 +227,11 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
           }
         }
 
-        set((state) => ({
-          chatMessages: [...state.chatMessages, assistantMessage],
+        const finalMessages = [...get().chatMessages, assistantMessage];
+        set({
+          chatMessages: finalMessages,
           isAiPanelLoading: false,
-        }));
+        });
         await get().actions.saveCurrentChatSession();
       } catch (error) {
         const errorMessage =
@@ -242,10 +242,11 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
           role: "assistant",
           content: `${t("aiPanel.error")}\n\n${errorMessage}`,
         };
-        set((state) => ({
-          chatMessages: [...state.chatMessages, assistantErrorMessage],
+        const finalMessages = [...get().chatMessages, assistantErrorMessage];
+        set({
+          chatMessages: finalMessages,
           isAiPanelLoading: false,
-        }));
+        });
         await get().actions.saveCurrentChatSession();
       } finally {
         // Always save and clean up
@@ -381,15 +382,21 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
               state.chatMessages[state.chatMessages.length - 1];
             if (lastMessage && lastMessage.role === "assistant") {
               const updatedMessage = { ...lastMessage, generationInfo };
+              const finalMessages = [
+                ...state.chatMessages.slice(0, -1),
+                updatedMessage,
+              ];
+              // Directly save the final state to avoid race conditions
+              actions.saveCurrentChatSession(finalMessages);
               return {
-                chatMessages: [
-                  ...state.chatMessages.slice(0, -1),
-                  updatedMessage,
-                ],
+                chatMessages: finalMessages,
               };
             }
             return state;
           });
+        } else {
+          // If we couldn't get generation info, still save the session.
+          await actions.saveCurrentChatSession();
         }
       }
 
@@ -468,11 +475,18 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
       ),
     }));
   },
-  saveCurrentChatSession: async () => {
-    const { rootPath, activeProfile, activeChatSession, chatMessages } = get();
+  saveCurrentChatSession: async (messagesOverride?: ChatMessage[]) => {
+    const {
+      rootPath,
+      activeProfile,
+      activeChatSession,
+      chatMessages: currentMessages,
+    } = get();
     if (rootPath && activeProfile && activeChatSession) {
+      const messagesToSave = messagesOverride ?? currentMessages;
+
       // Recalculate total tokens for the session
-      const totalTokens = chatMessages.reduce((acc, msg) => {
+      const totalTokens = messagesToSave.reduce((acc, msg) => {
         if (msg.generationInfo) {
           return (
             acc +
@@ -487,7 +501,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
 
       const sessionToSave: AIChatSession = {
         ...activeChatSession,
-        messages: chatMessages, // Use the latest messages from the UI state
+        messages: messagesToSave,
         totalTokens: totalTokens > 0 ? totalTokens : undefined,
       };
       await invoke("save_chat_session", {
