@@ -109,29 +109,76 @@ export const handleStreamingResponseGoogle = async (
     if (done) break;
 
     buffer += decoder.decode(value, { stream: true });
-    // Google's stream sends chunks of a JSON array. We can't process line by line.
-    // We'll process what we can and leave partial data in the buffer.
-    // A simple approach is to find the last complete JSON object.
-    const lastCompleteObjectEnd = buffer.lastIndexOf("}\n,");
-    if (lastCompleteObjectEnd !== -1) {
-      const processableChunk = buffer.substring(0, lastCompleteObjectEnd + 2);
-      buffer = buffer.substring(lastCompleteObjectEnd + 3);
+    // We might get multiple JSON objects in one chunk, or partial objects.
+    // We need to find and parse complete objects from the buffer using brace-counting.
+    const objectsToProcess = [];
+    let lastProcessedIndex = 0;
 
-      try {
-        // Wrap in array brackets to make it valid JSON
-        const chunks = JSON.parse(`[${processableChunk.slice(0, -1)}]`);
-        let combinedText = "";
-        for (const chunk of chunks) {
-          combinedText += chunk.candidates[0].content.parts[0].text;
-          if (chunk.usageMetadata) {
-            finalUsage = {
-              tokens_prompt: chunk.usageMetadata.promptTokenCount || 0,
-              tokens_completion: chunk.usageMetadata.candidatesTokenCount || 0,
-              total_cost: 0,
-            };
-          }
+    const findNextObjectStart = (startIndex: number) => {
+      for (let i = startIndex; i < buffer.length; i++) {
+        if (buffer[i] === "{") return i;
+      }
+      return -1;
+    };
+
+    let searchFrom = 0;
+    while (searchFrom < buffer.length) {
+      const start = findNextObjectStart(searchFrom);
+      if (start === -1) break; // No more objects start in the buffer
+
+      let braceCount = 1;
+      let end = -1;
+      for (let i = start + 1; i < buffer.length; i++) {
+        if (buffer[i] === "{") braceCount++;
+        if (buffer[i] === "}") braceCount--;
+        if (braceCount === 0) {
+          end = i;
+          break;
         }
+      }
 
+      if (end !== -1) {
+        // We found a complete object
+        const objectStr = buffer.substring(start, end + 1);
+        try {
+          const parsedObject = JSON.parse(objectStr);
+          objectsToProcess.push(parsedObject);
+          // Continue searching after this object
+          searchFrom = end + 1;
+          lastProcessedIndex = searchFrom;
+        } catch (e) {
+          // This shouldn't happen if brace counting is correct, but as a safeguard
+          // we assume the object is incomplete and wait for more data.
+          searchFrom = start + 1; // Move past the initial brace to avoid infinite loops
+        }
+      } else {
+        // Incomplete object, wait for more data
+        break;
+      }
+    }
+
+    // If we processed any objects, slice them from the main buffer
+    if (lastProcessedIndex > 0) {
+      buffer = buffer.substring(lastProcessedIndex);
+    }
+
+    if (objectsToProcess.length > 0) {
+      let combinedText = "";
+      for (const chunk of objectsToProcess) {
+        const text = chunk?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          combinedText += text;
+        }
+        if (chunk.usageMetadata) {
+          finalUsage = {
+            tokens_prompt: chunk.usageMetadata.promptTokenCount || 0,
+            tokens_completion: chunk.usageMetadata.candidatesTokenCount || 0,
+            total_cost: 0,
+          };
+        }
+      }
+
+      if (combinedText) {
         if (isFirstChunk) {
           isFirstChunk = false;
           const newAssistantMessage: ChatMessage = {
@@ -160,8 +207,6 @@ export const handleStreamingResponseGoogle = async (
             return state;
           });
         }
-      } catch (e) {
-        console.error("Error processing Google stream chunk:", e);
       }
     }
   }
