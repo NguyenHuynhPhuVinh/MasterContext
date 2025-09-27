@@ -66,20 +66,64 @@ export function EditorPanel() {
     if (extension && hljs.getLanguage(extension)) {
       return extension;
     }
-    // Map một số extension phổ biến khác
     switch (extension) {
+      // Web & Scripting
       case "tsx":
         return "typescript";
       case "jsx":
         return "javascript";
       case "html":
         return "xml";
+      case "vue":
+        return "xml"; // Vue SFC templates are XML-like
+      case "scss":
+        return "scss";
+      case "less":
+        return "less";
+      case "yml":
+        return "yaml";
+      case "md":
+        return "markdown";
+
+      // Backend & Systems
       case "rs":
         return "rust";
       case "py":
         return "python";
+      case "java":
+        return "java";
+      case "kt":
+        return "kotlin";
+      case "go":
+        return "go";
+      case "php":
+        return "php";
+      case "rb":
+        return "ruby";
+      case "cs":
+        return "csharp";
+      case "cpp":
+        return "cpp";
+      case "c":
+        return "c";
+      case "h":
+        return "c";
+
+      // Shell & Config
       case "sh":
         return "shell";
+      case "ps1":
+        return "powershell";
+      case "dockerfile":
+        return "dockerfile";
+      case "toml":
+        return "toml";
+
+      // Other common languages
+      case "sql":
+        return "sql";
+      case "swift":
+        return "swift";
       default:
         return "plaintext";
     }
