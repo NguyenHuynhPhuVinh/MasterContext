@@ -300,3 +300,25 @@ pub fn update_group_paths_from_ai(
         Err("group.not_found".to_string())
     }
 }
+
+#[command]
+pub fn get_expanded_files_for_group(
+    app: AppHandle,
+    path: String,
+    profile_name: String,
+    group_id: String,
+) -> Result<Vec<String>, String> {
+    let project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+    let root_path = Path::new(&path);
+
+    if let Some(group) = project_data.groups.iter().find(|g| g.id == group_id) {
+        let expanded_files = context_generator::expand_group_paths_to_files(
+            &group.paths,
+            &project_data.file_metadata_cache,
+            root_path,
+        );
+        Ok(expanded_files)
+    } else {
+        Err("group.not_found".to_string())
+    }
+}

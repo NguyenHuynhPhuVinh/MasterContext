@@ -73,6 +73,25 @@ export const handleToolCalls = async (
         toolResultContent = `Error reading file: ${e}`;
       }
     }
+  } else if (tool.function.name === "get_current_context_group_files") {
+    const { editingGroupId, rootPath, activeProfile } = getState();
+    if (!editingGroupId || !rootPath || !activeProfile) {
+      toolResultContent =
+        "Error: No group is currently being edited. The user must select a group to check its files.";
+    } else {
+      try {
+        const files = await invoke<string[]>("get_expanded_files_for_group", {
+          path: rootPath,
+          profileName: activeProfile,
+          groupId: editingGroupId,
+        });
+        toolResultContent = `The current group contains the following files:\n${files.join(
+          "\n"
+        )}`;
+      } catch (e) {
+        toolResultContent = `Error getting group files: ${e}`;
+      }
+    }
   } else if (tool.function.name === "modify_context_group") {
     const { editingGroupId, rootPath, activeProfile } = getState();
     if (!editingGroupId || !rootPath || !activeProfile) {

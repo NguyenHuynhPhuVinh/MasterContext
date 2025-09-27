@@ -67,6 +67,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
         }
         break;
 
+      case "get_current_context_group_files":
+        toolContent = (
+          <p className="font-medium text-foreground">
+            {t("aiPanel.toolCall.listingGroupFiles")}
+          </p>
+        );
+        break;
+
       case "modify_context_group":
         try {
           const args = JSON.parse(tool.function.arguments);

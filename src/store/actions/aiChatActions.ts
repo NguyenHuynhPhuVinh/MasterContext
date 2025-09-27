@@ -215,6 +215,19 @@ export const createAiChatActions: StateCreator<
       payload.tools.push({
         type: "function",
         function: {
+          name: "get_current_context_group_files",
+          description:
+            "Gets a list of all files currently included in the context group that the user is editing.",
+          parameters: {
+            type: "object",
+            properties: {},
+            required: [],
+          },
+        },
+      });
+      payload.tools.push({
+        type: "function",
+        function: {
           name: "modify_context_group",
           description:
             "Adds or removes files and folders from the currently selected context group. This is the primary way to help the user manage their context groups.",
