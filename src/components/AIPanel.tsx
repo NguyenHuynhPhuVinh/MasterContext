@@ -272,8 +272,13 @@ export function AIPanel() {
     <div className="flex flex-col h-full bg-card">
       <header className="flex items-center justify-between p-4 pl-5 border-b shrink-0">
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold">
-            {view === "history" ? t("aiPanel.history") : t("aiPanel.title")}
+          <h1
+            className="text-xl font-bold truncate"
+            title={view === "chat" ? activeChatSession?.title : ""}
+          >
+            {view === "history"
+              ? t("aiPanel.history")
+              : activeChatSession?.title || t("aiPanel.title")}
           </h1>
           {view === "chat" &&
             activeChatSession?.totalTokens != null &&
@@ -295,12 +300,12 @@ export function AIPanel() {
                       0.9 &&
                     "text-yellow-500"
                 )}
+                title={t("aiPanel.sessionTokensTooltip")}
               >
                 <BrainCircuit className="h-3 w-3" />
                 <span>
                   {activeChatSession.totalTokens.toLocaleString()} /{" "}
-                  {selectedModelDetails.context_length.toLocaleString()} Session
-                  Tokens
+                  {selectedModelDetails.context_length.toLocaleString()}
                 </span>
               </div>
             )}

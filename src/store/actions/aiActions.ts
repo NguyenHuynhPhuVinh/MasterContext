@@ -9,6 +9,7 @@ import {
 } from "../types";
 import i18n from "@/i18n";
 import { invoke } from "@tauri-apps/api/core";
+import axios from "axios";
 
 /**
  * Fetches generation info from OpenRouter with a retry mechanism to handle delays.
@@ -26,28 +27,22 @@ const fetchGenerationInfoWithRetry = async (
 ): Promise<GenerationInfo | null> => {
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(
+      const response = await axios.get(
         `https://openrouter.ai/api/v1/generation?id=${generationId}`,
-        {
-          headers: { Authorization: `Bearer ${apiKey}` },
-        }
+        { headers: { Authorization: `Bearer ${apiKey}` } }
       );
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.data as GenerationInfo; // Success
-      }
-
-      if (response.status === 404) {
+      return response.data.data as GenerationInfo; // Success
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
         console.log(`Attempt ${i + 1} failed (404). Retrying in ${delay}ms...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
-        console.error(`Failed with status ${response.status}. Not retrying.`);
+        console.error(
+          "Failed to fetch generation info with non-retriable error:",
+          error
+        );
         return null; // Don't retry on other errors like 401, 500 etc.
       }
-    } catch (error) {
-      console.error("Fetch generation info network error:", error);
-      return null; // Network or other fatal error
     }
   }
   console.warn(
