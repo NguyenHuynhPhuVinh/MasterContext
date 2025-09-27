@@ -122,10 +122,11 @@ export interface GenerationInfo {
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string | null; // Allow null content for tool calls
+  attachedFiles?: string[]; // Files attached to this specific message
+  hiddenContent?: string;
   generationInfo?: GenerationInfo;
   tool_calls?: ToolCall[]; // Add tool_calls
   hidden?: boolean; // For hidden user messages
-  hiddenContent?: string;
 }
 
 export interface ToolCall {

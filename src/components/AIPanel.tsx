@@ -19,6 +19,7 @@ import {
   X,
   Square,
   AlignJustify,
+  Paperclip,
   HelpCircle,
   Link as LinkIcon,
   BrainCircuit,
@@ -139,19 +140,37 @@ export function AIPanel() {
                 <div
                   key={index}
                   className={cn(
-                    "flex",
+                    "flex w-full",
                     msg.role === "user" ? "justify-end" : "justify-start"
                   )}
                 >
                   <div
                     className={cn(
-                      "max-w-xs md:max-w-md lg:max-w-lg text-sm",
-                      msg.role === "user"
-                        ? "bg-muted rounded-lg px-4 py-2 whitespace-pre-wrap"
-                        : "" // Remove markdown-content class from the container
+                      "max-w-xs md:max-w-md lg:max-w-lg text-sm rounded-lg",
+                      msg.role === "user" ? "bg-muted px-3 py-2" : ""
                     )}
                   >
-                    {msg.role === "assistant" && msg.tool_calls ? (
+                    {msg.role === "user" ? (
+                      <div className="flex flex-col gap-2">
+                        {msg.attachedFiles && msg.attachedFiles.length > 0 && (
+                          <div className="border-b border-background/50 pb-2">
+                            <div className="flex flex-wrap gap-1.5">
+                              {msg.attachedFiles.map((file) => (
+                                <Badge
+                                  key={file}
+                                  variant="outline"
+                                  className="font-normal bg-background/50"
+                                >
+                                  <Paperclip className="h-3 w-3 mr-1.5" />
+                                  {file.split("/").pop()}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                      </div>
+                    ) : msg.role === "assistant" && msg.tool_calls ? (
                       <div className="space-y-2">
                         {msg.tool_calls.map((tool) => (
                           <div
@@ -179,9 +198,8 @@ export function AIPanel() {
                           >
                             {msg.content || ""}
                           </ReactMarkdown>
-                        ) : (
-                          msg.content
-                        )}
+                        ) : null // User content is handled above
+                        }
                       </div>
                     )}
                   </div>

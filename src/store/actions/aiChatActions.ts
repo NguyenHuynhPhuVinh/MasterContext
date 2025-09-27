@@ -83,6 +83,7 @@ export const createAiChatActions: StateCreator<
         role: "user",
         content: prompt,
         hiddenContent,
+        attachedFiles: [...aiAttachedFiles], // Copy attachments to the message
       };
 
       const newMessages = [...get().chatMessages, newUserMessage];
@@ -149,11 +150,14 @@ export const createAiChatActions: StateCreator<
     // Build payload with advanced parameters
     const payload: Record<string, any> = {
       model: selectedAiModel || aiModels[0]?.id,
-      messages: messagesToSend.map(({ hidden, hiddenContent, ...msg }) => {
-        const fullContent = (hiddenContent || "") + (msg.content || "");
-        // Filter out the hidden property before sending
-        return { ...msg, content: fullContent };
-      }),
+      messages: messagesToSend.map(
+        // Filter out UI-specific properties before sending
+        ({ hidden, hiddenContent, attachedFiles, ...msg }) => {
+          const fullContent = (hiddenContent || "") + (msg.content || "");
+          // Filter out the hidden property before sending
+          return { ...msg, content: fullContent };
+        }
+      ),
     };
 
     if (temperature) payload.temperature = temperature;
