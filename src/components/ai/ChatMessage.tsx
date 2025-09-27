@@ -3,7 +3,6 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import {
-  BrainCircuit,
   CheckCircle2,
   FileText,
   Folder,
@@ -325,20 +324,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
           </div>
         ) : (
           <div className="markdown-content">
-            {message.reasoning && (
-              <div className="mb-3 border rounded-lg p-3 bg-muted/30 dark:bg-muted/20 text-sm">
-                <div className="flex items-center gap-2 font-semibold text-muted-foreground text-xs mb-2">
-                  <BrainCircuit className="h-4 w-4" />
-                  <span>Thinking...</span>
-                </div>
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                >
-                  {message.reasoning}
-                </ReactMarkdown>
-              </div>
-            )}
             {message.role === "assistant" ? (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}

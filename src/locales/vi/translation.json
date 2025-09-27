@@ -341,25 +341,6 @@
         "topP": "Top-P",
         "topK": "Top-K",
         "maxTokens": "Số Token Tối đa"
-      },
-      "thinking": {
-        "title": "Suy luận & Tư duy (Beta)",
-        "includeThoughts": {
-          "label": "Bao gồm tóm tắt suy luận",
-          "description": "Hiển thị quá trình suy luận của mô hình trước khi đưa ra câu trả lời cuối cùng."
-        },
-        "budget": {
-          "label": "Ngân sách Suy luận (Tokens)",
-          "description": "Hướng dẫn mô hình sử dụng bao nhiêu token để suy luận. -1 cho tự động, 0 để tắt (trên các mô hình hỗ trợ)."
-        },
-        "effort": {
-          "label": "Mức độ Nỗ lực Suy luận",
-          "description": "Kiểm soát độ sâu của suy luận. Mức độ cao hơn có thể cho câu trả lời tốt hơn nhưng sử dụng nhiều token hơn.",
-          "disabledHint": "Vô hiệu hóa khi ngân sách suy luận được đặt thành một giá trị cụ thể.",
-          "low": "Thấp",
-          "medium": "Trung bình",
-          "high": "Cao"
-        }
       }
     }
   },

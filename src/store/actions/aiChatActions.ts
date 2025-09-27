@@ -175,8 +175,6 @@ export const createAiChatActions: StateCreator<
       topP,
       topK,
       maxTokens,
-      thinkingBudget,
-      includeThoughts,
       aiChatMode,
     } = get();
     const { editingGroupId } = get(); // Lấy ID nhóm đang chỉnh sửa
@@ -211,8 +209,6 @@ export const createAiChatActions: StateCreator<
         topP,
         topK,
         maxTokens,
-        thinkingBudget,
-        includeThoughts,
         tools,
       });
 
@@ -284,28 +280,6 @@ export const createAiChatActions: StateCreator<
         ),
         tools,
       };
-
-      // Xây dựng cấu hình reasoning một cách thông minh cho OpenRouter
-      const reasoningConfig: {
-        effort?: "medium";
-        max_tokens?: number;
-        exclude?: boolean;
-      } = {};
-
-      if (includeThoughts) {
-        reasoningConfig.exclude = false; // Yêu cầu bao gồm các bước suy luận
-        if (thinkingBudget > 0) {
-          // Nếu người dùng đặt budget cụ thể, sử dụng max_tokens
-          reasoningConfig.max_tokens = thinkingBudget;
-        } else {
-          // Nếu không, sử dụng effort để OpenRouter tự quyết
-          reasoningConfig.effort = "medium";
-        }
-      } else {
-        // Nếu không muốn thấy, yêu cầu loại trừ
-        reasoningConfig.exclude = true;
-      }
-      payload.reasoning = reasoningConfig;
 
       try {
         const response = await fetch(

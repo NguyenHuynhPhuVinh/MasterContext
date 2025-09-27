@@ -75,8 +75,6 @@ pub struct ChatMessage {
     #[serde(rename = "hiddenContent", default, skip_serializing_if = "Option::is_none")]
     pub hidden_content: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub reasoning: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attached_files: Option<Vec<AttachedItem>>,
     #[serde(rename = "tool_calls")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -132,10 +130,6 @@ pub struct AppSettings {
     pub top_p: Option<f64>,
     pub top_k: Option<u32>,
     pub max_tokens: Option<u32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub thinking_budget: Option<i32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub include_thoughts: Option<bool>,
 }
 // --- KẾT THÚC PHẦN THÊM MỚI ---
 

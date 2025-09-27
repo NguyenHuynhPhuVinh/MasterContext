@@ -294,9 +294,6 @@ export const createSettingsActions: StateCreator<
       topP,
       topK,
       maxTokens,
-      thinkingBudget,
-      reasoningEffort,
-      includeThoughts,
     } = get();
     const { allAvailableModels } = get();
     const fullSettings: AppSettings = {
@@ -312,9 +309,6 @@ export const createSettingsActions: StateCreator<
       topP: newSettings.topP ?? topP,
       topK: newSettings.topK ?? topK,
       maxTokens: newSettings.maxTokens ?? maxTokens,
-      thinkingBudget: newSettings.thinkingBudget ?? thinkingBudget,
-      reasoningEffort: newSettings.reasoningEffort ?? reasoningEffort,
-      includeThoughts: newSettings.includeThoughts ?? includeThoughts,
     };
 
     try {
@@ -342,9 +336,6 @@ export const createSettingsActions: StateCreator<
         topP: fullSettings.topP ?? 1.0,
         topK: fullSettings.topK ?? 0,
         maxTokens: fullSettings.maxTokens ?? 0,
-        thinkingBudget: fullSettings.thinkingBudget ?? -1,
-        reasoningEffort: fullSettings.reasoningEffort ?? "medium",
-        includeThoughts: fullSettings.includeThoughts ?? true,
         // Cập nhật model được chọn nếu danh sách thay đổi
         selectedAiModel:
           projectAiModels.find((m) => m.id === get().selectedAiModel)?.id ||

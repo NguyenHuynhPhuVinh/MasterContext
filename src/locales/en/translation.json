@@ -341,25 +341,6 @@
         "topP": "Top-P",
         "topK": "Top-K",
         "maxTokens": "Max Output Tokens"
-      },
-      "thinking": {
-        "title": "Reasoning & Thinking (Beta)",
-        "includeThoughts": {
-          "label": "Include thought summaries",
-          "description": "Show the model's reasoning process before the final answer."
-        },
-        "budget": {
-          "label": "Thinking Budget (Tokens)",
-          "description": "Guides the model on how many thinking tokens to use. -1 for dynamic, 0 for off (on supported models)."
-        },
-        "effort": {
-          "label": "Reasoning Effort Level",
-          "description": "Controls the depth of reasoning. Higher effort may produce better answers but use more tokens.",
-          "disabledHint": "Disabled when thinking budget is set to a specific value.",
-          "low": "Low",
-          "medium": "Medium",
-          "high": "High"
-        }
       }
     }
   },
