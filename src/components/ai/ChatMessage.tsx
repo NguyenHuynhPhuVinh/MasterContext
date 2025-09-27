@@ -1,12 +1,11 @@
-// src/components/ai/ChatMessage.tsx
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
-import { useTranslation } from "react-i18next";
 import {
   CheckCircle2,
   FileText,
-  Paperclip,
+  Folder,
   Loader2,
   FilePlus,
   FileMinus,
@@ -15,7 +14,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { type ChatMessage as ChatMessageType } from "@/store/types";
+import {
+  type ChatMessage as ChatMessageType,
+  type FileNode,
+} from "@/store/types";
+import { useAppStore } from "@/store/appStore";
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -23,6 +26,19 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const { t } = useTranslation();
+  const fileTree = useAppStore((state) => state.fileTree);
+  const isDirectory = (path: string): boolean => {
+    if (!fileTree) return false;
+    if (path === "") return true;
+    const parts = path.split("/").filter((p) => p);
+    let currentNode: FileNode = fileTree;
+    for (const part of parts) {
+      const child = currentNode.children?.find((c) => c.name === part);
+      if (!child) return false;
+      currentNode = child;
+    }
+    return Array.isArray(currentNode.children);
+  };
 
   if (message.hidden) {
     return null;
@@ -301,8 +317,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
                       variant="outline"
                       className="font-normal bg-background/50"
                     >
-                      <Paperclip className="h-3 w-3 mr-1.5" />
-                      {file.split("/").pop()}
+                      {isDirectory(file) ? (
+                        <Folder className="h-3 w-3 mr-1.5" />
+                      ) : (
+                        <FileText className="h-3 w-3 mr-1.5" />
+                      )}
+                      {file.split("/").pop() || file || "/"}
                     </Badge>
                   ))}
                 </div>

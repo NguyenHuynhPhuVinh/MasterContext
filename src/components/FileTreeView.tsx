@@ -192,23 +192,21 @@ export function FileTreeView({
             >
               {fileGitStatus}
             </span>
-            {!isDirectory && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAttachFile(node.path);
-                }}
-                className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded hover:bg-muted"
-                title="Đính kèm vào AI Chat"
-              >
-                <Paperclip
-                  className={cn(
-                    "h-4 w-4 text-muted-foreground",
-                    aiAttachedFiles.includes(node.path) && "text-primary"
-                  )}
-                />
-              </button>
-            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAttachFile(node.path);
+              }}
+              className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded hover:bg-muted"
+              title="Đính kèm vào AI Chat"
+            >
+              <Paperclip
+                className={cn(
+                  "h-4 w-4 text-muted-foreground",
+                  aiAttachedFiles.includes(node.path) && "text-primary"
+                )}
+              />
+            </button>
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@ import {
   toGooglePayload,
 } from "@/lib/googleAI";
 import { getGoogleTools, getOpenRouterTools } from "@/lib/aiTools";
+import { type FileNode } from "../types";
 
 export interface AiChatActions {
   sendChatMessage: (prompt: string) => Promise<void>;
@@ -81,21 +82,42 @@ export const createAiChatActions: StateCreator<
 
       let hiddenContent: string | undefined = undefined;
       if (aiAttachedFiles.length > 0 && rootPath) {
-        const fileContents = await Promise.all(
-          aiAttachedFiles.map((filePath) =>
-            invoke<string>("get_file_content", {
+        const isDirectory = (path: string, tree: FileNode | null): boolean => {
+          if (!tree) return false;
+          if (path === "") return true;
+          const parts = path.split("/").filter((p) => p);
+          let currentNode = tree;
+          for (const part of parts) {
+            const child = currentNode.children?.find((c) => c.name === part);
+            if (!child) return false;
+            currentNode = child;
+          }
+          return Array.isArray(currentNode.children);
+        };
+
+        const fileTree = get().fileTree;
+
+        const contentPromises = aiAttachedFiles.map(async (filePath) => {
+          if (isDirectory(filePath, fileTree)) {
+            const treeStructure = await invoke<string>(
+              "generate_directory_tree",
+              {
+                rootPathStr: rootPath,
+                dirRelPath: filePath,
+              }
+            );
+            return `--- START OF DIRECTORY STRUCTURE FOR ${filePath} ---\n${treeStructure}\n--- END OF DIRECTORY STRUCTURE FOR ${filePath} ---`;
+          } else {
+            const fileContent = await invoke<string>("get_file_content", {
               rootPathStr: rootPath,
               fileRelPath: filePath,
-            })
-          )
-        );
+            });
+            return `--- START OF FILE ${filePath} ---\n${fileContent}\n--- END OF FILE ${filePath} ---`;
+          }
+        });
 
-        hiddenContent = aiAttachedFiles
-          .map(
-            (filePath, index) =>
-              `--- START OF FILE ${filePath} ---\n${fileContents[index]}\n--- END OF FILE ${filePath} ---`
-          )
-          .join("\n\n");
+        const allContents = await Promise.all(contentPromises);
+        hiddenContent = allContents.join("\n\n");
       }
       const newUserMessage: ChatMessage = {
         role: "user",

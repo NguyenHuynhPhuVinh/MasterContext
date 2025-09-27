@@ -8,6 +8,8 @@ import {
   HelpCircle,
   Link as LinkIcon,
   FileDiff,
+  Folder,
+  FileText,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -21,7 +23,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatPrice } from "@/lib/utils";
-import { type AIModel } from "@/store/types";
+import { type AIModel, type FileNode } from "@/store/types";
+import { useAppStore } from "@/store/appStore";
 
 interface AIPromptInputProps {
   prompt: string;
@@ -59,6 +62,20 @@ export function AIPromptInput({
     (m) => m.id === (selectedModel || models[0]?.id)
   );
 
+  const fileTree = useAppStore((state) => state.fileTree);
+  const isDirectory = (path: string): boolean => {
+    if (!fileTree) return false;
+    if (path === "") return true;
+    const parts = path.split("/").filter((p) => p);
+    let currentNode: FileNode = fileTree;
+    for (const part of parts) {
+      const child = currentNode.children?.find((c) => c.name === part);
+      if (!child) return false;
+      currentNode = child;
+    }
+    return Array.isArray(currentNode.children);
+  };
+
   return (
     <div className="p-4 border-t">
       <div className="relative flex flex-col min-h-[80px] max-h-48 w-full rounded-md border bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
@@ -72,6 +89,11 @@ export function AIPromptInput({
                     variant="secondary"
                     className="pl-2 pr-1"
                   >
+                    {isDirectory(filePath) ? (
+                      <Folder className="h-3 w-3 mr-1.5" />
+                    ) : (
+                      <FileText className="h-3 w-3 mr-1.5" />
+                    )}
                     {filePath.split("/").pop()}
                     <Button
                       variant="ghost"
