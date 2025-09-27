@@ -25,7 +25,7 @@
       "gitPanel": "Bảng điều khiển Git",
       "groupEditorPanel": "Bảng điều khiển Chỉnh sửa Nhóm",
       "editorPanel": "Bảng điều khiển Editor",
-      "aiPanel": "Bảng điều khiển AI"
+      "aiPanel": "Bảng điều khiển AI (Beta)"
     },
     "errors": {
       "initFailed": "Không thể khởi tạo menu ứng dụng.",

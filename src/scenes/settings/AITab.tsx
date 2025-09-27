@@ -137,7 +137,12 @@ export function AITab({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">{t("settings.ai.title")}</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-xl font-semibold">{t("settings.ai.title")}</h2>
+        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+          Beta
+        </Badge>
+      </div>
       <div className="space-y-4 rounded-lg border p-4">
         <div className="space-y-2">
           <Label htmlFor="openrouter-api-key">

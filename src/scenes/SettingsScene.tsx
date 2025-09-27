@@ -196,6 +196,14 @@ export function SettingsScene() {
                 >
                   <tab.icon className="h-4 w-4" />
                   {tab.label}
+                  {tab.id === "ai" && (
+                    <Badge
+                      variant="outline"
+                      className="ml-auto border-yellow-500 text-yellow-500"
+                    >
+                      Beta
+                    </Badge>
+                  )}
                 </Button>
               </li>
             ))}

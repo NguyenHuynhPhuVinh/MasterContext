@@ -39,6 +39,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 export function AIPanel() {
   const { t } = useTranslation();
@@ -315,7 +316,7 @@ export function AIPanel() {
 
   return (
     <div className="flex flex-col h-full bg-card">
-      <header className="flex items-center justify-between p-4 pl-5 border-b shrink-0">
+      <header className="flex items-center p-4 pl-5 border-b shrink-0 gap-4">
         <div className="flex-1 min-w-0">
           <h1
             className="text-xl font-bold truncate"
@@ -368,6 +369,9 @@ export function AIPanel() {
             </div>
           )}
         </div>
+        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+          Beta
+        </Badge>
         <div className="flex items-center gap-2">
           {view === "chat" ? (
             <>

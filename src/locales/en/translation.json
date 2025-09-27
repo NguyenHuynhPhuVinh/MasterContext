@@ -25,7 +25,7 @@
       "gitPanel": "Git Panel",
       "groupEditorPanel": "Group Editor Panel",
       "editorPanel": "Editor Panel",
-      "aiPanel": "AI Panel"
+      "aiPanel": "AI Panel (Beta)"
     },
     "errors": {
       "initFailed": "Could not initialize application menu.",
