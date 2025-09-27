@@ -195,8 +195,8 @@ export function GroupEditorPanel() {
     toggleEditingPath,
     setCrossLinkingEnabled,
     selectAllFiles,
+    attachItemToAi,
     deselectAllFiles,
-    attachFileToAi,
   } = useAppActions();
 
   const {
@@ -609,7 +609,7 @@ export function GroupEditorPanel() {
               selectedPaths={tempSelectedPaths}
               onToggle={handleTogglePath}
               gitStatus={gitStatus?.files ?? null}
-              onAttachFile={attachFileToAi}
+              onAttachFile={attachItemToAi}
               stagedChangeType={
                 stagedFileChanges.get(filteredFileTree.path)?.changeType ?? null
               }

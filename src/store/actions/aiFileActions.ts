@@ -1,7 +1,7 @@
 // src/store/actions/aiFileActions.ts
 import { StateCreator } from "zustand";
 import { AppState } from "../appStore";
-import { type AiFileActions } from "../types";
+import { type AiFileActions, type AttachedItem } from "../types";
 
 export const createAiFileActions: StateCreator<
   AppState,
@@ -9,17 +9,19 @@ export const createAiFileActions: StateCreator<
   [],
   AiFileActions
 > = (set) => ({
-  attachFileToAi: (filePath) => {
+  attachItemToAi: (item: AttachedItem) => {
     set((state) => {
-      if (state.aiAttachedFiles.includes(filePath)) {
+      if (state.aiAttachedFiles.some((existing) => existing.id === item.id)) {
         return {}; // Already attached, do nothing
       }
-      return { aiAttachedFiles: [...state.aiAttachedFiles, filePath] };
+      return { aiAttachedFiles: [...state.aiAttachedFiles, item] };
     });
   },
-  detachFileFromAi: (filePath) => {
+  detachItemFromAi: (itemId: string) => {
     set((state) => ({
-      aiAttachedFiles: state.aiAttachedFiles.filter((p) => p !== filePath),
+      aiAttachedFiles: state.aiAttachedFiles.filter(
+        (item) => item.id !== itemId
+      ),
     }));
   },
   clearAttachedFilesFromAi: () => {

@@ -10,6 +10,7 @@ import {
   Download,
   ListChecks,
   Loader2,
+  Paperclip,
   Link,
   ClipboardCopy,
   BrainCircuit,
@@ -49,6 +50,7 @@ interface GroupItemProps {
   onConfirmRename: (newName: string) => void;
   onCancelEdit: () => void;
   onCopyContext: (group: Group) => void;
+  onAttachToAi: (group: Group) => void;
   onExport: (group: Group) => void;
   onToggleCrossSync: (group: Group, enabled: boolean) => void;
   onSaveTokenLimit: (group: Group, limit?: number) => void;
@@ -64,6 +66,7 @@ export function GroupItem({
   onConfirmRename,
   onCancelEdit,
   onCopyContext,
+  onAttachToAi,
   onExport,
   onToggleCrossSync,
   onSaveTokenLimit,
@@ -157,6 +160,11 @@ export function GroupItem({
             <Link className="mr-2 h-4 w-4" />
             <span>{t("groupItem.menu.crossSync")}</span>
           </DropdownMenuCheckboxItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => onAttachToAi(group)}>
+            <Paperclip className="mr-2 h-4 w-4" />
+            <span>{t("groupItem.menu.attachToAi")}</span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <AlertDialog>
             <AlertDialogTrigger asChild>

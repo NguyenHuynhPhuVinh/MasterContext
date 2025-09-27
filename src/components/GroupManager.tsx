@@ -57,6 +57,7 @@ export function GroupManager({
     editGroupContent,
     setGroupCrossSync,
     switchProfile,
+    attachItemToAi,
     updateGroup,
   } = useAppActions();
 
@@ -163,6 +164,15 @@ export function GroupManager({
   const handleEditContentClick = (group: Group) => {
     performActionAfterSwitch(() => editGroupContent(group.id));
   };
+  const handleAttachToAi = (group: Group) => {
+    performActionAfterSwitch(() => {
+      attachItemToAi({
+        id: group.id,
+        type: "group",
+        name: group.name,
+      });
+    });
+  };
   const handleCopyContext = (group: Group) => {
     performActionAfterSwitch(async () => {
       if (!rootPath) return;
@@ -237,6 +247,7 @@ export function GroupManager({
                 onConfirmRename={onConfirmRename}
                 onCancelEdit={onCancelEdit}
                 onCopyContext={handleCopyContext}
+                onAttachToAi={handleAttachToAi}
                 onExport={handleExport}
                 onToggleCrossSync={handleToggleCrossSync}
                 onSaveTokenLimit={handleSaveTokenLimit}

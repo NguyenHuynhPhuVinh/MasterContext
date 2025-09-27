@@ -105,6 +105,7 @@
     "menu": {
       "rename": "Đổi tên",
       "editTokenLimit": "Sửa giới hạn Token",
+      "attachToAi": "Đính kèm vào AI",
       "copyContext": "Sao chép Ngữ cảnh",
       "exportContext": "Xuất Ngữ cảnh",
       "crossSync": "Đồng bộ chéo",

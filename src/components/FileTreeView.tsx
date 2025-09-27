@@ -13,6 +13,7 @@ import {
 import { useAppActions, useAppStore } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
+import { type AttachedItem } from "@/store/types";
 
 export interface FileNode {
   name: string;
@@ -58,9 +59,9 @@ const getNodeSelectionState = (
 interface FileTreeViewProps {
   node: FileNode;
   selectedPaths: Set<string>;
-  onToggle: (node: FileNode, isSelected: boolean) => void; // <-- Sửa prop để truyền cả node
+  onToggle: (node: FileNode, isSelected: boolean) => void;
   gitStatus: Record<string, string> | null;
-  onAttachFile: (filePath: string) => void;
+  onAttachFile: (item: AttachedItem) => void;
   stagedChangeType: "create" | "modify" | "delete" | null;
   level?: number;
 }
@@ -195,7 +196,11 @@ export function FileTreeView({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onAttachFile(node.path);
+                onAttachFile({
+                  id: node.path,
+                  type: isDirectory ? "folder" : "file",
+                  name: node.name,
+                });
               }}
               className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded hover:bg-muted"
               title="Đính kèm vào AI Chat"
@@ -203,7 +208,8 @@ export function FileTreeView({
               <Paperclip
                 className={cn(
                   "h-4 w-4 text-muted-foreground",
-                  aiAttachedFiles.includes(node.path) && "text-primary"
+                  aiAttachedFiles.some((item) => item.id === node.path) &&
+                    "text-primary"
                 )}
               />
             </button>

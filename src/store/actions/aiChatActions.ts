@@ -1,7 +1,11 @@
 // src/store/actions/aiChatActions.ts
 import { StateCreator } from "zustand";
 import { AppState } from "../appStore";
-import { type ChatMessage, type AIChatSession } from "../types";
+import {
+  type ChatMessage,
+  type AIChatSession,
+  type AttachedItem,
+} from "../types";
 import i18n from "@/i18n";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -14,7 +18,6 @@ import {
   toGooglePayload,
 } from "@/lib/googleAI";
 import { getGoogleTools, getOpenRouterTools } from "@/lib/aiTools";
-import { type FileNode } from "../types";
 
 export interface AiChatActions {
   sendChatMessage: (prompt: string) => Promise<void>;
@@ -82,39 +85,37 @@ export const createAiChatActions: StateCreator<
 
       let hiddenContent: string | undefined = undefined;
       if (aiAttachedFiles.length > 0 && rootPath) {
-        const isDirectory = (path: string, tree: FileNode | null): boolean => {
-          if (!tree) return false;
-          if (path === "") return true;
-          const parts = path.split("/").filter((p) => p);
-          let currentNode = tree;
-          for (const part of parts) {
-            const child = currentNode.children?.find((c) => c.name === part);
-            if (!child) return false;
-            currentNode = child;
-          }
-          return Array.isArray(currentNode.children);
-        };
-
-        const fileTree = get().fileTree;
-
-        const contentPromises = aiAttachedFiles.map(async (filePath) => {
-          if (isDirectory(filePath, fileTree)) {
-            const treeStructure = await invoke<string>(
-              "generate_directory_tree",
-              {
+        const contentPromises = aiAttachedFiles.map(
+          async (item: AttachedItem) => {
+            if (item.type === "folder") {
+              const treeStructure = await invoke<string>(
+                "generate_directory_tree",
+                {
+                  rootPathStr: rootPath,
+                  dirRelPath: item.id, // path is in id
+                }
+              );
+              return `--- START OF DIRECTORY STRUCTURE FOR ${item.name} ---\n${treeStructure}\n--- END OF DIRECTORY STRUCTURE FOR ${item.name} ---`;
+            } else if (item.type === "group") {
+              const groupContext = await invoke<string>(
+                "generate_group_context_for_ai",
+                {
+                  rootPathStr: rootPath,
+                  profileName: get().activeProfile,
+                  groupId: item.id,
+                }
+              );
+              return `--- START OF CONTEXT FOR GROUP "${item.name}" ---\n${groupContext}\n--- END OF CONTEXT FOR GROUP "${item.name}" ---`;
+            } else {
+              // 'file'
+              const fileContent = await invoke<string>("get_file_content", {
                 rootPathStr: rootPath,
-                dirRelPath: filePath,
-              }
-            );
-            return `--- START OF DIRECTORY STRUCTURE FOR ${filePath} ---\n${treeStructure}\n--- END OF DIRECTORY STRUCTURE FOR ${filePath} ---`;
-          } else {
-            const fileContent = await invoke<string>("get_file_content", {
-              rootPathStr: rootPath,
-              fileRelPath: filePath,
-            });
-            return `--- START OF FILE ${filePath} ---\n${fileContent}\n--- END OF FILE ${filePath} ---`;
+                fileRelPath: item.id, // path is in id
+              });
+              return `--- START OF FILE ${item.name} ---\n${fileContent}\n--- END OF FILE ${item.name} ---`;
+            }
           }
-        });
+        );
 
         const allContents = await Promise.all(contentPromises);
         hiddenContent = allContents.join("\n\n");

@@ -10,6 +10,7 @@ import {
   FileDiff,
   Folder,
   FileText,
+  ListChecks,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -23,8 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatPrice } from "@/lib/utils";
-import { type AIModel, type FileNode } from "@/store/types";
-import { useAppStore } from "@/store/appStore";
+import { type AIModel, type AttachedItem } from "@/store/types";
 
 interface AIPromptInputProps {
   prompt: string;
@@ -33,8 +33,8 @@ interface AIPromptInputProps {
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onStop: () => void;
   isLoading: boolean;
-  attachedFiles: string[];
-  onDetachFile: (filePath: string) => void;
+  attachedFiles: AttachedItem[];
+  onDetachFile: (itemId: string) => void;
   chatMode: "ask" | "context" | "agent";
   setChatMode: (mode: "ask" | "context" | "agent") => void;
   models: AIModel[];
@@ -62,20 +62,6 @@ export function AIPromptInput({
     (m) => m.id === (selectedModel || models[0]?.id)
   );
 
-  const fileTree = useAppStore((state) => state.fileTree);
-  const isDirectory = (path: string): boolean => {
-    if (!fileTree) return false;
-    if (path === "") return true;
-    const parts = path.split("/").filter((p) => p);
-    let currentNode: FileNode = fileTree;
-    for (const part of parts) {
-      const child = currentNode.children?.find((c) => c.name === part);
-      if (!child) return false;
-      currentNode = child;
-    }
-    return Array.isArray(currentNode.children);
-  };
-
   return (
     <div className="p-4 border-t">
       <div className="relative flex flex-col min-h-[80px] max-h-48 w-full rounded-md border bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
@@ -83,23 +69,27 @@ export function AIPromptInput({
           <div className="flex-shrink-0 px-3 py-2 text-xs text-muted-foreground border-b bg-muted/50">
             <ScrollArea className="max-h-16 custom-scrollbar">
               <div className="flex flex-wrap gap-2">
-                {attachedFiles.map((filePath) => (
+                {attachedFiles.map((item) => (
                   <Badge
-                    key={filePath}
+                    key={item.id}
                     variant="secondary"
                     className="pl-2 pr-1"
                   >
-                    {isDirectory(filePath) ? (
-                      <Folder className="h-3 w-3 mr-1.5" />
-                    ) : (
+                    {item.type === "file" && (
                       <FileText className="h-3 w-3 mr-1.5" />
                     )}
-                    {filePath.split("/").pop()}
+                    {item.type === "folder" && (
+                      <Folder className="h-3 w-3 mr-1.5" />
+                    )}
+                    {item.type === "group" && (
+                      <ListChecks className="h-3 w-3 mr-1.5" />
+                    )}
+                    {item.name}
                     <Button
                       variant="ghost"
                       size="icon"
                       className="ml-1 h-4 w-4 rounded-full"
-                      onClick={() => onDetachFile(filePath)}
+                      onClick={() => onDetachFile(item.id)}
                     >
                       <X className="h-3 w-3" />
                     </Button>

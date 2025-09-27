@@ -13,6 +13,7 @@ import {
   type AIModel,
   type AIChatSessionHeader,
   type AIChatSession,
+  type AttachedItem,
   type ChatMessage,
   type AiFileActions,
 } from "./types";
@@ -138,7 +139,7 @@ export interface AppState {
   systemPrompt: string;
   streamResponse: boolean;
   selectedAiModel: string;
-  aiAttachedFiles: string[];
+  aiAttachedFiles: AttachedItem[];
 
   actions: ProjectActions &
     GroupActions &

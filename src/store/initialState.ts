@@ -1,5 +1,5 @@
 // src/store/initialState.ts
-import { type GroupStats } from "./types";
+import { type GroupStats, type AttachedItem } from "./types";
 
 export const defaultGroupStats = (): GroupStats => ({
   total_files: 0,
@@ -76,7 +76,7 @@ export const initialState = {
   systemPrompt: "",
   streamResponse: true,
   selectedAiModel: "openai/gpt-3.5-turbo",
-  aiAttachedFiles: [],
+  aiAttachedFiles: [] as AttachedItem[],
 };
 
 export type InitialState = typeof initialState;

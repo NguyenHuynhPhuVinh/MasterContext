@@ -17,7 +17,7 @@ export function AIPanel() {
     loadChatSession,
     setAiChatMode,
     setSelectedAiModel,
-    detachFileFromAi,
+    detachItemFromAi,
   } = useAppActions();
   const {
     chatMessages,
@@ -98,7 +98,7 @@ export function AIPanel() {
           onStop={stopAiResponse}
           isLoading={isAiPanelLoading}
           attachedFiles={aiAttachedFiles}
-          onDetachFile={detachFileFromAi}
+          onDetachFile={detachItemFromAi}
           chatMode={aiChatMode}
           setChatMode={setAiChatMode}
           models={aiModels}

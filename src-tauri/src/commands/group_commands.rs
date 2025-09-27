@@ -221,6 +221,46 @@ pub fn generate_group_context(
 }
 
 #[command]
+pub fn generate_group_context_for_ai(
+    app: AppHandle,
+    group_id: String,
+    root_path_str: String,
+    profile_name: String,
+) -> Result<String, String> {
+    let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
+    let root_path = Path::new(&root_path_str);
+    let group = project_data
+        .groups
+        .iter()
+        .find(|g| g.id == group_id)
+        .ok_or_else(|| "group.not_found".to_string())?;
+
+    let expanded_files = context_generator::expand_group_paths_to_files(
+        &group.paths,
+        &project_data.file_metadata_cache,
+        root_path,
+    );
+    if expanded_files.is_empty() {
+        return Err("group.generate_context_no_files".to_string());
+    }
+
+    // Generate context with specific, non-configurable settings for AI
+    context_generator::generate_context_from_files(
+        &root_path_str,
+        &expanded_files,
+        false, // use_full_tree: false (minimal tree)
+        &project_data.file_tree,
+        false, // with_line_numbers: false
+        false, // without_comments: false
+        false, // remove_debug_logs: false
+        false, // super_compressed: false
+        &None, // always_apply_text: None
+        &project_data.export_exclude_extensions, // Keep user's exclude extensions
+        &project_data.file_metadata_cache,
+    )
+}
+
+#[command]
 pub fn set_group_cross_sync(
     app: AppHandle,
     path: String,

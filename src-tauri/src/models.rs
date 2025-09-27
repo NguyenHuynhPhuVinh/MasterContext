@@ -75,7 +75,7 @@ pub struct ChatMessage {
     #[serde(rename = "hiddenContent", default, skip_serializing_if = "Option::is_none")]
     pub hidden_content: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub attached_files: Option<Vec<String>>,
+    pub attached_files: Option<Vec<AttachedItem>>,
     #[serde(rename = "tool_calls")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<ToolCall>>,
@@ -104,6 +104,16 @@ pub struct AIChatSessionHeader {
     pub id: String,
     pub title: String,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AttachedItem {
+    pub id: String,
+    // Use `r#type` because `type` is a reserved keyword in Rust
+    #[serde(rename = "type")]
+    pub r#type: String,
+    pub name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]

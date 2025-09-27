@@ -126,10 +126,16 @@ export interface GenerationInfo {
   total_cost: number;
 }
 
+export interface AttachedItem {
+  id: string; // file path, folder path, or group ID
+  type: "file" | "folder" | "group";
+  name: string; // display name
+}
+
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string | null; // Allow null content for tool calls
-  attachedFiles?: string[]; // Files attached to this specific message
+  attachedFiles?: AttachedItem[]; // Files attached to this specific message
   hiddenContent?: string;
   generationInfo?: GenerationInfo;
   tool_calls?: ToolCall[]; // Add tool_calls
@@ -163,8 +169,8 @@ export interface AIChatSession {
 }
 
 export interface AiFileActions {
-  attachFileToAi: (filePath: string) => void;
-  detachFileFromAi: (filePath: string) => void;
+  attachItemToAi: (item: AttachedItem) => void;
+  detachItemFromAi: (itemId: string) => void;
   clearAttachedFilesFromAi: () => void;
 }
 
@@ -259,5 +265,5 @@ export interface AppState {
   systemPrompt: string;
   streamResponse: boolean;
   selectedAiModel: string;
-  aiAttachedFiles: string[];
+  aiAttachedFiles: AttachedItem[];
 }

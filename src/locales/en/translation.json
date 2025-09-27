@@ -105,6 +105,7 @@
     "menu": {
       "rename": "Rename",
       "editTokenLimit": "Edit Token Limit",
+      "attachToAi": "Attach to AI",
       "copyContext": "Copy Context",
       "exportContext": "Export Context",
       "crossSync": "Cross-sync",
