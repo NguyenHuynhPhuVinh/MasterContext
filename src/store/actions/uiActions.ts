@@ -53,7 +53,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       isGroupEditorPanelVisible: false,
     }),
   showDashboard: () => {
-    set({ activeScene: "dashboard", editingGroupId: null });
+    set({ activeScene: "dashboard" });
   },
   showSettingsScene: () => {
     set({ activeScene: "settings" });
