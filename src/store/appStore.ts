@@ -31,7 +31,18 @@ import {
 } from "./actions/settingsActions";
 import { createUIActions, type UIActions } from "./actions/uiActions";
 import { createGitActions, type GitActions } from "./actions/gitActions";
-import { createAiActions, type AiActions } from "./actions/aiActions";
+import {
+  createAiSettingsActions,
+  type AiSettingsActions,
+} from "./actions/aiActions";
+import {
+  createAiChatActions,
+  type AiChatActions,
+} from "./actions/aiChatActions";
+import {
+  createAiSessionActions,
+  type AiSessionActions,
+} from "./actions/aiSessionActions";
 
 export interface AppState {
   rootPath: string | null;
@@ -122,7 +133,9 @@ export interface AppState {
     SettingsActions &
     UIActions &
     GitActions &
-    AiActions;
+    AiSettingsActions &
+    AiChatActions &
+    AiSessionActions;
 }
 
 export const useAppStore = create<AppState>()((set, get, store) => ({
@@ -134,7 +147,9 @@ export const useAppStore = create<AppState>()((set, get, store) => ({
     ...createSettingsActions(set, get, store),
     ...createUIActions(set, get, store),
     ...createGitActions(set, get, store),
-    ...createAiActions(set, get, store),
+    ...createAiSettingsActions(set, get, store),
+    ...createAiChatActions(set, get, store),
+    ...createAiSessionActions(set, get, store),
   },
 }));
 
