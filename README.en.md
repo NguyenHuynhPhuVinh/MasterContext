@@ -1,6 +1,9 @@
 # Master Context: An Intelligent Context-Building Assistant for Developers
 
 [![Version](https://img.shields.io/badge/version-0.1.4-blue.svg)](package.json)
+[![GitHub issues](https://img.shields.io/github/issues/NguyenHuynhPhuVinh/MasterContext)](https://github.com/NguyenHuynhPhuVinh/MasterContext/issues)
+[![GitHub stars](https://img.shields.io/github/stars/NguyenHuynhPhuVinh/MasterContext)](https://github.com/NguyenHuynhPhuVinh/MasterContext/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/NguyenHuynhPhuVinh/MasterContext)](https://github.com/NguyenHuynhPhuVinh/MasterContext/network/members)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://tauri.app)
 
@@ -8,7 +11,7 @@
 
 ---
 
-**Master Context** is a powerful desktop application designed to streamline your workflow with Large Language Models (LLMs). Instead of tedious manual copying, the app allows you to intelligently scan, select, and generate organized context files from your project's source code, accelerating development and ensuring high-quality output from your AI.
+**Master Context** is a powerful desktop application designed to revolutionize your workflow with Large Language Models (LLMs). Instead of tedious manual copying, the app empowers you to intelligently scan, select, and generate organized context files from your project's source code, dramatically accelerating development and ensuring high-quality AI output.
 
 ![Master Context Interface](public/screenshot_en.png) <!-- This should be replaced with an actual screenshot of the application -->
 
@@ -18,7 +21,7 @@ In the age of generative AI, providing complete and accurate context about a pro
 
 **Master Context** fundamentally solves this problem by offering a comprehensive and automated toolset, turning context creation from a burden into a strategic advantage.
 
-## Key Features
+## 🚀 Key Features
 
 Master Context comes equipped with a suite of powerful features designed to meet the needs of modern developers.
 
@@ -139,3 +142,20 @@ Master Context comes equipped with a suite of powerful features designed to meet
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+## 🤝 Contributing
+
+We welcome contributions! If you'd like to contribute to this project:
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 💬 Support
+
+If you encounter any issues or have questions:
+
+- Open an [Issue](https://github.com/NguyenHuynhPhuVinh/MasterContext/issues) on GitHub
+- Check the documentation or reach out through other support channels

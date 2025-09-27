@@ -1,6 +1,6 @@
 # Master Context: Trợ lý Xây dựng Ngữ cảnh Thông minh cho Lập trình viên
 
-[![Phiên bản](https://img.shields.io/badge/version-0.1.4-blue.svg)](src-tauri/tauri.conf.json)
+[![Phiên bản](https://img.shields.io/badge/version-0.1.4-blue.svg)](package.json)
 [![Giấy phép](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Nền tảng](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://tauri.app)
 
@@ -116,7 +116,7 @@ Master Context được trang bị một loạt các tính năng mạnh mẽ, bi
 1.  **Clone repository:**
 
     ```bash
-    https://github.com/NguyenHuynhPhuVinh/MasterContext.git
+    git clone https://github.com/NguyenHuynhPhuVinh/MasterContext.git
     cd MasterContext
     ```
 
@@ -140,3 +140,20 @@ Master Context được trang bị một loạt các tính năng mạnh mẽ, bi
 ## Giấy phép
 
 Dự án này được cấp phép theo [Giấy phép MIT](LICENSE).
+
+## Đóng góp
+
+Chúng tôi hoan nghênh mọi đóng góp! Nếu bạn muốn đóng góp vào dự án này:
+
+1. Fork repository
+2. Tạo branch cho tính năng của bạn (`git checkout -b feature/AmazingFeature`)
+3. Commit các thay đổi (`git commit -m 'Add some AmazingFeature'`)
+4. Push lên branch (`git push origin feature/AmazingFeature`)
+5. Mở một Pull Request
+
+## Hỗ trợ
+
+Nếu bạn gặp vấn đề hoặc có câu hỏi:
+
+- Mở một [Issue](https://github.com/NguyenHuynhPhuVinh/MasterContext/issues) trên GitHub
+- Liên hệ qua email hoặc các kênh hỗ trợ khác
