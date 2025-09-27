@@ -1,5 +1,5 @@
 // src/components/EditorPanel.tsx
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
@@ -57,6 +57,35 @@ export function EditorPanel() {
 
   const activeChange =
     activeEditorFile && stagedFileChanges.get(activeEditorFile);
+
+  let badgeContent: ReactNode = null;
+  if (activeChange) {
+    switch (activeChange.changeType) {
+      case "create":
+        badgeContent = (
+          <Badge variant="outline" className="text-green-500">
+            <FilePlus className="h-3 w-3 mr-1" />
+            {t("editorPanel.newFileBadge")}
+          </Badge>
+        );
+        break;
+      case "delete":
+        badgeContent = (
+          <Badge variant="destructive">
+            <FileMinus className="h-3 w-3 mr-1" />
+            {t("editorPanel.deletedFileBadge")}
+          </Badge>
+        );
+        break;
+      case "modify":
+        badgeContent = (
+          <span className="text-yellow-500 font-bold text-xs animate-pulse">
+            [PATCHED]
+          </span>
+        );
+        break;
+    }
+  }
 
   const patchedContent = useMemo(() => {
     if (!activeChange || !activeEditorFileContent) {
@@ -192,7 +221,7 @@ export function EditorPanel() {
           if (!patchedContent || !activeEditorFileContent) return null;
           const diff = diffLines(activeEditorFileContent, patchedContent);
           let lineNum = 1;
-          return diff.map((part, index) => {
+          return diff.flatMap((part, index) => {
             const className = part.added
               ? "bg-green-500/20"
               : part.removed
@@ -237,23 +266,7 @@ export function EditorPanel() {
             <TooltipProvider delayDuration={100}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  {activeChange.changeType === "create" && (
-                    <Badge variant="outline" className="text-green-500">
-                      <FilePlus className="h-3 w-3 mr-1" />
-                      {t("editorPanel.newFileBadge")}
-                    </Badge>
-                  )}
-                  {activeChange.changeType === "delete" && (
-                    <Badge variant="destructive">
-                      <FileMinus className="h-3 w-3 mr-1" />
-                      {t("editorPanel.deletedFileBadge")}
-                    </Badge>
-                  )}
-                  {activeChange.changeType === "modify" && (
-                    <span className="text-yellow-500 font-bold text-xs animate-pulse">
-                      [PATCHED]
-                    </span>
-                  )}
+                  <div>{badgeContent}</div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{t("editorPanel.patchedTooltip")}</p>
