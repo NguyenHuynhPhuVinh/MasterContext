@@ -174,7 +174,11 @@
       "title": "Xác nhận xóa cuộc trò chuyện?",
       "description": "Hành động này sẽ xóa vĩnh viễn cuộc trò chuyện. Không thể hoàn tác."
     },
-    "sessionTokensTooltip": "Token đã dùng / Tối đa"
+    "sessionTokensTooltip": "Token đã dùng / Tối đa",
+    "modes": {
+      "ask": "Ask",
+      "link": "Link"
+    }
   },
   "mainPanel": {
     "placeholder": {

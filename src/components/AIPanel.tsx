@@ -18,6 +18,8 @@ import {
   X,
   Square,
   AlignJustify,
+  HelpCircle,
+  Link as LinkIcon,
   BrainCircuit,
   Coins,
 } from "lucide-react";
@@ -45,6 +47,7 @@ export function AIPanel() {
     stopAiResponse,
     loadChatSessions,
     loadChatSession,
+    setAiChatMode,
     setSelectedAiModel,
   } = useAppActions();
   const {
@@ -54,6 +57,7 @@ export function AIPanel() {
     activeChatSessionId,
     aiModels,
     selectedAiModel,
+    aiChatMode,
     activeChatSession,
   } = useAppStore(
     useShallow((state) => ({
@@ -63,6 +67,7 @@ export function AIPanel() {
       activeChatSessionId: state.activeChatSessionId,
       aiModels: state.aiModels,
       selectedAiModel: state.selectedAiModel,
+      aiChatMode: state.aiChatMode,
       activeChatSession: state.activeChatSession,
     }))
   );
@@ -199,8 +204,39 @@ export function AIPanel() {
             />
             {/* Container cho các nút, nằm ở dưới cùng */}
             <div className="flex-shrink-0 flex h-12 items-center justify-between px-3 pt-1">
-              {/* Nút bên trái */}
-              <div>
+              <div className="flex items-center gap-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="h-8 gap-2 px-2 text-muted-foreground"
+                    >
+                      {aiChatMode === "ask" ? (
+                        <HelpCircle className="h-4 w-4 shrink-0" />
+                      ) : (
+                        <LinkIcon className="h-4 w-4 shrink-0" />
+                      )}
+                      <span className="capitalize text-xs font-medium">
+                        {t(`aiPanel.modes.${aiChatMode}`)}
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[180px]">
+                    <DropdownMenuRadioGroup
+                      value={aiChatMode}
+                      onValueChange={(value) =>
+                        setAiChatMode(value as "ask" | "link")
+                      }
+                    >
+                      <DropdownMenuRadioItem value="ask">
+                        {t("aiPanel.modes.ask")}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="link">
+                        {t("aiPanel.modes.link")}
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 {aiModels.length > 1 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

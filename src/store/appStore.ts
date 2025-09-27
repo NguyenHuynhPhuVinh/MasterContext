@@ -9,6 +9,7 @@ import {
   type GitRepositoryInfo,
   type GitCommit,
   type GitStatus,
+  type AiChatMode,
   type AIModel,
   type AIChatSessionHeader,
   type AIChatSession,
@@ -97,6 +98,7 @@ export interface AppState {
 
   // AI Panel
   isAiPanelVisible: boolean;
+  aiChatMode: AiChatMode;
   openRouterApiKey: string;
   allAvailableModels: AIModel[];
   aiModels: AIModel[];

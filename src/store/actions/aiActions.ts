@@ -52,6 +52,7 @@ const fetchGenerationInfoWithRetry = async (
 };
 
 export interface AiActions {
+  setAiChatMode: (mode: "ask" | "link") => void;
   setOpenRouterApiKey: (key: string) => Promise<void>;
   setSelectedAiModel: (model: string) => void;
   sendChatMessage: (prompt: string) => Promise<void>;
@@ -72,6 +73,7 @@ export const createAiActions: StateCreator<AppState, [], [], AiActions> = (
   set,
   get
 ) => ({
+  setAiChatMode: (mode) => set({ aiChatMode: mode }),
   setOpenRouterApiKey: async (key: string) => {
     await get().actions.updateAppSettings({ openRouterApiKey: key });
   },

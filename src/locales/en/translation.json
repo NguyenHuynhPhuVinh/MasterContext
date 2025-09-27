@@ -174,7 +174,11 @@
       "title": "Confirm Chat Deletion?",
       "description": "This action will permanently delete the chat session. This cannot be undone."
     },
-    "sessionTokensTooltip": "Session Tokens / Max Context"
+    "sessionTokensTooltip": "Session Tokens / Max Context",
+    "modes": {
+      "ask": "Ask",
+      "link": "Link"
+    }
   },
   "mainPanel": {
     "placeholder": {

@@ -57,6 +57,7 @@ export const initialState = {
   hasMoreCommits: true,
   originalGitBranch: null,
   isAiPanelVisible: false,
+  aiChatMode: "ask" as "ask" | "link",
   openRouterApiKey: "",
   allAvailableModels: [],
   aiModels: [],

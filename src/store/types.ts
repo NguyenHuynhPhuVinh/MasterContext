@@ -67,6 +67,8 @@ export interface ScanCompletePayload {
   isFirstScan: boolean;
 }
 
+export type AiChatMode = "ask" | "link";
+
 export interface AIModel {
   id: string;
   name: string;
@@ -202,6 +204,7 @@ export interface AppState {
 
   // AI Panel
   isAiPanelVisible: boolean;
+  aiChatMode: AiChatMode;
   openRouterApiKey: string;
   allAvailableModels: AIModel[];
   aiModels: AIModel[];
