@@ -9,8 +9,10 @@ import {
   handleStreamingResponse,
 } from "@/lib/openRouter";
 import {
+  getGoogleTools,
   handleNonStreamingResponseGoogle,
   handleStreamingResponseGoogle,
+  toGooglePayload,
 } from "@/lib/googleAI";
 
 export interface AiChatActions {
@@ -177,16 +179,15 @@ export const createAiChatActions: StateCreator<
     // --- Provider-specific logic ---
     if (model.provider === "google") {
       // --- GOOGLE AI LOGIC ---
-      const { toGooglePayload } = await import("@/lib/googleAI");
+      const tools = getGoogleTools(aiChatMode, editingGroupId);
       const payload = toGooglePayload(messagesToSend, {
         systemPrompt,
         temperature,
         topP,
         topK,
         maxTokens,
+        tools,
       });
-
-      // TODO: Add Google tool definitions if needed
 
       try {
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${
