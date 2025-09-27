@@ -124,6 +124,13 @@ function App() {
             context_length: 1048576,
             pricing: { prompt: "0", completion: "0" },
           },
+          {
+            provider: "google",
+            id: "gemini-2.5-pro",
+            name: "Gemini 2.5 Pro",
+            context_length: 1048576,
+            pricing: { prompt: "0", completion: "0" },
+          },
         ];
 
         let allAvailableModels: AIModel[] = [...googleModels];
