@@ -23,6 +23,8 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+// Import thư viện đầy đủ với tất cả ngôn ngữ
+import hljs from "highlight.js";
 
 export function EditorPanel() {
   const { t } = useTranslation();
@@ -57,6 +59,41 @@ export function EditorPanel() {
 
   const activeChange =
     activeEditorFile && stagedFileChanges.get(activeEditorFile);
+
+  const language = useMemo(() => {
+    if (!activeEditorFile) return "plaintext";
+    const extension = activeEditorFile.split(".").pop()?.toLowerCase();
+    if (extension && hljs.getLanguage(extension)) {
+      return extension;
+    }
+    // Map một số extension phổ biến khác
+    switch (extension) {
+      case "tsx":
+        return "typescript";
+      case "jsx":
+        return "javascript";
+      case "html":
+        return "xml";
+      case "rs":
+        return "rust";
+      case "py":
+        return "python";
+      case "sh":
+        return "shell";
+      default:
+        return "plaintext";
+    }
+  }, [activeEditorFile]);
+
+  // Component con để render code đã được tô màu một cách an toàn
+  const HighlightedCode = ({ code, lang }: { code: string; lang: string }) => {
+    const highlighted = useMemo(
+      () =>
+        hljs.highlight(code, { language: lang, ignoreIllegals: true }).value,
+      [code, lang]
+    );
+    return <span dangerouslySetInnerHTML={{ __html: highlighted }} />;
+  };
 
   let badgeContent: ReactNode = null;
   if (activeChange) {
@@ -97,17 +134,14 @@ export function EditorPanel() {
   }, [activeEditorFileContent, activeChange]);
 
   const handleMouseUp = () => {
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed && codeContainerRef.current) {
-      const range = sel.getRangeAt(0);
-      const preSelectionRange = document.createRange();
-      preSelectionRange.selectNodeContents(codeContainerRef.current);
-      preSelectionRange.setEnd(range.startContainer, range.startOffset);
-      const start = preSelectionRange.toString().length;
-      const end = start + range.toString().length;
-
-      if (start < end) {
+    const selectionText = window.getSelection()?.toString();
+    if (selectionText && activeEditorFileContent) {
+      const start = activeEditorFileContent.indexOf(selectionText);
+      if (start !== -1) {
+        const end = start + selectionText.length;
         setSelection({ start, end });
+      } else {
+        setSelection(null);
       }
     } else {
       setSelection(null);
@@ -137,7 +171,7 @@ export function EditorPanel() {
       !activeEditorFileExclusions ||
       activeEditorFileExclusions.length === 0
     ) {
-      return <span>{content}</span>;
+      return <HighlightedCode code={content} lang={language} />;
     }
 
     const sortedRanges = [...activeEditorFileExclusions].sort(
@@ -148,10 +182,13 @@ export function EditorPanel() {
 
     sortedRanges.forEach((range, i) => {
       if (range[0] > lastIndex) {
+        const codeSnippet = content.substring(lastIndex, range[0]);
         parts.push(
-          <span key={`incl-${i}`}>
-            {content.substring(lastIndex, range[0])}
-          </span>
+          <HighlightedCode
+            key={`incl-${i}`}
+            code={codeSnippet}
+            lang={language}
+          />
         );
       }
       parts.push(
@@ -162,7 +199,10 @@ export function EditorPanel() {
                 className="bg-destructive/20 cursor-pointer hover:bg-destructive/40 rounded-sm"
                 onClick={() => removeExclusionRange(range)}
               >
-                {content.substring(range[0], range[1])}
+                <HighlightedCode
+                  code={content.substring(range[0], range[1])}
+                  lang={language}
+                />
               </span>
             </TooltipTrigger>
             <TooltipContent>
@@ -177,7 +217,10 @@ export function EditorPanel() {
     });
 
     if (lastIndex < content.length) {
-      parts.push(<span key="final-incl">{content.substring(lastIndex)}</span>);
+      const finalSnippet = content.substring(lastIndex);
+      parts.push(
+        <HighlightedCode key="final-incl" code={finalSnippet} lang={language} />
+      );
     }
 
     return parts;
@@ -201,7 +244,9 @@ export function EditorPanel() {
               <span className="w-8 text-right pr-2 select-none text-muted-foreground">
                 +
               </span>
-              <span className="flex-1">{line}</span>
+              <span className="flex-1">
+                <HighlightedCode code={line} lang={language} />
+              </span>
             </div>
           ));
         }
@@ -213,7 +258,9 @@ export function EditorPanel() {
                 <span className="w-8 text-right pr-2 select-none text-muted-foreground">
                   -
                 </span>
-                <span className="flex-1">{line}</span>
+                <span className="flex-1">
+                  <HighlightedCode code={line} lang={language} />
+                </span>
               </div>
             ));
         }
@@ -239,7 +286,7 @@ export function EditorPanel() {
                   <span className="inline-block w-4 text-center select-none text-muted-foreground">
                     {prefix}
                   </span>
-                  <span>{line}</span>
+                  <HighlightedCode code={line} lang={language} />
                 </div>
               );
             });
@@ -250,6 +297,17 @@ export function EditorPanel() {
 
     return renderContentWithExclusions(activeEditorFileContent);
   };
+
+  const memoizedContent = useMemo(
+    () => renderContent(),
+    [
+      activeEditorFileContent,
+      activeEditorFileExclusions,
+      language,
+      isEditorLoading,
+      activeChange,
+    ]
+  );
 
   if (!activeEditorFile) {
     return null;
@@ -324,8 +382,8 @@ export function EditorPanel() {
             onMouseUp={handleMouseUp}
             onMouseDown={() => setSelection(null)}
           >
-            <pre className="p-4 text-xs">
-              <code ref={codeContainerRef}>{renderContent()}</code>
+            <pre className="p-4 text-xs hljs">
+              <code ref={codeContainerRef}>{memoizedContent}</code>
             </pre>
           </ScrollArea>
         )}

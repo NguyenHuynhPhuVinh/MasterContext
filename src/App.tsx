@@ -104,6 +104,38 @@ function App() {
     root.classList.add(theme);
   }, []);
 
+  // Effect to manage syntax highlighting theme
+  useEffect(() => {
+    const linkId = "hljs-theme";
+    let link = document.getElementById(linkId) as HTMLLinkElement;
+
+    if (!link) {
+      link = document.createElement("link");
+      link.id = linkId;
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+
+    const updateTheme = () => {
+      const isDark = document.documentElement.classList.contains("dark");
+      link.href = isDark
+        ? "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+        : "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css";
+    };
+
+    updateTheme(); // Set initial theme
+
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   // Load app settings on startup
   useEffect(() => {
     const loadSettings = async () => {
