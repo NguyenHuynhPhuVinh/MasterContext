@@ -72,7 +72,7 @@ export interface ScanCompletePayload {
   isFirstScan: boolean;
 }
 
-export type AiChatMode = "ask" | "link" | "diff";
+export type AiChatMode = "ask" | "context" | "agent";
 
 export interface AIModel {
   provider: "openrouter" | "google";

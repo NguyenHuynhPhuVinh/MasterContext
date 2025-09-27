@@ -32,8 +32,8 @@ interface AIPromptInputProps {
   isLoading: boolean;
   attachedFiles: string[];
   onDetachFile: (filePath: string) => void;
-  chatMode: "ask" | "link" | "diff";
-  setChatMode: (mode: "ask" | "link" | "diff") => void;
+  chatMode: "ask" | "context" | "agent";
+  setChatMode: (mode: "ask" | "context" | "agent") => void;
   models: AIModel[];
   selectedModel: string;
   setSelectedModel: (modelId: string) => void;
@@ -104,7 +104,7 @@ export function AIPromptInput({
                 >
                   {chatMode === "ask" ? (
                     <HelpCircle className="h-4 w-4 shrink-0" />
-                  ) : chatMode === "link" ? (
+                  ) : chatMode === "context" ? (
                     <LinkIcon className="h-4 w-4 shrink-0" />
                   ) : (
                     <FileDiff className="h-4 w-4 shrink-0" />
@@ -118,17 +118,17 @@ export function AIPromptInput({
                 <DropdownMenuRadioGroup
                   value={chatMode}
                   onValueChange={(value) =>
-                    setChatMode(value as "ask" | "link" | "diff")
+                    setChatMode(value as "ask" | "context" | "agent")
                   }
                 >
                   <DropdownMenuRadioItem value="ask">
                     {t("aiPanel.modes.ask")}
                   </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="link">
-                    {t("aiPanel.modes.link")}
+                  <DropdownMenuRadioItem value="context">
+                    {t("aiPanel.modes.context")}
                   </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="diff">
-                    {t("aiPanel.modes.diff")}
+                  <DropdownMenuRadioItem value="agent">
+                    {t("aiPanel.modes.agent")}
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>

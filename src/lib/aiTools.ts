@@ -150,7 +150,7 @@ const ALL_TOOLS: Record<string, ToolDefinition> = {
  * Lấy danh sách các tool có sẵn dựa trên ngữ cảnh hiện tại.
  */
 function getAvailableTools(
-  aiChatMode: "ask" | "link" | "diff",
+  aiChatMode: "ask" | "context" | "agent",
   editingGroupId: string | null
 ): ToolDefinition[] {
   if (aiChatMode === "ask") {
@@ -164,12 +164,12 @@ function getAvailableTools(
 
   if (editingGroupId) {
     tools.push(ALL_TOOLS.GET_CURRENT_CONTEXT_GROUP_FILES);
-    if (aiChatMode === "link") {
+    if (aiChatMode === "context") {
       tools.push(ALL_TOOLS.MODIFY_CONTEXT_GROUP);
     }
   }
 
-  if (aiChatMode === "diff") {
+  if (aiChatMode === "agent") {
     tools.push(
       ALL_TOOLS.WRITE_FILE,
       ALL_TOOLS.CREATE_FILE,
@@ -184,7 +184,7 @@ function getAvailableTools(
  * Định dạng các tool cho API của OpenRouter/OpenAI.
  */
 export function getOpenRouterTools(
-  aiChatMode: "ask" | "link" | "diff",
+  aiChatMode: "ask" | "context" | "agent",
   editingGroupId: string | null
 ): any[] | undefined {
   const tools = getAvailableTools(aiChatMode, editingGroupId);
@@ -222,7 +222,7 @@ function convertTypesToUppercase(obj: any): any {
  * Định dạng các tool cho API của Google Gemini.
  */
 export function getGoogleTools(
-  aiChatMode: "ask" | "link" | "diff",
+  aiChatMode: "ask" | "context" | "agent",
   editingGroupId: string | null
 ): { function_declarations: any[] } | undefined {
   const tools = getAvailableTools(aiChatMode, editingGroupId);

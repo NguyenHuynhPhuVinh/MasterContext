@@ -181,8 +181,8 @@
     "sessionTokensTooltip": "Session Tokens / Max Context",
     "modes": {
       "ask": "Ask",
-      "link": "Link",
-      "diff": "Diff"
+      "context": "Context",
+      "agent": "Agent"
     },
     "toolCall": {
       "listingFiles": "Listing project files",

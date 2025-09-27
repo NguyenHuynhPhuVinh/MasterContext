@@ -3,7 +3,7 @@ import { StateCreator } from "zustand";
 import { AppState } from "../appStore";
 
 export interface AiSettingsActions {
-  setAiChatMode: (mode: "ask" | "link" | "diff") => void;
+  setAiChatMode: (mode: "ask" | "context" | "agent") => void;
   setOpenRouterApiKey: (key: string) => Promise<void>;
   setSelectedAiModel: (model: string) => void;
 }
