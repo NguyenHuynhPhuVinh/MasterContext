@@ -183,7 +183,7 @@
       "listingFiles": "Listing project files",
       "readingFile": "Reading file",
       "executingTool": "Executing tool",
-      "modifyingGroup": "Modifying context group"
+      "modifiedGroup": "Modified context group"
     }
   },
   "mainPanel": {

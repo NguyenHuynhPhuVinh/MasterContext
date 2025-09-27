@@ -67,6 +67,52 @@ export function ChatMessage({ message }: ChatMessageProps) {
         }
         break;
 
+      case "modify_context_group":
+        try {
+          const args = JSON.parse(tool.function.arguments);
+          const filesToAdd: string[] = args.files_to_add || [];
+          const filesToRemove: string[] = args.files_to_remove || [];
+
+          toolContent = (
+            <div className="w-full">
+              <p className="font-medium text-foreground">
+                {t("aiPanel.toolCall.modifiedGroup")}
+              </p>
+              {(filesToAdd.length > 0 || filesToRemove.length > 0) && (
+                <pre className="mt-2 bg-muted/30 dark:bg-muted/20 p-2 rounded-md text-xs font-mono max-h-40 overflow-auto custom-scrollbar">
+                  <code>
+                    {filesToAdd.map((file) => (
+                      <div
+                        key={`add-${file}`}
+                        className="text-green-600 dark:text-green-500 whitespace-pre-wrap"
+                      >
+                        <span className="select-none">+ </span>
+                        {file}
+                      </div>
+                    ))}
+                    {filesToRemove.map((file) => (
+                      <div
+                        key={`remove-${file}`}
+                        className="text-red-600 dark:text-red-500 whitespace-pre-wrap"
+                      >
+                        <span className="select-none">- </span>
+                        {file}
+                      </div>
+                    ))}
+                  </code>
+                </pre>
+              )}
+            </div>
+          );
+        } catch (e) {
+          toolContent = (
+            <p className="font-medium text-foreground">
+              {t("aiPanel.toolCall.modifiedGroup")}
+            </p>
+          );
+        }
+        break;
+
       default:
         toolContent = <p>{tool.function.name}</p>;
         break;
@@ -75,9 +121,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
     return (
       <div
         key={tool.id}
-        className="flex items-center gap-2.5 text-sm bg-muted/60 dark:bg-muted/30 rounded-lg p-3 border"
+        className="flex items-start gap-2.5 text-sm bg-muted/60 dark:bg-muted/30 rounded-lg p-3 border"
       >
-        <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+        <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
         {toolContent}
       </div>
     );

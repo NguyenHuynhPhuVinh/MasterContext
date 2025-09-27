@@ -183,7 +183,7 @@
       "listingFiles": "Liệt kê tệp dự án",
       "readingFile": "Đang đọc file",
       "executingTool": "Thực thi công cụ",
-      "modifyingGroup": "Đang sửa đổi nhóm ngữ cảnh"
+      "modifiedGroup": "Đã sửa đổi nhóm ngữ cảnh"
     }
   },
   "mainPanel": {
