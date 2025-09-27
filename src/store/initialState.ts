@@ -20,6 +20,7 @@ export const initialState = {
   editingGroupId: null,
   inlineEditingGroup: null,
   isScanning: false,
+  isRescanning: false,
   scanProgress: { currentFile: null, currentPhase: "scanning" as const },
   isUpdatingGroupId: null,
   tempSelectedPaths: null,

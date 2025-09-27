@@ -34,6 +34,7 @@ import { GitPanel } from "./components/GitPanel";
 import { AIPanel } from "./components/AIPanel"; // THÊM IMPORT
 import { MainPanel } from "./scenes/MainPanel";
 import { StatusBar } from "./components/StatusBar";
+import { RescanIndicator } from "./components/RescanIndicator";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -47,6 +48,7 @@ function App() {
     selectedPath,
     activeScene,
     isScanning,
+    isRescanning,
     projectStats,
     isSidebarVisible,
     isEditorPanelVisible,
@@ -60,6 +62,7 @@ function App() {
       selectedPath: state.selectedPath,
       activeScene: state.activeScene,
       isScanning: state.isScanning,
+      isRescanning: state.isRescanning,
       projectStats: state.projectStats,
       isSidebarVisible: state.isSidebarVisible,
       isGitPanelVisible: state.isGitPanelVisible,
@@ -222,6 +225,7 @@ function App() {
         const rescanFolderItem = await MenuItem.new({
           id: "rescan_folder",
           text: t("appMenu.file.rescan"),
+          enabled: !isRescanning,
           action: async () => {
             if (useAppStore.getState().selectedPath) {
               rescanProject();
@@ -342,6 +346,7 @@ function App() {
     // CẬP NHẬT DEPENDENCY ĐỂ MENU TỰ ĐỘNG CẬP NHẬT
     selectedPath,
     isScanning, // <-- THÊM VÀO DEPENDENCY
+    isRescanning,
     isSidebarVisible,
     isGitPanelVisible,
     isEditorPanelVisible,
@@ -440,7 +445,7 @@ function App() {
       })
     );
     unlistenFuncs.push(
-      listen<void>("file_change_detected", async () => {
+      listen<void>("file_change_detected", () => {
         if (!useAppStore.getState().isScanning) {
           rescanProject();
         }
@@ -590,6 +595,7 @@ function App() {
   return (
     <div className="h-screen w-screen flex flex-col bg-background text-foreground">
       {/* <Toaster richColors /> XÓA DÒNG NÀY */}
+      {isRescanning && <RescanIndicator />}
       {renderContent()}
     </div>
   );

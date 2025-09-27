@@ -67,6 +67,7 @@ export interface AppState {
     groupId?: string;
   } | null;
   isScanning: boolean;
+  isRescanning: boolean;
   scanProgress: ScanProgress;
   isUpdatingGroupId: string | null;
   tempSelectedPaths: Set<string> | null;

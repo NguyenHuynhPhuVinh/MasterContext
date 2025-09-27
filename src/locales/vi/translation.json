@@ -180,9 +180,9 @@
     },
     "sessionTokensTooltip": "Token đã dùng / Tối đa",
     "modes": {
-      "ask": "Hỏi đáp",
-      "context": "Ngữ cảnh",
-      "agent": "Tác tử"
+      "ask": "Ask",
+      "context": "Context",
+      "agent": "Agent"
     },
     "toolCall": {
       "listingFiles": "Liệt kê tệp dự án",

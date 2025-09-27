@@ -37,6 +37,7 @@ export const createProjectActions: StateCreator<
       rootPath: path,
       selectedPath: path,
       isScanning: true,
+      isRescanning: false, // Đảm bảo rescan bị tắt khi mở dự án mới
       scanProgress: {
         currentFile: "Bắt đầu quét dự án...",
         currentPhase: "scanning",
@@ -126,7 +127,8 @@ export const createProjectActions: StateCreator<
     const { rootPath, activeProfile } = get();
     if (!rootPath) return;
     set({
-      isScanning: true,
+      // <<-- THAY ĐỔI TẠI ĐÂY
+      isRescanning: true,
       scanProgress: {
         currentFile: "Quét lại dự án...",
         currentPhase: "scanning",
@@ -146,7 +148,8 @@ export const createProjectActions: StateCreator<
       projectStats: payload.stats,
       fileTree: payload.file_tree,
       fileMetadataCache: payload.file_metadata_cache,
-      isScanning: false,
+      isScanning: false, // Tắt cả hai trạng thái
+      isRescanning: false,
     });
 
     const loadedGroups = (payload.groups || []).map((g) => ({ ...g }));
@@ -205,7 +208,7 @@ export const createProjectActions: StateCreator<
   },
   _setScanError: (error) => {
     console.error("Scan error from Rust:", error);
-    set({ isScanning: false });
+    set({ isScanning: false, isRescanning: false });
   },
   _updateFileMetadata: (filePath, newMetadata) => {
     set((state) => {
