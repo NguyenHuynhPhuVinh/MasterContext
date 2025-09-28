@@ -477,7 +477,14 @@ export const createAiChatActions: StateCreator<
     await get().actions.fetchAiResponse();
   },
   revertToTurnCheckpoint: async (checkpointId: string) => {
-    const { rootPath, activeProfile, chatMessages, actions } = get();
+    const { rootPath, activeProfile, chatMessages, actions, isAiPanelLoading } =
+      get();
+
+    // Stop any ongoing AI response before reverting
+    if (isAiPanelLoading) {
+      actions.stopAiResponse();
+    }
+
     if (!rootPath || !activeProfile) return;
 
     // Find the user message and the subsequent messages to identify created files
