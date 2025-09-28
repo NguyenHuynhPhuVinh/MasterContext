@@ -189,7 +189,7 @@ export function StagingPanel() {
                   variant="ghost"
                   onClick={(e) => {
                     e.stopPropagation();
-                    discardAllStagedChanges();
+                    discardAllStagedChanges().catch(console.error);
                   }}
                   className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >

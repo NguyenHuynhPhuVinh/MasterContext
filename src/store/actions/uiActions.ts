@@ -39,7 +39,7 @@ export interface UIActions {
     cumulativeStats: { added: number; removed: number };
   }>;
   discardStagedChange: (filePath: string) => void;
-  discardAllStagedChanges: () => void;
+  discardAllStagedChanges: () => Promise<void>;
   applyStagedChange: (filePath: string) => void;
   applyAllStagedChanges: () => void;
 }
@@ -418,8 +418,50 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
 
     revertOperation();
   },
-  discardAllStagedChanges: () => {
-    set({ stagedFileChanges: new Map() });
+  discardAllStagedChanges: async () => {
+    const { rootPath, stagedFileChanges } = _get();
+    if (!rootPath || stagedFileChanges.size === 0) return;
+
+    const revertPromises: Promise<void>[] = [];
+
+    // Create a list of all revert operations
+    for (const [filePath, change] of stagedFileChanges.entries()) {
+      if (change.changeType === "create") {
+        revertPromises.push(
+          invoke("delete_file", {
+            rootPathStr: rootPath,
+            fileRelPath: filePath,
+          })
+        );
+      } else {
+        // For both Modify and Delete, we write back the original content.
+        // For a deleted file, originalContent exists and writing it back effectively undeletes it.
+        revertPromises.push(
+          invoke("save_file_content", {
+            rootPathStr: rootPath,
+            fileRelPath: filePath,
+            content: change.originalContent ?? "",
+          })
+        );
+      }
+    }
+
+    try {
+      // Execute all revert operations concurrently
+      await Promise.all(revertPromises);
+
+      // If all reverts succeed, clear the staging map
+      set({ stagedFileChanges: new Map() });
+
+      // After reverting all files, rescan the project to update the UI correctly
+      await _get().actions.rescanProject();
+    } catch (e) {
+      console.error("Failed to revert all changes:", e);
+      await message(`Lỗi khi hủy bỏ tất cả các thay đổi: ${e}`, {
+        title: "Lỗi Hủy Bỏ",
+        kind: "error",
+      });
+    }
   },
   applyStagedChange: (filePath: string) => {
     // This is now a "confirm" action. It just removes the ability to revert.
