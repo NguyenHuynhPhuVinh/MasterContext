@@ -136,7 +136,6 @@ export const createGroupActions: StateCreator<
           isUpdatingGroupId: null,
         };
       });
-      get().actions.cancelEditingGroup();
     },
     startEditingGroup: (groupId: string) => {
       const { groups, fileTree } = get();
@@ -147,7 +146,7 @@ export const createGroupActions: StateCreator<
       }
     },
     toggleEditingPath: (toggledNode: FileNode, isSelected: boolean) => {
-      const { tempSelectedPaths } = get();
+      const { tempSelectedPaths, fileTree, editingGroupId } = get();
       if (!tempSelectedPaths) return;
 
       const newSelectedPaths = new Set(tempSelectedPaths);
@@ -172,6 +171,12 @@ export const createGroupActions: StateCreator<
       }
 
       set({ tempSelectedPaths: newSelectedPaths });
+
+      // Auto-save on change
+      if (fileTree && editingGroupId) {
+        const pathsToSave = prunePathsForSave(fileTree, newSelectedPaths);
+        get().actions.updateGroupPaths(editingGroupId, pathsToSave);
+      }
     },
     cancelEditingGroup: () => {
       set({
@@ -191,10 +196,24 @@ export const createGroupActions: StateCreator<
       const { fileTree } = get();
       if (!fileTree) return;
       const allPaths = getDescendantAndSelfPaths(fileTree);
-      set({ tempSelectedPaths: new Set(allPaths) });
+      const newSelectedPaths = new Set(allPaths);
+      set({ tempSelectedPaths: newSelectedPaths });
+      // Auto-save
+      const { editingGroupId } = get();
+      if (editingGroupId) {
+        const pathsToSave = prunePathsForSave(fileTree, newSelectedPaths);
+        get().actions.updateGroupPaths(editingGroupId, pathsToSave);
+      }
     },
     deselectAllFiles: () => {
-      set({ tempSelectedPaths: new Set([""]) });
+      const newSelectedPaths = new Set([""]);
+      set({ tempSelectedPaths: newSelectedPaths });
+      // Auto-save
+      const { fileTree, editingGroupId } = get();
+      if (fileTree && editingGroupId) {
+        const pathsToSave = prunePathsForSave(fileTree, newSelectedPaths);
+        get().actions.updateGroupPaths(editingGroupId, pathsToSave);
+      }
     },
     _updateGroupFromAi: (updatedGroup) => {
       const { fileTree, editingGroupId } = get();

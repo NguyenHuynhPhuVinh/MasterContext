@@ -6,9 +6,9 @@ import { useShallow } from "zustand/react/shallow";
 import { FileTreeView, type FileNode } from "@/components/FileTreeView";
 import { Button } from "@/components/ui/button";
 import {
-  Save,
   CheckCheck,
   XCircle,
+  X,
   Search,
   GitMerge,
   FileDiff,
@@ -187,11 +187,11 @@ export function GroupEditorPanel() {
   const { t } = useTranslation();
   // <-- Đổi tên component
   const {
-    saveEditingGroup,
     toggleEditingPath,
     selectAllFiles,
     attachItemToAi,
     deselectAllFiles,
+    cancelEditingGroup,
   } = useAppActions();
 
   const {
@@ -377,25 +377,23 @@ export function GroupEditorPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="flex items-center justify-between p-4 border-b shrink-0">
+      <header className="flex items-center justify-between p-4 border-b shrink-0 gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold">
-            {t("groupEditor.title", { name: group.name })}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold truncate">
+              {t("groupEditor.title", { name: group.name })}
+            </h1>
+            {isSaving && (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            )}
+          </div>
           <p className="text-muted-foreground">
             {t("groupEditor.description")}
           </p>
         </div>
-        <div className="flex flex-shrink-0 gap-2 ml-4">
-          <Button onClick={saveEditingGroup} disabled={isSaving}>
-            {isSaving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
-            )}
-            {isSaving ? t("common.saving") : t("common.saveChanges")}
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" onClick={cancelEditingGroup}>
+          <X className="h-5 w-5" />
+        </Button>
       </header>
       {/* Toolbar */}
       <div className="flex items-center justify-between p-2 border-b shrink-0 bg-muted/50">
