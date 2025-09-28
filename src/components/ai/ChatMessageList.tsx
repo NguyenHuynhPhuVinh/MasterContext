@@ -30,6 +30,20 @@ export function ChatMessageList({
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
+  // Recalculate scroll button visibility
+  const updateScrollButtonVisibility = () => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      setShowScrollButton(false);
+      return;
+    }
+    const isScrollable = viewport.scrollHeight > viewport.clientHeight + 1; // +1 for tolerance
+    const isNearBottom =
+      viewport.scrollHeight - viewport.clientHeight <= viewport.scrollTop + 10;
+
+    setShowScrollButton(isScrollable && !isNearBottom);
+  };
+
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -44,15 +58,13 @@ export function ChatMessageList({
   }, [chatMessages, isAiPanelLoading]); // Rerun when messages or loading state changes
 
   const handleScroll = () => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-
-    const isNearBottom =
-      viewport.scrollHeight - viewport.clientHeight <=
-      viewport.scrollTop + 1000;
-
-    setShowScrollButton(!isNearBottom);
+    updateScrollButtonVisibility();
   };
+
+  // Effect to re-evaluate scroll button when messages change (e.g., after revert/edit)
+  useEffect(() => {
+    updateScrollButtonVisibility();
+  }, [chatMessages]);
 
   const handleRegenerate = (index: number) => {
     regenerateResponse(index);

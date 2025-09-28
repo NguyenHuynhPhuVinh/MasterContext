@@ -337,25 +337,26 @@ export function ChatMessage({
     >
       <div
         className={cn(
-          "flex flex-col transition-all",
-          editingMessageIndex === index &&
-            "rounded-lg ring-2 ring-primary ring-offset-2 ring-offset-background",
-          message.role === "user" && !message.hidden && "cursor-pointer",
-          message.role === "user" ? "items-end" : "items-start"
+          "flex flex-col",
+          message.role === "user" ? "items-end" : "items-start",
+          "transition-all"
         )}
-        onClick={
-          message.role === "user" && !message.hidden
-            ? () => onStartEdit(index)
-            : undefined
-        }
       >
         <div
           className={cn(
             "max-w-xs md:max-w-md lg:max-w-lg text-sm rounded-lg",
+            editingMessageIndex === index &&
+              "ring-2 ring-primary ring-offset-2 ring-offset-background",
+            message.role === "user" && !message.hidden && "cursor-pointer",
             message.role === "user"
               ? "bg-muted px-3 py-2 group-hover:bg-accent"
               : ""
           )}
+          onClick={
+            message.role === "user" && !message.hidden
+              ? () => onStartEdit(index)
+              : undefined
+          }
         >
           {message.role === "user" ? (
             <div className="flex flex-col gap-2">
