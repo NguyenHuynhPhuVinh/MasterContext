@@ -2336,7 +2336,7 @@ dependencies = [
 
 [[package]]
 name = "master-context"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "chrono",
  "git2",
