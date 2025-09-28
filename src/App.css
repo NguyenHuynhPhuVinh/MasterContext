@@ -151,13 +151,6 @@
   @apply text-sm leading-relaxed;
 }
 
-.markdown-content p,
-.markdown-content ul,
-.markdown-content ol,
-.markdown-content blockquote {
-  @apply mb-4;
-}
-
 .markdown-content h1,
 .markdown-content h2,
 .markdown-content h3,

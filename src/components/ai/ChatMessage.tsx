@@ -384,7 +384,14 @@ export function ChatMessage({
                   </div>
                 </div>
               )}
-              <div className="whitespace-pre-wrap">{message.content}</div>
+              <div className="markdown-content">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                >
+                  {message.content || ""}
+                </ReactMarkdown>
+              </div>
             </div>
           ) : message.role === "assistant" && message.tool_calls ? (
             <div className="space-y-2">
