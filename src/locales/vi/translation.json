@@ -203,6 +203,12 @@
       "createFileError": "Không thể đưa vào hàng đợi tạo tệp",
       "deleteFileSuccess": "Đã đưa vào hàng đợi xóa tệp",
       "deleteFileError": "Không thể đưa vào hàng đợi xóa tệp"
+    },
+    "stagingDialog": {
+      "title": "Xác nhận áp dụng thay đổi",
+      "description": "Bạn có các thay đổi chưa được áp dụng. Bạn muốn áp dụng tất cả thay đổi hay hủy bỏ chúng trước khi tiếp tục?",
+      "acceptAll": "Áp dụng tất cả",
+      "discardAll": "Hủy bỏ tất cả"
     }
   },
   "mainPanel": {

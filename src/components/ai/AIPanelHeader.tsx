@@ -31,8 +31,6 @@ interface AIPanelHeaderProps {
   setView: (view: "chat" | "history") => void;
   activeChatSession: AIChatSession | null;
   onNewChat: () => void;
-  onStop: () => void;
-  isLoading: boolean;
 }
 
 export function AIPanelHeader({
@@ -40,8 +38,6 @@ export function AIPanelHeader({
   setView,
   activeChatSession,
   onNewChat,
-  onStop,
-  isLoading,
 }: AIPanelHeaderProps) {
   const { t } = useTranslation();
   const { deleteAllChatSessions } = useAppActions();
@@ -57,20 +53,9 @@ export function AIPanelHeader({
 
   const handleConfirmClearAll = () => deleteAllChatSessions();
 
-  const handleNewChat = () => {
-    if (isLoading) {
-      onStop();
-    }
-    onNewChat();
-    setView("chat");
-  };
+  const handleNewChat = () => onNewChat();
 
-  const handleViewHistory = () => {
-    if (isLoading) {
-      onStop();
-    }
-    setView("history");
-  };
+  const handleViewHistory = () => setView("history");
 
   return (
     <header className="flex items-center p-4 pl-5 border-b shrink-0 gap-4">
