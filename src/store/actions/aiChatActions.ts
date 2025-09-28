@@ -465,6 +465,8 @@ export const createAiChatActions: StateCreator<
       return;
     }
 
+    const userMessageToRevert = chatMessages[turnStartIndex];
+
     // Find the end of the turn (next user message or end of chat)
     let turnEndIndex = chatMessages.length;
     for (let i = turnStartIndex + 1; i < chatMessages.length; i++) {
@@ -498,11 +500,14 @@ export const createAiChatActions: StateCreator<
       });
 
       // Truncate chat history
-      const newMessages = chatMessages.slice(0, turnStartIndex + 1);
+      const newMessages = chatMessages.slice(0, turnStartIndex); // Cut before the user message
       set({
         chatMessages: newMessages,
         stagedFileChanges: new Map(), // Clear staged changes as they are now invalid
         currentTurnCheckpointId: null, // Reset this
+        // Set the prompt and attachments for the UI to restore
+        revertedPromptContent: userMessageToRevert.content,
+        aiAttachedFiles: userMessageToRevert.attachedFiles || [],
       });
 
       await actions.saveCurrentChatSession(newMessages);

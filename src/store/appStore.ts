@@ -142,6 +142,7 @@ export interface AppState {
   editingMessageIndex: number | null;
   currentTurnCheckpointId: string | null;
   aiAttachedFiles: AttachedItem[];
+  revertedPromptContent: string | null;
 
   actions: ProjectActions &
     GroupActions &

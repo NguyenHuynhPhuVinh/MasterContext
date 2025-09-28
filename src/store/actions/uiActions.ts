@@ -22,6 +22,7 @@ export interface UIActions {
       groupId?: string;
     } | null
   ) => void;
+  _clearRevertedPrompt: () => void;
   _setRecentPaths: (paths: string[]) => void;
   openFileInEditor: (filePath: string) => Promise<void>;
   closeEditor: () => void;
@@ -91,6 +92,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     set((state) => ({ isEditorPanelVisible: !state.isEditorPanelVisible }));
   },
   setInlineEditingGroup: (state) => set({ inlineEditingGroup: state }),
+  _clearRevertedPrompt: () => set({ revertedPromptContent: null }),
   _setRecentPaths: (paths) => set({ recentPaths: paths }),
   openFileInEditor: async (filePath: string) => {
     const { rootPath, isEditorLoading } = _get();

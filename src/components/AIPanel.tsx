@@ -45,6 +45,7 @@ export function AIPanel() {
     activeChatSession,
     aiAttachedFiles,
     stagedFileChanges,
+    revertedPromptContent,
   } = useAppStore(
     useShallow((state) => ({
       chatMessages: state.chatMessages,
@@ -56,9 +57,12 @@ export function AIPanel() {
       activeChatSession: state.activeChatSession,
       aiAttachedFiles: state.aiAttachedFiles,
       stagedFileChanges: state.stagedFileChanges,
+      revertedPromptContent: state.revertedPromptContent,
     }))
   );
   const editingMessageIndex = useAppStore((state) => state.editingMessageIndex);
+
+  const { _clearRevertedPrompt } = useAppActions();
 
   const [prompt, setPrompt] = useState("");
   const [view, setView] = useState<"chat" | "history">("chat");
@@ -68,6 +72,14 @@ export function AIPanel() {
   useEffect(() => {
     loadChatSessions();
   }, [loadChatSessions]);
+
+  useEffect(() => {
+    // When a revert happens, the action populates this state.
+    if (revertedPromptContent) {
+      setPrompt(revertedPromptContent);
+      _clearRevertedPrompt(); // Clear the state so it doesn't trigger again
+    }
+  }, [revertedPromptContent, _clearRevertedPrompt]);
 
   const confirmAndExecute = (action: () => void) => {
     if (stagedFileChanges.size > 0) {
