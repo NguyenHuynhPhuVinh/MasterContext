@@ -143,14 +143,17 @@ export const createProjectActions: StateCreator<
     set({ scanProgress: { currentFile: file, currentPhase: "analyzing" } });
   },
   _setScanComplete: async (payload: CachedProjectData) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath, activeProfile, activeEditorFile, actions } = get();
+    const fileToReopen = activeEditorFile; // Store the currently open file before state updates
+
     set({
       projectStats: payload.stats,
       fileTree: payload.file_tree,
       fileMetadataCache: payload.file_metadata_cache,
       isScanning: false, // Tắt cả hai trạng thái
       isRescanning: false,
-      activeEditorFile: null, // Close any open editor to prevent showing stale data
+      // DO NOT close the editor, we will refresh it later
+      // activeEditorFile: null,
     });
 
     const loadedGroups = (payload.groups || []).map((g) => ({ ...g }));
@@ -206,6 +209,11 @@ export const createProjectActions: StateCreator<
     // Luôn làm mới trạng thái Git sau khi quét xong
     await get().actions.checkGitRepo();
     await get().actions.fetchGitStatus();
+
+    // After everything is updated, if a file was open, refresh its content
+    if (fileToReopen) {
+      await actions.openFileInEditor(fileToReopen);
+    }
   },
   _setScanError: (error) => {
     console.error("Scan error from Rust:", error);

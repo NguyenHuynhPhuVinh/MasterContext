@@ -92,8 +92,8 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     set({ isCrossLinkingEnabled: enabled });
   },
   openFileInEditor: async (filePath: string) => {
-    const { rootPath, activeEditorFile } = _get();
-    if (!rootPath || filePath === activeEditorFile) return;
+    const { rootPath, isEditorLoading } = _get();
+    if (!rootPath || isEditorLoading) return; // Only prevent re-opening if it's already loading
 
     set({
       isEditorLoading: true,

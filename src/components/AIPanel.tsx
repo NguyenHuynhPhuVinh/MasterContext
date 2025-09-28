@@ -23,7 +23,6 @@ export function AIPanel() {
     chatMessages,
     isAiPanelLoading,
     openRouterApiKey,
-    activeChatSessionId,
     aiModels,
     selectedAiModel,
     aiChatMode,
@@ -34,7 +33,6 @@ export function AIPanel() {
       chatMessages: state.chatMessages,
       isAiPanelLoading: state.isAiPanelLoading,
       openRouterApiKey: state.openRouterApiKey,
-      activeChatSessionId: state.activeChatSessionId,
       aiModels: state.aiModels,
       selectedAiModel: state.selectedAiModel,
       aiChatMode: state.aiChatMode,
@@ -46,24 +44,9 @@ export function AIPanel() {
   const [prompt, setPrompt] = useState("");
   const [view, setView] = useState<"chat" | "history">("chat");
 
-  // Effect để cuộn xuống cuối khi tin nhắn mới được thêm (khi đang stream)
-  useEffect(() => {
-    // Removed
-  }, [chatMessages]);
-
   useEffect(() => {
     loadChatSessions();
   }, [loadChatSessions]);
-
-  const handleSelectSession = async (sessionId: string) => {
-    await loadChatSession(sessionId);
-    setView("chat");
-  };
-
-  // Effect để cuộn xuống cuối khi một session mới được tải
-  useEffect(() => {
-    // Removed
-  }, [activeChatSessionId]);
 
   const handleSend = () => {
     if (prompt.trim()) {
@@ -123,7 +106,12 @@ export function AIPanel() {
       {view === "chat" ? (
         renderChatView()
       ) : (
-        <ChatHistoryList onSelectSession={handleSelectSession} />
+        <ChatHistoryList
+          onSelectSession={(id) => {
+            loadChatSession(id);
+            setView("chat");
+          }}
+        />
       )}
     </div>
   );
