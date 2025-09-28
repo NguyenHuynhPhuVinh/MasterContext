@@ -351,6 +351,13 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
           newChanges.delete(filePath);
           return { stagedFileChanges: newChanges };
         });
+
+        // After reverting, rescan to get the correct file tree state
+        _get()
+          .actions.rescanProject()
+          .then(() => {
+            _get().actions.openFileInEditor(filePath);
+          });
       } catch (e) {
         console.error(`Failed to revert change for ${filePath}:`, e);
         message(`Failed to revert change for ${filePath}: ${e}`, {

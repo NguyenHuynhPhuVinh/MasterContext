@@ -150,6 +150,7 @@ export const createProjectActions: StateCreator<
       fileMetadataCache: payload.file_metadata_cache,
       isScanning: false, // Tắt cả hai trạng thái
       isRescanning: false,
+      activeEditorFile: null, // Close any open editor to prevent showing stale data
     });
 
     const loadedGroups = (payload.groups || []).map((g) => ({ ...g }));

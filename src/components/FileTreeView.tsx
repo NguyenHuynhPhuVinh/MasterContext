@@ -6,9 +6,9 @@ import {
   File as FileIcon,
   Paperclip,
   Scissors,
-  FileDiff,
-  FilePlus,
-  FileMinus,
+  FileDiff, // Modified
+  FilePlus, // Added
+  FileMinus, // Deleted
 } from "lucide-react";
 import { useAppActions, useAppStore } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";

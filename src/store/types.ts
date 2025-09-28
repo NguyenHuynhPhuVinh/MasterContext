@@ -208,11 +208,11 @@ export interface AppState {
   stagedFileChanges: Map<
     string,
     {
-      originalContent: string | null;
+      originalContent: string | null; // null for new files
       changeType: "create" | "modify" | "delete";
       stats: { added: number; removed: number };
     }
-  >; // filePath -> { patch, stats, changeType }
+  >; // filePath -> { originalContent, stats, changeType }
 
   // Dữ liệu riêng của hồ sơ active
   syncEnabled: boolean;

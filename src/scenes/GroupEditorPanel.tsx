@@ -303,9 +303,9 @@ export function GroupEditorPanel() {
       return currentNode;
     };
 
-    // Inject new files into the tree
+    // Inject deleted/new files into the tree
     for (const [filePath, change] of stagedFileChanges.entries()) {
-      if (change.changeType === "create") {
+      if (change.changeType === "delete" || change.changeType === "create") {
         findOrCreateNode(filePath);
       }
     }
