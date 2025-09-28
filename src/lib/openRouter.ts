@@ -24,6 +24,7 @@ export const handleToolCalls = async (
 ) => {
   if (!toolCalls) return;
   const { getState, setState } = storeApi;
+  let { currentTurnCheckpointId } = getState();
 
   // 1. Add assistant's tool call message to history (hidden)
   const assistantMessage: ChatMessage = {
@@ -35,6 +36,54 @@ export const handleToolCalls = async (
   setState((state: AppState) => ({
     chatMessages: [...state.chatMessages, assistantMessage],
   }));
+
+  // Check if a checkpoint is needed for this batch of tool calls
+  const fileModifyingTools = new Set([
+    "write_file",
+    "create_file",
+    "delete_file",
+  ]);
+  const needsCheckpoint = toolCalls.some((tc) =>
+    fileModifyingTools.has(tc.function.name)
+  );
+
+  if (needsCheckpoint && !currentTurnCheckpointId) {
+    const { rootPath, activeProfile } = getState();
+    const filesToBackup = toolCalls
+      .filter((tc) => fileModifyingTools.has(tc.function.name))
+      .map((tc) => JSON.parse(tc.function.arguments).file_path);
+
+    const uniqueFilesToBackup = [...new Set(filesToBackup)];
+
+    if (rootPath && activeProfile && uniqueFilesToBackup.length > 0) {
+      try {
+        const newCheckpointId = await invoke<string>("create_checkpoint", {
+          projectPath: rootPath,
+          profileName: activeProfile,
+          filesToBackup: uniqueFilesToBackup,
+        });
+
+        currentTurnCheckpointId = newCheckpointId;
+        setState({ currentTurnCheckpointId });
+
+        // Associate checkpoint with the user message that started this turn
+        setState((state) => {
+          const messages = [...state.chatMessages];
+          for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === "user" && !messages[i].hidden) {
+              messages[i].checkpointId = newCheckpointId;
+              break;
+            }
+          }
+          return { chatMessages: messages };
+        });
+      } catch (e) {
+        console.error("Failed to create checkpoint:", e);
+        // Abort all tool calls in this batch if checkpoint fails
+        return;
+      }
+    }
+  }
 
   // 2. Execute tool
   setState({ isAiPanelLoading: true }); // Keep loading state for the next AI call

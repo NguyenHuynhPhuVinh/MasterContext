@@ -186,6 +186,7 @@
     "cancelEdit": "Hủy chỉnh sửa",
     "editingMode": "Đang chỉnh sửa tin nhắn cũ...",
     "regenerate": "Tạo lại phản hồi",
+    "revertToCheckpoint": "Quay về điểm này",
     "sessionTokensTooltip": "Token đã dùng / Tối đa",
     "modes": {
       "ask": "Ask",

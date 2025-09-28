@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { type ChatMessage as ChatMessageType } from "@/store/types";
 import { Button } from "@/components/ui/button";
+import { useAppActions } from "@/store/appStore";
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -40,6 +41,7 @@ export function ChatMessage({
   onStartEdit,
 }: ChatMessageProps) {
   const { t } = useTranslation();
+  const { revertToTurnCheckpoint } = useAppActions();
 
   if (message.hidden) {
     return null;
@@ -382,6 +384,22 @@ export function ChatMessage({
                 </div>
               )}
               <div className="whitespace-pre-wrap">{message.content}</div>
+              {message.checkpointId && (
+                <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7"
+                    onClick={(e) => {
+                      e.stopPropagation(); // prevent opening edit mode
+                      revertToTurnCheckpoint(message.checkpointId!);
+                    }}
+                  >
+                    <RotateCcw className="h-3 w-3 mr-1.5" />
+                    {t("aiPanel.revertToCheckpoint")}
+                  </Button>
+                </div>
+              )}
             </div>
           ) : message.role === "assistant" && message.tool_calls ? (
             <div className="space-y-2">

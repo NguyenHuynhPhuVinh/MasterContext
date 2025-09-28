@@ -25,6 +25,7 @@ export interface AiChatActions {
   stopAiResponse: () => void;
   regenerateResponse: (fromIndex: number) => Promise<void>;
   editAndResubmit: (prompt: string, fromIndex: number) => Promise<void>;
+  revertToTurnCheckpoint: (checkpointId: string) => Promise<void>;
 }
 
 /**
@@ -86,6 +87,7 @@ export const createAiChatActions: StateCreator<
       allAvailableModels,
       selectedAiModel,
       editingMessageIndex,
+      aiChatMode,
     } = get();
     // Reset editing state regardless of the outcome
     set({ editingMessageIndex: null });
@@ -105,6 +107,11 @@ export const createAiChatActions: StateCreator<
     }
 
     set({ isAiPanelLoading: true });
+
+    // For agent mode, this new message starts a new "turn", so reset the checkpoint ID.
+    if (aiChatMode === "agent") {
+      set({ currentTurnCheckpointId: null });
+    }
 
     try {
       let currentSession = get().activeChatSession;
@@ -444,6 +451,65 @@ export const createAiChatActions: StateCreator<
 
     await get().actions.saveCurrentChatSession(finalMessages);
     await get().actions.fetchAiResponse();
+  },
+  revertToTurnCheckpoint: async (checkpointId: string) => {
+    const { rootPath, activeProfile, chatMessages, actions } = get();
+    if (!rootPath || !activeProfile) return;
+
+    // Find the user message and the subsequent messages to identify created files
+    const turnStartIndex = chatMessages.findIndex(
+      (msg) => msg.checkpointId === checkpointId
+    );
+    if (turnStartIndex === -1) {
+      console.error("Could not find turn for checkpoint", checkpointId);
+      return;
+    }
+
+    // Find the end of the turn (next user message or end of chat)
+    let turnEndIndex = chatMessages.length;
+    for (let i = turnStartIndex + 1; i < chatMessages.length; i++) {
+      if (chatMessages[i].role === "user" && !chatMessages[i].hidden) {
+        turnEndIndex = i;
+        break;
+      }
+    }
+
+    const turnMessages = chatMessages.slice(turnStartIndex, turnEndIndex);
+    const createdFilesInTurn: string[] = [];
+    turnMessages.forEach((msg) => {
+      msg.tool_calls?.forEach((tc) => {
+        if (tc.function.name === "create_file") {
+          try {
+            const args = JSON.parse(tc.function.arguments);
+            if (args.file_path) {
+              createdFilesInTurn.push(args.file_path);
+            }
+          } catch {}
+        }
+      });
+    });
+
+    try {
+      await invoke("revert_to_checkpoint", {
+        projectPath: rootPath,
+        profileName: activeProfile,
+        checkpointId,
+        createdFilesInTurn,
+      });
+
+      // Truncate chat history
+      const newMessages = chatMessages.slice(0, turnStartIndex + 1);
+      set({
+        chatMessages: newMessages,
+        stagedFileChanges: new Map(), // Clear staged changes as they are now invalid
+        currentTurnCheckpointId: null, // Reset this
+      });
+
+      await actions.saveCurrentChatSession(newMessages);
+      await actions.rescanProject();
+    } catch (e) {
+      console.error("Failed to revert to checkpoint:", e);
+    }
   },
 });
 

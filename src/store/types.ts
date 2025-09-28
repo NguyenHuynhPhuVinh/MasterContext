@@ -135,6 +135,7 @@ export interface ChatMessage {
   content: string | null; // Allow null content for tool calls
   attachedFiles?: AttachedItem[]; // Files attached to this specific message
   hiddenContent?: string;
+  checkpointId?: string;
   generationInfo?: GenerationInfo;
   tool_calls?: ToolCall[]; // Add tool_calls
   hidden?: boolean; // For hidden user messages
@@ -264,5 +265,6 @@ export interface AppState {
   streamResponse: boolean;
   selectedAiModel: string;
   editingMessageIndex: number | null;
+  currentTurnCheckpointId: string | null;
   aiAttachedFiles: AttachedItem[];
 }

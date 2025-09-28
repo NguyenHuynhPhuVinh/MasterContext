@@ -2358,6 +2358,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tiktoken-rs",
  "uuid",
+ "walkdir",
 ]
 
 [[package]]

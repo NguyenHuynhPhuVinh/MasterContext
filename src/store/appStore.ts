@@ -140,6 +140,7 @@ export interface AppState {
   streamResponse: boolean;
   selectedAiModel: string;
   editingMessageIndex: number | null;
+  currentTurnCheckpointId: string | null;
   aiAttachedFiles: AttachedItem[];
 
   actions: ProjectActions &

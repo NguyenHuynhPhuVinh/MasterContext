@@ -186,6 +186,7 @@
     "cancelEdit": "Cancel edit",
     "editingMode": "Editing a previous message...",
     "regenerate": "Regenerate response",
+    "revertToCheckpoint": "Revert to this point",
     "sessionTokensTooltip": "Session Tokens / Max Context",
     "modes": {
       "ask": "Ask",
