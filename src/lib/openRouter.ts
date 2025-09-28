@@ -1,20 +1,8 @@
 // src/lib/openRouter.ts
-import { createPatch } from "diff";
 import { invoke } from "@tauri-apps/api/core";
 import { type AppState, useAppStore } from "@/store/appStore";
 import { type ChatMessage, type GenerationInfo } from "@/store/types";
 import axios from "axios";
-
-const calculateDiffStats = (diff: string | undefined) => {
-  if (!diff) return { added: 0, removed: 0 };
-  let added = 0;
-  let removed = 0;
-  diff.split("\n").forEach((line) => {
-    if (line.startsWith("+") && !line.startsWith("+++")) added++;
-    if (line.startsWith("-") && !line.startsWith("---")) removed++;
-  });
-  return { added, removed };
-};
 
 type StoreApi = {
   getState: () => AppState;
@@ -149,108 +137,36 @@ export const handleToolCalls = async (
         toolSucceeded = false;
       }
     }
-  } else if (tool.function.name === "write_file") {
+  } else if (
+    tool.function.name === "write_file" ||
+    tool.function.name === "create_file" ||
+    tool.function.name === "delete_file"
+  ) {
     const { actions } = getState();
     try {
       const args = JSON.parse(tool.function.arguments);
-      const { file_path, content, start_line, end_line } = args;
 
-      // UI Logic: Create a diff for visualization before writing
-      const originalContent = await invoke<string>("get_file_content", {
-        rootPathStr: getState().rootPath,
-        fileRelPath: file_path,
-      });
+      // This action now handles everything: reading original content, writing new content, and staging.
+      const result = await actions.stageFileChangeFromAI(
+        tool.function.name,
+        args
+      );
 
-      let newContent;
-      if (start_line) {
-        const originalLines = originalContent.split("\n");
-        const newLines = content.split("\n");
-        const startIndex = start_line - 1;
-        const endIndex = end_line ? end_line : startIndex + newLines.length;
-        originalLines.splice(startIndex, endIndex - startIndex, ...newLines);
-        newContent = originalLines.join("\n");
-      } else {
-        newContent = content;
-      }
+      toolSucceeded = result.success;
+      toolResultContent = result.message;
 
-      const patch = createPatch(file_path, originalContent, newContent, "", "");
-      const stats = calculateDiffStats(patch);
-
-      // Stage the change instead of writing it
-      await actions.stageFileChange(file_path, patch, stats, "modify");
-
-      toolSucceeded = true;
-      toolResultContent = `Successfully staged changes for ${file_path}. The user must review and accept them to save to disk.`;
-
-      // Update the message with diff stats
+      // Update the message in the UI with diff stats from the result
       setState((state: AppState) => {
         const newMessages = [...state.chatMessages];
         const lastMessage = newMessages[newMessages.length - 1];
         if (lastMessage?.role === "assistant" && lastMessage.tool_calls) {
-          lastMessage.tool_calls[0].diffStats = stats;
+          lastMessage.tool_calls[0].diffStats = result.stats;
         }
         return { chatMessages: newMessages };
       });
     } catch (e) {
-      toolResultContent = `Error writing to file: ${e}`;
+      toolResultContent = `Error during file operation: ${e}`;
       toolSucceeded = false;
-    }
-  } else if (tool.function.name === "create_file") {
-    const { actions } = getState();
-    try {
-      const args = JSON.parse(tool.function.arguments);
-      const { file_path, content = "" } = args;
-      const patch = createPatch(file_path, "", content, "", "");
-      const stats = calculateDiffStats(patch);
-      await actions.stageFileChange(file_path, patch, stats, "create");
-
-      toolSucceeded = true;
-      toolResultContent = `Successfully staged file creation for ${file_path}.`;
-
-      // Update the message with diff stats
-      setState((state: AppState) => {
-        const newMessages = [...state.chatMessages];
-        const lastMessage = newMessages[newMessages.length - 1];
-        if (lastMessage?.role === "assistant" && lastMessage.tool_calls) {
-          lastMessage.tool_calls[0].diffStats = stats;
-        }
-        return { chatMessages: newMessages };
-      });
-    } catch (e) {
-      toolResultContent = `Error staging file creation: ${e}`;
-      toolSucceeded = false;
-    }
-  } else if (tool.function.name === "delete_file") {
-    const { actions, rootPath } = getState();
-    if (!rootPath) {
-      toolResultContent = "Error: Project path is not available.";
-    } else {
-      try {
-        const args = JSON.parse(tool.function.arguments);
-        const { file_path } = args;
-        const originalContent = await invoke<string>("get_file_content", {
-          rootPathStr: rootPath,
-          fileRelPath: file_path,
-        });
-        const patch = createPatch(file_path, originalContent, "", "", "");
-        const stats = calculateDiffStats(patch);
-        await actions.stageFileChange(file_path, patch, stats, "delete");
-
-        toolSucceeded = true;
-        toolResultContent = `Successfully staged file deletion for ${file_path}.`;
-
-        setState((state: AppState) => {
-          const newMessages = [...state.chatMessages];
-          const lastMessage = newMessages[newMessages.length - 1];
-          if (lastMessage?.role === "assistant" && lastMessage.tool_calls) {
-            lastMessage.tool_calls[0].diffStats = stats;
-          }
-          return { chatMessages: newMessages };
-        });
-      } catch (e) {
-        toolResultContent = `Error staging file deletion: ${e}`;
-        toolSucceeded = false;
-      }
     }
   }
 

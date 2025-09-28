@@ -82,9 +82,9 @@ export interface AppState {
   stagedFileChanges: Map<
     string,
     {
-      patch: string;
-      stats: { added: number; removed: number };
+      originalContent: string | null; // null for new files
       changeType: "create" | "modify" | "delete";
+      stats: { added: number; removed: number }; // For UI display
     }
   >; // filePath -> { patch, stats, changeType }
 

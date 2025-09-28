@@ -22,7 +22,9 @@ import { cn } from "@/lib/utils";
 export function StagingPanel() {
   const { t } = useTranslation();
   const { stagedFileChanges } = useAppStore(
-    useShallow((state) => ({ stagedFileChanges: state.stagedFileChanges }))
+    useShallow((state) => ({
+      stagedFileChanges: state.stagedFileChanges,
+    }))
   );
   const {
     openFileInEditor,
@@ -38,15 +40,36 @@ export function StagingPanel() {
     let added = 0;
     let removed = 0;
     for (const change of stagedFileChanges.values()) {
-      added += change.stats.added;
-      removed += change.stats.removed;
+      if (change.changeType === "create") {
+        // For new files, all lines are additions. We need to get the content.
+        // This is a simplification; a better approach would be to read the file content here.
+        // For now, we rely on the stats calculated at staging time.
+        added += change.stats.added;
+      } else if (change.changeType === "delete") {
+        removed += change.stats.removed;
+      } else if (change.changeType === "modify" && change.originalContent) {
+        // This part is tricky as we don't have the *current* content here without reading the file.
+        // We'll rely on the stats passed during staging.
+        added += change.stats.added;
+        removed += change.stats.removed;
+      }
     }
     return { added, removed, count: stagedFileChanges.size };
   }, [stagedFileChanges]);
 
   if (totalStats.count === 0) {
+    if (isExpanded) {
+      setIsExpanded(false); // Auto-collapse when empty
+    }
     return null;
   }
+
+  // Auto-expand when changes appear
+  useState(() => {
+    if (totalStats.count > 0 && !isExpanded) {
+      setIsExpanded(true);
+    }
+  });
 
   const StagedFileItem = ({
     filePath,

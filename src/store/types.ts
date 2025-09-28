@@ -208,9 +208,9 @@ export interface AppState {
   stagedFileChanges: Map<
     string,
     {
-      patch: string;
-      stats: { added: number; removed: number };
+      originalContent: string | null;
       changeType: "create" | "modify" | "delete";
+      stats: { added: number; removed: number };
     }
   >; // filePath -> { patch, stats, changeType }
 

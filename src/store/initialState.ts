@@ -31,7 +31,7 @@ export const initialState = {
   activeEditorFileContent: null,
   isEditorLoading: false,
   activeEditorFileExclusions: null,
-  stagedFileChanges: new Map(),
+  stagedFileChanges: new Map(), // filePath -> { originalContent, changeType, stats }
   syncEnabled: false,
   syncPath: null,
   customIgnorePatterns: [],
