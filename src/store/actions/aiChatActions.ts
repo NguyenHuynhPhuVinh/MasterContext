@@ -24,7 +24,11 @@ export interface AiChatActions {
   fetchAiResponse: () => Promise<void>;
   stopAiResponse: () => void;
   regenerateResponse: (fromIndex: number) => Promise<void>;
+  initiateRegenerate: (fromIndex: number) => void;
   editAndResubmit: (prompt: string, fromIndex: number) => Promise<void>;
+  initiateEdit: (fromIndex: number) => void;
+  handleCheckpointDecision: (shouldRevert: boolean) => Promise<void>;
+  _clearPendingCheckpointAction: () => void;
   revertToTurnCheckpoint: (checkpointId: string) => Promise<void>;
 }
 
@@ -465,8 +469,6 @@ export const createAiChatActions: StateCreator<
       return;
     }
 
-    const userMessageToRevert = chatMessages[turnStartIndex];
-
     // Find the end of the turn (next user message or end of chat)
     let turnEndIndex = chatMessages.length;
     for (let i = turnStartIndex + 1; i < chatMessages.length; i++) {
@@ -500,20 +502,135 @@ export const createAiChatActions: StateCreator<
       });
 
       // Truncate chat history
-      const newMessages = chatMessages.slice(0, turnStartIndex); // Cut before the user message
+      const newMessages = chatMessages.slice(0, turnStartIndex + 1); // Keep the user message
       set({
         chatMessages: newMessages,
         stagedFileChanges: new Map(), // Clear staged changes as they are now invalid
-        currentTurnCheckpointId: null, // Reset this
-        // Set the prompt and attachments for the UI to restore
-        revertedPromptContent: userMessageToRevert.content,
-        aiAttachedFiles: userMessageToRevert.attachedFiles || [],
+        currentTurnCheckpointId: null, // Reset this, a new one will be made if needed
       });
 
       await actions.saveCurrentChatSession(newMessages);
       await actions.rescanProject();
     } catch (e) {
       console.error("Failed to revert to checkpoint:", e);
+    }
+  },
+  _clearPendingCheckpointAction: () => {
+    set({ pendingCheckpointAction: null });
+  },
+  // UI-facing action, checks for checkpoint
+  initiateRegenerate: (fromIndex: number) => {
+    const { chatMessages } = get();
+    // Find the user message that initiated the turn.
+    let userMessageForTurn: ChatMessage | undefined;
+    for (let i = fromIndex; i >= 0; i--) {
+      if (chatMessages[i].role === "user" && !chatMessages[i].hidden) {
+        userMessageForTurn = chatMessages[i];
+        break;
+      }
+    }
+
+    if (userMessageForTurn?.checkpointId) {
+      set({
+        pendingCheckpointAction: {
+          type: "regenerate",
+          checkpointId: userMessageForTurn.checkpointId,
+          fromIndex,
+        },
+      });
+    } else {
+      // No checkpoint, proceed directly
+      get().actions.regenerateResponse(fromIndex);
+    }
+  },
+  // UI-facing action, checks for checkpoint
+  initiateEdit: (fromIndex: number) => {
+    const { chatMessages } = get();
+    const messageToEdit = chatMessages[fromIndex];
+
+    if (messageToEdit?.checkpointId) {
+      set({
+        pendingCheckpointAction: {
+          type: "edit",
+          checkpointId: messageToEdit.checkpointId,
+          fromIndex,
+        },
+      });
+    } else {
+      // No checkpoint, proceed with original edit logic
+      if (messageToEdit && messageToEdit.role === "user") {
+        get().actions.clearAttachedFilesFromAi();
+        set({
+          editingMessageIndex: fromIndex,
+          revertedPromptContent: messageToEdit.content,
+        });
+        messageToEdit.attachedFiles?.forEach((item) =>
+          get().actions.attachItemToAi(item)
+        );
+      }
+    }
+  },
+  handleCheckpointDecision: async (shouldRevert: boolean) => {
+    const { pendingCheckpointAction, actions } = get();
+    if (!pendingCheckpointAction) return;
+
+    const { type, checkpointId, fromIndex } = pendingCheckpointAction;
+    actions._clearPendingCheckpointAction();
+
+    if (shouldRevert) {
+      await actions.revertToTurnCheckpoint(checkpointId);
+    }
+
+    if (type === "regenerate") {
+      // If we reverted, the history is already truncated. We need to find the new "fromIndex".
+      const newFromIndex = shouldRevert
+        ? get().chatMessages.length // Regenerate from the very end
+        : fromIndex;
+      // Copy logic from _regenerateResponseLogic
+      if (get().isAiPanelLoading) {
+        get().actions.stopAiResponse();
+      }
+      const { chatMessages } = get();
+      let lastUserMessageIndex = -1;
+      for (let i = newFromIndex - 1; i >= 0; i--) {
+        if (chatMessages[i].role === "user" && !chatMessages[i].hidden) {
+          lastUserMessageIndex = i;
+          break;
+        }
+      }
+      if (lastUserMessageIndex === -1) {
+        console.error(
+          "Could not find a visible user message to regenerate from."
+        );
+        return;
+      }
+      const truncatedMessages = chatMessages.slice(0, lastUserMessageIndex + 1);
+      set({
+        isAiPanelLoading: true,
+        chatMessages: truncatedMessages,
+      });
+      try {
+        await get().actions.saveCurrentChatSession(truncatedMessages);
+        await get().actions.fetchAiResponse();
+      } catch (error) {
+        console.error("Error during regeneration:", error);
+        set({ isAiPanelLoading: false });
+      }
+    } else if (type === "edit") {
+      // If we reverted, the UI state is already set. If not, we set it now.
+      if (!shouldRevert) {
+        const messageToEdit = get().chatMessages[fromIndex];
+        if (messageToEdit && messageToEdit.role === "user") {
+          actions.clearAttachedFilesFromAi();
+          set({
+            editingMessageIndex: fromIndex,
+            revertedPromptContent: messageToEdit.content,
+          });
+          messageToEdit.attachedFiles?.forEach((item) =>
+            actions.attachItemToAi(item)
+          );
+        }
+      }
     }
   },
 });

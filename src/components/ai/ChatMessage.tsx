@@ -34,14 +34,13 @@ interface ChatMessageProps {
 export function ChatMessage({
   message,
   index,
-  onRegenerate,
   isAiPanelLoading,
   isLastAssistantMessageInTurn,
   editingMessageIndex,
   onStartEdit,
 }: ChatMessageProps) {
   const { t } = useTranslation();
-  const { revertToTurnCheckpoint } = useAppActions();
+  const { revertToTurnCheckpoint, initiateRegenerate } = useAppActions();
 
   if (message.hidden) {
     return null;
@@ -434,7 +433,7 @@ export function ChatMessage({
               variant="ghost"
               size="icon"
               className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 mt-1"
-              onClick={() => onRegenerate(index)}
+              onClick={() => initiateRegenerate(index)}
               title={t("aiPanel.regenerate")}
             >
               <RotateCcw className="h-4 w-4" />
