@@ -137,6 +137,21 @@ export const handleToolCalls = async (
         toolSucceeded = false;
       }
     }
+  } else if (tool.function.name === "add_exclusion_range_to_file") {
+    const { actions } = getState();
+    try {
+      const args = JSON.parse(tool.function.arguments);
+      const result = await actions.addExclusionRangeFromAI(
+        args.file_path,
+        args.start_line,
+        args.end_line
+      );
+      toolResultContent = result.message;
+      toolSucceeded = result.success;
+    } catch (e) {
+      toolResultContent = `Error adding exclusion range: ${e}`;
+      toolSucceeded = false;
+    }
   } else if (
     tool.function.name === "write_file" ||
     tool.function.name === "create_file" ||

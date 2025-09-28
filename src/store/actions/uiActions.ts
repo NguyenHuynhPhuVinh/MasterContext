@@ -29,6 +29,11 @@ export interface UIActions {
   addExclusionRange: (start: number, end: number) => Promise<void>;
   removeExclusionRange: (rangeToRemove: [number, number]) => Promise<void>;
   clearExclusionRanges: () => Promise<void>;
+  addExclusionRangeFromAI: (
+    filePath: string,
+    startLine: number,
+    endLine: number
+  ) => Promise<{ success: boolean; message: string }>;
   stageFileChangeFromAI: (
     toolName: "write_file" | "create_file" | "delete_file",
     args: any
@@ -228,6 +233,91 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       _get().actions._updateFileMetadata(activeEditorFile, updatedMetadata);
     } catch (e) {
       console.error("Failed to clear exclusion ranges:", e);
+    }
+  },
+  addExclusionRangeFromAI: async (filePath, startLine, endLine) => {
+    const { rootPath, activeProfile, fileMetadataCache } = _get();
+    if (!rootPath || !activeProfile) {
+      return { success: false, message: "Error: Project path not found." };
+    }
+    if (startLine > endLine) {
+      return {
+        success: false,
+        message: "Error: start_line cannot be greater than end_line.",
+      };
+    }
+
+    try {
+      const content = await invoke<string>("get_file_content", {
+        rootPathStr: rootPath,
+        fileRelPath: filePath,
+      });
+
+      const lines = content.split("\n");
+      if (startLine > lines.length || endLine > lines.length) {
+        return {
+          success: false,
+          message: `Error: Line numbers are out of bounds. File has ${lines.length} lines.`,
+        };
+      }
+
+      let startOffset = 0;
+      // Sum lengths of all lines BEFORE the start line, plus their newlines
+      for (let i = 0; i < startLine - 1; i++) {
+        startOffset += lines[i].length + 1;
+      }
+
+      let endOffset = startOffset;
+      // Sum lengths of all lines WITHIN the range, plus their newlines
+      for (let i = startLine - 1; i < endLine; i++) {
+        endOffset += lines[i].length + 1;
+      }
+      // The range should not include the final newline, so subtract 1.
+      endOffset = Math.max(startOffset, endOffset - 1);
+
+      const existingRanges =
+        fileMetadataCache?.[filePath]?.excluded_ranges || [];
+
+      const newRanges = [
+        ...existingRanges,
+        [startOffset, endOffset] as [number, number],
+      ].sort((a, b) => a[0] - b[0]);
+
+      const mergedRanges: [number, number][] = [];
+      if (newRanges.length > 0) {
+        let currentMerge = newRanges[0];
+        for (let i = 1; i < newRanges.length; i++) {
+          const nextRange = newRanges[i];
+          if (nextRange[0] <= currentMerge[1]) {
+            currentMerge[1] = Math.max(currentMerge[1], nextRange[1]);
+          } else {
+            mergedRanges.push(currentMerge);
+            currentMerge = nextRange;
+          }
+        }
+        mergedRanges.push(currentMerge);
+      }
+
+      const updatedMetadata = await invoke<FileMetadata>(
+        "update_file_exclusions",
+        {
+          path: rootPath,
+          profileName: activeProfile,
+          fileRelPath: filePath,
+          ranges: mergedRanges,
+        }
+      );
+      _get().actions._updateFileMetadata(filePath, updatedMetadata);
+
+      return {
+        success: true,
+        message: `Successfully added exclusion range ${startLine}-${endLine} to ${filePath}.`,
+      };
+    } catch (e) {
+      return {
+        success: false,
+        message: `Error processing exclusion for ${filePath}: ${String(e)}`,
+      };
     }
   },
   stageFileChangeFromAI: async (toolName, args) => {

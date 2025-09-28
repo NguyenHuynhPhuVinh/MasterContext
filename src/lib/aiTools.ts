@@ -12,6 +12,7 @@ interface ToolDefinition {
   description: string;
   parameters: {
     type: "object";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     properties: Record<string, ToolParameter>;
     required?: string[];
   };
@@ -80,6 +81,29 @@ const ALL_TOOLS: Record<string, ToolDefinition> = {
           items: { type: "string" },
         },
       },
+    },
+  },
+  ADD_EXCLUSION_RANGE_TO_FILE: {
+    name: "add_exclusion_range_to_file",
+    description:
+      "Loại trừ một khoảng dòng trong một file cụ thể khỏi ngữ cảnh. Hữu ích để loại bỏ code mẫu, code không liên quan hoặc các cấu trúc dữ liệu lớn.",
+    parameters: {
+      type: "object",
+      properties: {
+        file_path: {
+          type: "string",
+          description: "Đường dẫn tương đối đến file từ gốc dự án.",
+        },
+        start_line: {
+          type: "number",
+          description: "Số dòng bắt đầu (tính từ 1) để bắt đầu loại trừ.",
+        },
+        end_line: {
+          type: "number",
+          description: "Số dòng kết thúc (tính từ 1) để kết thúc loại trừ.",
+        },
+      },
+      required: ["file_path", "start_line", "end_line"],
     },
   },
   WRITE_FILE: {
@@ -166,6 +190,7 @@ function getAvailableTools(
     tools.push(ALL_TOOLS.GET_CURRENT_CONTEXT_GROUP_FILES);
     if (aiChatMode === "context") {
       tools.push(ALL_TOOLS.MODIFY_CONTEXT_GROUP);
+      tools.push(ALL_TOOLS.ADD_EXCLUSION_RANGE_TO_FILE);
     }
   }
 
@@ -173,7 +198,9 @@ function getAvailableTools(
     tools.push(
       ALL_TOOLS.WRITE_FILE,
       ALL_TOOLS.CREATE_FILE,
-      ALL_TOOLS.DELETE_FILE
+      ALL_TOOLS.DELETE_FILE,
+      ALL_TOOLS.MODIFY_CONTEXT_GROUP,
+      ALL_TOOLS.ADD_EXCLUSION_RANGE_TO_FILE
     );
   }
 
