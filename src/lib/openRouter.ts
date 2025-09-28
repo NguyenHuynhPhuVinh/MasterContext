@@ -48,7 +48,7 @@ export const handleToolCalls = async (
   );
 
   if (needsCheckpoint && !currentTurnCheckpointId) {
-    const { rootPath, activeProfile } = getState();
+    const { rootPath, activeProfile, stagedFileChanges } = getState();
     const filesToBackup = toolCalls
       .filter((tc) => fileModifyingTools.has(tc.function.name))
       .map((tc) => JSON.parse(tc.function.arguments).file_path);
@@ -57,10 +57,14 @@ export const handleToolCalls = async (
 
     if (rootPath && activeProfile && uniqueFilesToBackup.length > 0) {
       try {
+        const stagedChangesJson = JSON.stringify(
+          Array.from(stagedFileChanges.entries())
+        );
         const newCheckpointId = await invoke<string>("create_checkpoint", {
           projectPath: rootPath,
           profileName: activeProfile,
           filesToBackup: uniqueFilesToBackup,
+          stagedChangesJson,
         });
 
         currentTurnCheckpointId = newCheckpointId;

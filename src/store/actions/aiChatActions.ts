@@ -492,18 +492,33 @@ export const createAiChatActions: StateCreator<
     });
 
     try {
-      await invoke("revert_to_checkpoint", {
-        projectPath: rootPath,
-        profileName: activeProfile,
-        checkpointId,
-        createdFilesInTurn,
-      });
+      const restoredStagedChangesJson = await invoke<string | null>(
+        "revert_to_checkpoint",
+        {
+          projectPath: rootPath,
+          profileName: activeProfile,
+          checkpointId,
+          createdFilesInTurn,
+        }
+      );
+
+      let restoredStagedChanges = new Map();
+      if (restoredStagedChangesJson) {
+        try {
+          const parsedArray = JSON.parse(restoredStagedChangesJson);
+          if (Array.isArray(parsedArray)) {
+            restoredStagedChanges = new Map(parsedArray);
+          }
+        } catch (e) {
+          console.error("Failed to parse restored staged changes:", e);
+        }
+      }
 
       // Truncate chat history
       const newMessages = chatMessages.slice(0, turnStartIndex); // Cut before the user message
       set({
         chatMessages: newMessages,
-        stagedFileChanges: new Map(), // Clear staged changes as they are now invalid
+        stagedFileChanges: restoredStagedChanges,
         currentTurnCheckpointId: null, // Reset this
         // Set the prompt and attachments for the UI to restore
         revertedPromptContent: userMessageToRevert.content,
