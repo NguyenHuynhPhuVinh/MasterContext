@@ -447,7 +447,26 @@ export const createAiChatActions: StateCreator<
       get().actions.stopAiResponse();
     }
 
-    const { chatMessages, aiAttachedFiles } = get();
+    const { chatMessages, aiAttachedFiles, rootPath, activeProfile } = get();
+
+    // --- NEW LOGIC: DISCARD OLD CHECKPOINT ---
+    const originalMessage = chatMessages[fromIndex];
+    if (originalMessage.checkpointId && rootPath && activeProfile) {
+      try {
+        await invoke("delete_checkpoint", {
+          projectPath: rootPath,
+          profileName: activeProfile,
+          checkpointId: originalMessage.checkpointId,
+        });
+      } catch (e) {
+        console.error(
+          "Failed to discard old checkpoint during edit/resubmit:",
+          e
+        );
+      }
+    }
+    // Reset the current turn's checkpoint ID so a new one can be created if needed.
+    set({ currentTurnCheckpointId: null });
 
     // Cắt lịch sử chat đến ngay trước tin nhắn đang được sửa
     const truncatedMessages = chatMessages.slice(0, fromIndex);
