@@ -54,6 +54,27 @@ export function ChatMessageList({
     regenerateResponse(index);
   };
 
+  // Find the index of the last assistant message for EACH turn.
+  // A "turn" consists of a user message followed by one or more assistant messages.
+  const lastAssistantMessageIndices = new Set<number>();
+  for (let i = 0; i < chatMessages.length; i++) {
+    // If the current message is from the user, look ahead for the last assistant message before the next user message.
+    if (chatMessages[i].role === "user" && !chatMessages[i].hidden) {
+      let lastAsstInTurn = -1;
+      for (let j = i + 1; j < chatMessages.length; j++) {
+        if (chatMessages[j].role === "assistant") {
+          lastAsstInTurn = j;
+        } else if (chatMessages[j].role === "user" && !chatMessages[j].hidden) {
+          // Found the next user message, so the turn ends here.
+          break;
+        }
+      }
+      if (lastAsstInTurn !== -1) {
+        lastAssistantMessageIndices.add(lastAsstInTurn);
+      }
+    }
+  }
+
   return (
     <ScrollArea
       className="flex-1 p-4 min-h-0 relative" // Add relative positioning here
@@ -69,6 +90,9 @@ export function ChatMessageList({
               index={index}
               onRegenerate={handleRegenerate}
               isAiPanelLoading={isAiPanelLoading}
+              isLastAssistantMessageInTurn={lastAssistantMessageIndices.has(
+                index
+              )}
             />
           )
         )}

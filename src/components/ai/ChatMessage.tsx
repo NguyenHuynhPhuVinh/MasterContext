@@ -25,6 +25,7 @@ interface ChatMessageProps {
   index: number;
   onRegenerate: (index: number) => void;
   isAiPanelLoading: boolean;
+  isLastAssistantMessageInTurn: boolean;
 }
 
 export function ChatMessage({
@@ -32,6 +33,7 @@ export function ChatMessage({
   index,
   onRegenerate,
   isAiPanelLoading,
+  isLastAssistantMessageInTurn,
 }: ChatMessageProps) {
   const { t } = useTranslation();
 
@@ -384,17 +386,19 @@ export function ChatMessage({
             </div>
           )}
         </div>
-        {message.role === "assistant" && !isAiPanelLoading && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 -mt-3"
-            onClick={() => onRegenerate(index)}
-            title={t("aiPanel.regenerate")}
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-        )}
+        {message.role === "assistant" &&
+          !isAiPanelLoading &&
+          isLastAssistantMessageInTurn && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 mt-1"
+              onClick={() => onRegenerate(index)}
+              title={t("aiPanel.regenerate")}
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          )}
       </div>
     </div>
   );
@@ -403,7 +407,7 @@ export function ChatMessage({
 export function LoadingIndicator() {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center justify-start gap-2 text-muted-foreground italic text-sm -mt-4">
+    <div className="flex items-center justify-start gap-2 text-muted-foreground italic text-sm">
       <Loader2 className="h-4 w-4 animate-spin" />
       <p>{t("aiPanel.responding")}</p>
     </div>
