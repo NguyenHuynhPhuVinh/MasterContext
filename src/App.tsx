@@ -226,6 +226,13 @@ function App() {
           openRouterApiKey: settings.openRouterApiKey ?? "",
           googleApiKey: settings.googleApiKey ?? "",
           allAvailableModels,
+          // SỬA LỖI: Thêm các cài đặt AI bị thiếu vào đây
+          streamResponse: settings.streamResponse ?? true,
+          systemPrompt: settings.systemPrompt ?? "",
+          temperature: settings.temperature ?? 1.0,
+          topP: settings.topP ?? 1.0,
+          topK: settings.topK ?? 0,
+          maxTokens: settings.maxTokens ?? 0,
           aiModels: projectAiModels.length
             ? projectAiModels
             : [
