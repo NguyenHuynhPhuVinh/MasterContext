@@ -266,6 +266,12 @@ export interface AppState {
   selectedAiModel: string;
   editingMessageIndex: number | null;
   revertedPromptContent: string | null;
+  revertConfirmation: {
+    type: "regenerate" | "edit";
+    fromIndex: number;
+    newPromptForEdit?: string;
+    checkpointId: string;
+  } | null;
   currentTurnCheckpointId: string | null;
   aiAttachedFiles: AttachedItem[];
 }

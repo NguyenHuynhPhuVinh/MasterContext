@@ -23,9 +23,18 @@ export interface AiChatActions {
   sendChatMessage: (prompt: string) => Promise<void>;
   fetchAiResponse: () => Promise<void>;
   stopAiResponse: () => void;
-  regenerateResponse: (fromIndex: number) => Promise<void>;
-  editAndResubmit: (prompt: string, fromIndex: number) => Promise<void>;
   revertToTurnCheckpoint: (checkpointId: string) => Promise<void>;
+  // New actions for confirmation flow
+  regenerateResponse: (fromIndex: number) => void;
+  confirmRevert: () => void;
+  declineRevertAndProceed: () => void;
+  cancelRevertConfirmation: () => void;
+  // Internal actions that contain the original logic
+  _internal_regenerateResponse: (fromIndex: number) => Promise<void>;
+  _internal_editAndResubmit: (
+    prompt: string,
+    fromIndex: number
+  ) => Promise<void>;
 }
 
 /**
@@ -88,12 +97,28 @@ export const createAiChatActions: StateCreator<
       selectedAiModel,
       editingMessageIndex,
       aiChatMode,
+      actions,
     } = get();
     // Reset editing state regardless of the outcome
     set({ editingMessageIndex: null });
 
     if (editingMessageIndex !== null) {
-      get().actions.editAndResubmit(prompt, editingMessageIndex);
+      const originalMessage = get().chatMessages[editingMessageIndex];
+      // If the message being edited has a checkpoint, trigger the confirmation dialog
+      if (originalMessage.checkpointId) {
+        set({
+          revertConfirmation: {
+            type: "edit",
+            fromIndex: editingMessageIndex,
+            newPromptForEdit: prompt,
+            checkpointId: originalMessage.checkpointId,
+          },
+        });
+      } else {
+        // Otherwise, proceed directly
+        await actions._internal_editAndResubmit(prompt, editingMessageIndex);
+      }
+      // We return here because the dialog flow or the internal function will handle the rest.
       return;
     }
     const model = allAvailableModels.find((m) => m.id === selectedAiModel);
@@ -377,7 +402,94 @@ export const createAiChatActions: StateCreator<
       });
     }
   },
-  regenerateResponse: async (fromIndex: number) => {
+  // New actions for confirmation flow
+  regenerateResponse: (fromIndex: number) => {
+    const { chatMessages, actions } = get();
+
+    // Find the user message that initiated this turn
+    let lastUserMessageIndex = -1;
+    for (let i = fromIndex - 1; i >= 0; i--) {
+      if (chatMessages[i].role === "user" && !chatMessages[i].hidden) {
+        lastUserMessageIndex = i;
+        break;
+      }
+    }
+    if (lastUserMessageIndex === -1) return;
+
+    const userMessage = chatMessages[lastUserMessageIndex];
+
+    if (userMessage.checkpointId) {
+      // Trigger dialog
+      set({
+        revertConfirmation: {
+          type: "regenerate",
+          fromIndex: fromIndex, // Keep assistant index for internal logic
+          checkpointId: userMessage.checkpointId,
+        },
+      });
+    } else {
+      // No checkpoint, proceed directly
+      actions._internal_regenerateResponse(fromIndex);
+    }
+  },
+
+  confirmRevert: () => {
+    const { revertConfirmation, actions } = get();
+    if (!revertConfirmation) return;
+
+    // Close the dialog immediately
+    set({ revertConfirmation: null });
+
+    // Perform the async operations in the background
+    (async () => {
+      const { type, checkpointId } = revertConfirmation;
+
+      // This action handles file revert, rescan, and message truncation
+      await actions.revertToTurnCheckpoint(checkpointId);
+
+      // After revert, the state is ready for the next step.
+      // `revertToTurnCheckpoint` sets `revertedPromptContent` and `aiAttachedFiles`.
+      const { revertedPromptContent } = get();
+
+      if (type === "regenerate") {
+        // For regeneration, we immediately send the original prompt again.
+        if (revertedPromptContent) {
+          // The attachments are already in the state from the revert action.
+          await actions.sendChatMessage(revertedPromptContent);
+        }
+      } else {
+        // 'edit'
+        const newPrompt = revertConfirmation.newPromptForEdit;
+        if (newPrompt) {
+          await actions.sendChatMessage(newPrompt);
+        }
+      }
+    })();
+  },
+
+  declineRevertAndProceed: () => {
+    const { revertConfirmation, actions } = get();
+    if (!revertConfirmation) return;
+
+    const { type, fromIndex, newPromptForEdit } = revertConfirmation;
+
+    // Close the dialog immediately
+    set({ revertConfirmation: null });
+
+    // Start the long-running process without waiting for it to finish
+    if (type === "regenerate") {
+      actions._internal_regenerateResponse(fromIndex);
+    } else if (type === "edit" && newPromptForEdit) {
+      actions._internal_editAndResubmit(newPromptForEdit, fromIndex);
+    }
+  },
+
+  cancelRevertConfirmation: () => {
+    // When cancelling, also clear the editing index if it was an edit action
+    set({ editingMessageIndex: null, revertConfirmation: null });
+  },
+
+  _internal_regenerateResponse: async (fromIndex: number) => {
     // Dừng mọi phản hồi đang diễn ra trước để tránh race condition.
     if (get().isAiPanelLoading) {
       get().actions.stopAiResponse();
@@ -401,7 +513,7 @@ export const createAiChatActions: StateCreator<
       return;
     }
 
-    // --- NEW LOGIC: DISCARD OLD CHECKPOINT ---
+    // Discard old checkpoint since we are not reverting
     const userMessage = chatMessages[lastUserMessageIndex];
     if (userMessage.checkpointId && rootPath && activeProfile) {
       try {
@@ -411,10 +523,7 @@ export const createAiChatActions: StateCreator<
           checkpointId: userMessage.checkpointId,
         });
       } catch (e) {
-        console.error(
-          "Failed to discard old checkpoint during regeneration:",
-          e
-        );
+        console.error("Failed to discard checkpoint:", e);
       }
     }
     set({ currentTurnCheckpointId: null });
@@ -428,10 +537,7 @@ export const createAiChatActions: StateCreator<
       delete lastMessage.checkpointId;
     }
 
-    set({
-      isAiPanelLoading: true,
-      chatMessages: truncatedMessages,
-    });
+    set({ isAiPanelLoading: true, chatMessages: truncatedMessages });
 
     try {
       await get().actions.saveCurrentChatSession(truncatedMessages);
@@ -441,7 +547,9 @@ export const createAiChatActions: StateCreator<
       set({ isAiPanelLoading: false });
     }
   },
-  editAndResubmit: async (newPrompt, fromIndex) => {
+
+  _internal_editAndResubmit: async (newPrompt: string, fromIndex: number) => {
+    set({ editingMessageIndex: null }); // Reset editing state
     // Dừng mọi phản hồi đang diễn ra trước
     if (get().isAiPanelLoading) {
       get().actions.stopAiResponse();
@@ -449,7 +557,6 @@ export const createAiChatActions: StateCreator<
 
     const { chatMessages, aiAttachedFiles, rootPath, activeProfile } = get();
 
-    // --- NEW LOGIC: DISCARD OLD CHECKPOINT ---
     const originalMessage = chatMessages[fromIndex];
     if (originalMessage.checkpointId && rootPath && activeProfile) {
       try {
@@ -459,19 +566,14 @@ export const createAiChatActions: StateCreator<
           checkpointId: originalMessage.checkpointId,
         });
       } catch (e) {
-        console.error(
-          "Failed to discard old checkpoint during edit/resubmit:",
-          e
-        );
+        console.error("Failed to discard checkpoint:", e);
       }
     }
-    // Reset the current turn's checkpoint ID so a new one can be created if needed.
     set({ currentTurnCheckpointId: null });
 
     // Cắt lịch sử chat đến ngay trước tin nhắn đang được sửa
     const truncatedMessages = chatMessages.slice(0, fromIndex);
 
-    // Chuẩn bị tin nhắn mới với nội dung đã sửa và các file đính kèm hiện tại
     const hiddenContent = await _generateHiddenContent(get, aiAttachedFiles);
 
     const newUserMessage: ChatMessage = {
@@ -486,7 +588,6 @@ export const createAiChatActions: StateCreator<
     set({
       isAiPanelLoading: true,
       chatMessages: finalMessages,
-      editingMessageIndex: null, // Thoát chế độ edit
     });
 
     // Xóa các file đính kèm sau khi đã chuẩn bị xong tin nhắn

@@ -28,6 +28,9 @@ export function AIPanel() {
     stopAiResponse,
     loadChatSessions,
     loadChatSession,
+    confirmRevert,
+    declineRevertAndProceed,
+    cancelRevertConfirmation,
     setAiChatMode,
     setSelectedAiModel,
     detachItemFromAi,
@@ -58,9 +61,11 @@ export function AIPanel() {
       aiAttachedFiles: state.aiAttachedFiles,
       stagedFileChanges: state.stagedFileChanges,
       revertedPromptContent: state.revertedPromptContent,
+      revertConfirmation: state.revertConfirmation,
     }))
   );
   const editingMessageIndex = useAppStore((state) => state.editingMessageIndex);
+  const revertConfirmation = useAppStore((state) => state.revertConfirmation);
 
   const { _clearRevertedPrompt } = useAppActions();
 
@@ -235,6 +240,34 @@ export function AIPanel() {
             </Button>
             <AlertDialogAction onClick={() => handleDialogAction("apply")}>
               {t("aiPanel.stagingDialog.acceptAll")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={!!revertConfirmation}
+        onOpenChange={(open) => {
+          if (!open) cancelRevertConfirmation();
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("aiPanel.revertDialog.title")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("aiPanel.revertDialog.description")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelRevertConfirmation}>
+              {t("common.cancel")}
+            </AlertDialogCancel>
+            <Button variant="outline" onClick={() => declineRevertAndProceed()}>
+              {t("aiPanel.revertDialog.proceed")}
+            </Button>
+            <AlertDialogAction onClick={() => confirmRevert()}>
+              {t("aiPanel.revertDialog.revertAndProceed")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

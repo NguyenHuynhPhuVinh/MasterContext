@@ -24,7 +24,7 @@ import { useAppActions } from "@/store/appStore";
 interface ChatMessageProps {
   message: ChatMessageType;
   index: number;
-  onRegenerate: (index: number) => void;
+  onRegenerate: (index: number) => void; // This will now trigger a dialog if needed
   isAiPanelLoading: boolean;
   isLastAssistantMessageInTurn: boolean;
   editingMessageIndex: number | null;
