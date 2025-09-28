@@ -10,7 +10,6 @@ export interface SettingsActions {
     enabled: boolean;
     path: string | null;
   }) => Promise<void>;
-  setGroupCrossSync: (groupId: string, enabled: boolean) => Promise<void>;
   setCustomIgnorePatterns: (patterns: string[]) => Promise<void>;
   setFileWatching: (enabled: boolean) => Promise<void>;
   setExportUseFullTree: (enabled: boolean) => Promise<void>;
@@ -46,34 +45,6 @@ export const createSettingsActions: StateCreator<
     } catch (error) {
       console.error("Lỗi khi lưu cài đặt đồng bộ:", error);
       await message("Không thể lưu cài đặt đồng bộ.", {
-        title: "Lỗi",
-        kind: "error",
-      });
-    }
-  },
-  setGroupCrossSync: async (groupId, enabled) => {
-    const { rootPath, activeProfile } = get();
-    if (!rootPath) return;
-
-    set((state) => {
-      const newAllGroups = new Map(state.allGroups);
-      const currentGroups = newAllGroups.get(activeProfile) || [];
-      const updatedGroups = currentGroups.map((g) =>
-        g.id === groupId ? { ...g, crossSyncEnabled: enabled } : g
-      );
-      newAllGroups.set(activeProfile, updatedGroups);
-      return { allGroups: newAllGroups, groups: updatedGroups };
-    });
-
-    try {
-      await invoke("set_group_cross_sync", {
-        path: rootPath,
-        profileName: activeProfile,
-        groupId,
-        enabled,
-      });
-    } catch (error) {
-      message(`Không thể cập nhật đồng bộ chéo: ${error}`, {
         title: "Lỗi",
         kind: "error",
       });

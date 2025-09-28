@@ -24,7 +24,6 @@ export const initialState = {
   scanProgress: { currentFile: null, currentPhase: "scanning" as const },
   isUpdatingGroupId: null,
   tempSelectedPaths: null,
-  isCrossLinkingEnabled: false,
   isGroupEditorPanelVisible: false,
   isEditorPanelVisible: false,
   activeEditorFile: null,

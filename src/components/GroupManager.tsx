@@ -55,7 +55,6 @@ export function GroupManager({
   const {
     deleteGroup,
     editGroupContent,
-    setGroupCrossSync,
     switchProfile,
     attachItemToAi,
     updateGroup,
@@ -206,9 +205,6 @@ export function GroupManager({
   const handleDeleteGroup = (group: Group) => {
     performActionAfterSwitch(() => deleteGroup(group.id));
   };
-  const handleToggleCrossSync = (group: Group, enabled: boolean) => {
-    performActionAfterSwitch(() => setGroupCrossSync(group.id, enabled));
-  };
   const handleSaveTokenLimit = (group: Group, limit?: number) => {
     performActionAfterSwitch(() =>
       // Chỉ gửi ID và trường cần cập nhật
@@ -249,7 +245,6 @@ export function GroupManager({
                 onCopyContext={handleCopyContext}
                 onAttachToAi={handleAttachToAi}
                 onExport={handleExport}
-                onToggleCrossSync={handleToggleCrossSync}
                 onSaveTokenLimit={handleSaveTokenLimit}
                 onDelete={handleDeleteGroup}
               />

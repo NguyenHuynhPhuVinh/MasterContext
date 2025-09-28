@@ -261,23 +261,6 @@ pub fn generate_group_context_for_ai(
 }
 
 #[command]
-pub fn set_group_cross_sync(
-    app: AppHandle,
-    path: String,
-    profile_name: String,
-    group_id: String,
-    enabled: bool,
-) -> Result<(), String> {
-    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
-    if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
-        group.cross_sync_enabled = Some(enabled);
-    } else {
-        return Err("group.not_found".to_string());
-    }
-    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
-}
-
-#[command]
 pub fn update_group_paths_from_ai(
     app: AppHandle,
     path: String,

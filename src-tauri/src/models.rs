@@ -163,7 +163,6 @@ pub struct Group {
     pub name: String,
     pub paths: Vec<String>,
     pub stats: GroupStats,
-    pub cross_sync_enabled: Option<bool>,
     pub token_limit: Option<usize>,
 }
 

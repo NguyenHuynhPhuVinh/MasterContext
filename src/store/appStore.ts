@@ -72,7 +72,6 @@ export interface AppState {
   scanProgress: ScanProgress;
   isUpdatingGroupId: string | null;
   tempSelectedPaths: Set<string> | null;
-  isCrossLinkingEnabled: boolean;
   isGroupEditorPanelVisible: boolean;
   isEditorPanelVisible: boolean;
   activeEditorFile: string | null;

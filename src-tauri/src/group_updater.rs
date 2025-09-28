@@ -1,5 +1,4 @@
 // src-tauri/src/group_updater.rs
-use crate::context_generator;
 use crate::models::{FileMetadata, Group, GroupStats};
 use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -20,45 +19,7 @@ pub fn update_groups_after_scan(
                     .map_or(false, |is_dir| *is_dir)
         });
 
-        // 2. Thực hiện đồng bộ chéo nếu được bật
-        if group.cross_sync_enabled.unwrap_or(false) {
-            let current_files = context_generator::expand_group_paths_to_files(
-                &group.paths,
-                new_metadata_cache,
-                root_path,
-            );
-
-            let mut all_related_files = HashSet::new();
-            let mut queue: Vec<String> = current_files.into_iter().collect();
-
-            while let Some(file_path) = queue.pop() {
-                if all_related_files.contains(&file_path) {
-                    continue;
-                }
-                all_related_files.insert(file_path.clone());
-
-                if let Some(metadata) = new_metadata_cache.get(&file_path) {
-                    for linked_file in &metadata.links {
-                        if !all_related_files.contains(linked_file) {
-                            queue.push(linked_file.clone());
-                        }
-                    }
-                }
-            }
-
-            let mut new_paths_set: HashSet<String> = group.paths.iter().cloned().collect();
-            for file in all_related_files {
-                let is_covered = new_paths_set
-                    .iter()
-                    .any(|p| file.starts_with(&format!("{}/", p)));
-                if !is_covered {
-                    new_paths_set.insert(file);
-                }
-            }
-            group.paths = new_paths_set.into_iter().collect();
-        }
-
-        // 3. Luôn tính toán lại stats sau khi đã cập nhật `paths`
+        // 2. Luôn tính toán lại stats sau khi đã cập nhật `paths`
         group.stats = recalculate_stats_for_paths(&group.paths, new_metadata_cache, root_path);
     }
 }

@@ -7,9 +7,6 @@ import { FileTreeView, type FileNode } from "@/components/FileTreeView";
 import { Button } from "@/components/ui/button";
 import {
   Save,
-  Loader2,
-  Link,
-  Link2Off,
   CheckCheck,
   XCircle,
   Search,
@@ -17,11 +14,10 @@ import {
   FileDiff,
   FilePlus,
   FileMinus,
+  Loader2,
 } from "lucide-react";
 import { Scissors } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
   Tooltip,
@@ -193,7 +189,6 @@ export function GroupEditorPanel() {
   const {
     saveEditingGroup,
     toggleEditingPath,
-    setCrossLinkingEnabled,
     selectAllFiles,
     attachItemToAi,
     deselectAllFiles,
@@ -205,7 +200,6 @@ export function GroupEditorPanel() {
     isSaving,
     fileMetadataCache,
     tempSelectedPaths,
-    isCrossLinkingEnabled,
     gitStatus,
     stagedFileChanges,
   } = useAppStore(
@@ -215,7 +209,6 @@ export function GroupEditorPanel() {
       isSaving: state.isUpdatingGroupId === state.editingGroupId,
       fileMetadataCache: state.fileMetadataCache,
       tempSelectedPaths: state.tempSelectedPaths,
-      isCrossLinkingEnabled: state.isCrossLinkingEnabled,
       gitStatus: state.gitStatus,
       stagedFileChanges: state.stagedFileChanges,
     }))
@@ -415,25 +408,6 @@ export function GroupEditorPanel() {
             <XCircle className="mr-2 h-4 w-4" />
             {t("groupEditor.deselectAll")}
           </Button>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="cross-linking-toggle"
-            checked={isCrossLinkingEnabled}
-            onCheckedChange={setCrossLinkingEnabled}
-          />
-          <Label
-            htmlFor="cross-linking-toggle"
-            className="flex items-center gap-2 text-sm cursor-pointer"
-          >
-            {isCrossLinkingEnabled ? (
-              <Link className="h-4 w-4" />
-            ) : (
-              <Link2Off className="h-4 w-4" />
-            )}
-            {t("groupEditor.autoSelectLinked")}
-          </Label>
         </div>
       </div>
       {/* Search Bar */}

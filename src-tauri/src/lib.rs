@@ -39,7 +39,6 @@ pub fn run() {
             commands::update_file_exclusions,
             commands::generate_group_context_for_ai,
             commands::update_sync_settings,
-            commands::set_group_cross_sync,
             commands::generate_group_context,
             commands::generate_project_context,
             commands::update_custom_ignore_patterns,

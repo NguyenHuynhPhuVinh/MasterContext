@@ -59,7 +59,6 @@ export const createGroupActions: StateCreator<
         id: Date.now().toString(),
         paths: [],
         stats: defaultGroupStats(),
-        crossSyncEnabled: false,
         tokenLimit: newGroup.tokenLimit || undefined,
       };
       set((state) => {
@@ -148,38 +147,15 @@ export const createGroupActions: StateCreator<
       }
     },
     toggleEditingPath: (toggledNode: FileNode, isSelected: boolean) => {
-      const { isCrossLinkingEnabled, fileMetadataCache, tempSelectedPaths } =
-        get();
-      if (!tempSelectedPaths || !fileMetadataCache) return;
+      const { tempSelectedPaths } = get();
+      if (!tempSelectedPaths) return;
 
       const newSelectedPaths = new Set(tempSelectedPaths);
 
       if (isSelected) {
-        const pathsToAdd = new Set<string>();
-        const queue = [toggledNode.path];
-        const visited = new Set<string>();
-
-        if (isCrossLinkingEnabled) {
-          while (queue.length > 0) {
-            const currentPath = queue.shift()!;
-            if (visited.has(currentPath)) continue;
-            visited.add(currentPath);
-            pathsToAdd.add(currentPath);
-
-            const metadata = fileMetadataCache[currentPath];
-            if (metadata && metadata.links) {
-              for (const link of metadata.links) {
-                if (!visited.has(link)) queue.push(link);
-              }
-            }
-          }
-        } else {
-          getDescendantAndSelfPaths(toggledNode).forEach((p) =>
-            pathsToAdd.add(p)
-          );
-        }
-
-        pathsToAdd.forEach((p) => newSelectedPaths.add(p));
+        getDescendantAndSelfPaths(toggledNode).forEach((p) =>
+          newSelectedPaths.add(p)
+        );
 
         const allPathsArray = Array.from(newSelectedPaths);
         for (const path of allPathsArray) {
