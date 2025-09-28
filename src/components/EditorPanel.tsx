@@ -178,18 +178,60 @@ export function EditorPanel() {
   }, [activeEditorFileContent, activeChange]);
 
   const handleMouseUp = () => {
-    const selectionText = window.getSelection()?.toString();
-    if (selectionText && activeEditorFileContent) {
-      const start = activeEditorFileContent.indexOf(selectionText);
-      if (start !== -1) {
-        const end = start + selectionText.length;
-        setSelection({ start, end });
-      } else {
-        setSelection(null);
-      }
-    } else {
+    const selection = window.getSelection();
+    if (
+      !selection ||
+      selection.rangeCount === 0 ||
+      !codeContainerRef.current ||
+      !activeEditorFileContent ||
+      selection.isCollapsed
+    ) {
       setSelection(null);
+      return;
     }
+
+    const range = selection.getRangeAt(0);
+
+    // Create a range from the start of the code block to the start of the selection
+    const preSelectionRange = document.createRange();
+    preSelectionRange.selectNodeContents(codeContainerRef.current);
+    preSelectionRange.setEnd(range.startContainer, range.startOffset);
+
+    // The length of the text in this range is the offset in a "normalized" string (where all line endings are \n)
+    const startInNormalized = preSelectionRange.toString().length;
+    const endInNormalized = startInNormalized + range.toString().length;
+
+    // Function to map offsets from the browser's normalized view (LF) to the original string (potentially CRLF).
+    // This is necessary because the browser treats CRLF as a single LF, causing offset mismatches.
+    const mapToOriginalOffsets = (normStart: number, normEnd: number) => {
+      let originalStart = -1,
+        originalEnd = -1;
+      let normalizedIdx = 0;
+      for (let i = 0; i < activeEditorFileContent.length; i++) {
+        if (normalizedIdx === normStart) originalStart = i;
+        if (normalizedIdx === normEnd) {
+          originalEnd = i;
+          break;
+        }
+        if (
+          activeEditorFileContent[i] === "\r" &&
+          activeEditorFileContent[i + 1] === "\n"
+        ) {
+          i++; // Skip the \n as it's part of the CRLF pair, but normalizedIdx only increments once.
+        }
+        normalizedIdx++;
+      }
+      if (originalEnd === -1) originalEnd = activeEditorFileContent.length; // Reached end of string
+      return { start: originalStart, end: originalEnd };
+    };
+
+    const { start, end } = mapToOriginalOffsets(
+      startInNormalized,
+      endInNormalized
+    );
+    setSelection(
+      start !== -1 && end !== -1 && start < end ? { start, end } : null
+    );
   };
 
   const handleExcludeClick = () => {
