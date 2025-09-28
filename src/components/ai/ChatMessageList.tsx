@@ -21,7 +21,7 @@ export function ChatMessageList({
   editingMessageIndex,
   onStartEdit,
 }: ChatMessageListProps) {
-  const { initiateRegenerate } = useAppActions();
+  const { regenerateResponse } = useAppActions();
   const viewportRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -67,7 +67,7 @@ export function ChatMessageList({
   }, [chatMessages]);
 
   const handleRegenerate = (index: number) => {
-    initiateRegenerate(index);
+    regenerateResponse(index);
   };
 
   // Find the index of the last assistant message for EACH turn.

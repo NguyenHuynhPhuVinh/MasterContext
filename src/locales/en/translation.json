@@ -214,12 +214,6 @@
       "description": "You have unapplied changes. Do you want to apply all changes or discard them before proceeding?",
       "acceptAll": "Apply All",
       "discardAll": "Discard All"
-    },
-    "checkpointDialog": {
-      "title": "Revert Agent Changes?",
-      "description": "This conversation turn involved file modifications. Do you want to revert these changes before proceeding?",
-      "revertAndProceed": "Revert & Proceed",
-      "keepAndProceed": "Keep & Proceed"
     }
   },
   "mainPanel": {

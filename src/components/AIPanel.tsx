@@ -29,9 +29,9 @@ export function AIPanel() {
     loadChatSessions,
     loadChatSession,
     setAiChatMode,
-    initiateEdit,
     setSelectedAiModel,
     detachItemFromAi,
+    attachItemToAi,
     applyAllStagedChanges,
     discardAllStagedChanges,
   } = useAppActions();
@@ -46,7 +46,6 @@ export function AIPanel() {
     aiAttachedFiles,
     stagedFileChanges,
     revertedPromptContent,
-    pendingCheckpointAction,
   } = useAppStore(
     useShallow((state) => ({
       chatMessages: state.chatMessages,
@@ -59,16 +58,11 @@ export function AIPanel() {
       aiAttachedFiles: state.aiAttachedFiles,
       stagedFileChanges: state.stagedFileChanges,
       revertedPromptContent: state.revertedPromptContent,
-      pendingCheckpointAction: state.pendingCheckpointAction,
     }))
   );
   const editingMessageIndex = useAppStore((state) => state.editingMessageIndex);
 
-  const {
-    _clearRevertedPrompt,
-    _clearPendingCheckpointAction,
-    handleCheckpointDecision,
-  } = useAppActions();
+  const { _clearRevertedPrompt } = useAppActions();
 
   const [prompt, setPrompt] = useState("");
   const [view, setView] = useState<"chat" | "history">("chat");
@@ -119,7 +113,17 @@ export function AIPanel() {
   };
 
   const handleStartEdit = (index: number) => {
-    initiateEdit(index);
+    const messageToEdit = chatMessages[index];
+    if (messageToEdit && messageToEdit.role === "user") {
+      // Clear any currently attached files before loading the old ones
+      useAppStore.getState().actions.clearAttachedFilesFromAi();
+
+      setPrompt(messageToEdit.content || "");
+      useAppStore.setState({ editingMessageIndex: index });
+
+      // Load attachments from the message being edited
+      messageToEdit.attachedFiles?.forEach((item) => attachItemToAi(item));
+    }
   };
 
   const handleCancelEdit = () => {
@@ -231,38 +235,6 @@ export function AIPanel() {
             </Button>
             <AlertDialogAction onClick={() => handleDialogAction("apply")}>
               {t("aiPanel.stagingDialog.acceptAll")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog
-        open={!!pendingCheckpointAction}
-        onOpenChange={(open) => !open && _clearPendingCheckpointAction()}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("aiPanel.checkpointDialog.title")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("aiPanel.checkpointDialog.description")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={_clearPendingCheckpointAction}>
-              {t("common.cancel")}
-            </AlertDialogCancel>
-            <Button
-              variant="outline"
-              onClick={() => handleCheckpointDecision(false)}
-            >
-              {t("aiPanel.checkpointDialog.keepAndProceed")}
-            </Button>
-            <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
-              onClick={() => handleCheckpointDecision(true)}
-            >
-              {t("aiPanel.checkpointDialog.revertAndProceed")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

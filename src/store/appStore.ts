@@ -143,11 +143,6 @@ export interface AppState {
   currentTurnCheckpointId: string | null;
   aiAttachedFiles: AttachedItem[];
   revertedPromptContent: string | null;
-  pendingCheckpointAction: {
-    type: "regenerate" | "edit";
-    checkpointId: string;
-    fromIndex: number;
-  } | null;
 
   actions: ProjectActions &
     GroupActions &

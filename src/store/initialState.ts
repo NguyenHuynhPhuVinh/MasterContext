@@ -77,7 +77,6 @@ export const initialState = {
   selectedAiModel: "openai/gpt-3.5-turbo",
   editingMessageIndex: null,
   revertedPromptContent: null,
-  pendingCheckpointAction: null,
   currentTurnCheckpointId: null,
   aiAttachedFiles: [] as AttachedItem[],
 };
