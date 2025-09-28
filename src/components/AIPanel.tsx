@@ -31,6 +31,7 @@ export function AIPanel() {
     setAiChatMode,
     setSelectedAiModel,
     detachItemFromAi,
+    attachItemToAi,
     applyAllStagedChanges,
     discardAllStagedChanges,
   } = useAppActions();
@@ -102,14 +103,21 @@ export function AIPanel() {
   const handleStartEdit = (index: number) => {
     const messageToEdit = chatMessages[index];
     if (messageToEdit && messageToEdit.role === "user") {
+      // Clear any currently attached files before loading the old ones
+      useAppStore.getState().actions.clearAttachedFilesFromAi();
+
       setPrompt(messageToEdit.content || "");
       useAppStore.setState({ editingMessageIndex: index });
+
+      // Load attachments from the message being edited
+      messageToEdit.attachedFiles?.forEach((item) => attachItemToAi(item));
     }
   };
 
   const handleCancelEdit = () => {
     useAppStore.setState({ editingMessageIndex: null });
     setPrompt(""); // Clear the input when cancelling edit
+    useAppStore.getState().actions.clearAttachedFilesFromAi();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

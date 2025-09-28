@@ -416,22 +416,19 @@ export const createAiChatActions: StateCreator<
       get().actions.stopAiResponse();
     }
 
-    const { chatMessages } = get();
+    const { chatMessages, aiAttachedFiles } = get();
 
     // Cắt lịch sử chat đến ngay trước tin nhắn đang được sửa
     const truncatedMessages = chatMessages.slice(0, fromIndex);
-    const messageToEdit = chatMessages[fromIndex];
 
-    // Chuẩn bị tin nhắn mới với nội dung đã sửa
-    // Sử dụng lại file đính kèm từ tin nhắn cũ nếu có
-    const attachments = messageToEdit.attachedFiles || [];
-    const hiddenContent = await _generateHiddenContent(get, attachments);
+    // Chuẩn bị tin nhắn mới với nội dung đã sửa và các file đính kèm hiện tại
+    const hiddenContent = await _generateHiddenContent(get, aiAttachedFiles);
 
     const newUserMessage: ChatMessage = {
       role: "user",
       content: newPrompt,
       hiddenContent,
-      attachedFiles: attachments,
+      attachedFiles: [...aiAttachedFiles], // Use current attachments
     };
 
     const finalMessages = [...truncatedMessages, newUserMessage];
@@ -441,6 +438,9 @@ export const createAiChatActions: StateCreator<
       chatMessages: finalMessages,
       editingMessageIndex: null, // Thoát chế độ edit
     });
+
+    // Xóa các file đính kèm sau khi đã chuẩn bị xong tin nhắn
+    get().actions.clearAttachedFilesFromAi();
 
     await get().actions.saveCurrentChatSession(finalMessages);
     await get().actions.fetchAiResponse();
