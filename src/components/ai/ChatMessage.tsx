@@ -403,7 +403,7 @@ export function ChatMessage({
 export function LoadingIndicator() {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center justify-start gap-2 text-muted-foreground italic text-sm -mt-2">
+    <div className="flex items-center justify-start gap-2 text-muted-foreground italic text-sm -mt-4">
       <Loader2 className="h-4 w-4 animate-spin" />
       <p>{t("aiPanel.responding")}</p>
     </div>
