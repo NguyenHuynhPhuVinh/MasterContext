@@ -191,7 +191,7 @@
 }
 
 .markdown-content pre {
-  @apply bg-muted p-4 rounded-md overflow-x-auto;
+  @apply bg-muted p-4 rounded-md whitespace-pre-wrap break-words;
 }
 
 .markdown-content blockquote {
