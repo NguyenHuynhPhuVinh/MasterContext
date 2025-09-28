@@ -569,9 +569,9 @@ function App() {
               <ResizablePanel
                 id="project-panel"
                 order={1}
-                defaultSize={25}
+                defaultSize={20}
                 minSize={20}
-                maxSize={40}
+                maxSize={35}
               >
                 <SidebarPanel />
               </ResizablePanel>
@@ -583,9 +583,9 @@ function App() {
               <ResizablePanel
                 id="git-panel"
                 order={2}
-                defaultSize={25}
+                defaultSize={20}
                 minSize={20}
-                maxSize={40}
+                maxSize={35}
               >
                 <GitPanel />
               </ResizablePanel>
@@ -596,7 +596,7 @@ function App() {
           {!isSidebarVisible && !isGitPanelVisible && (
             <style>{`[data-slot="resizable-handle"] { display: none; }`}</style>
           )}
-          <ResizablePanel id="main-panel" order={3} defaultSize={75}>
+          <ResizablePanel id="main-panel" order={3} defaultSize={40}>
             <MainPanel />
           </ResizablePanel>
           {isAiPanelVisible && (
@@ -605,9 +605,9 @@ function App() {
               <ResizablePanel
                 id="ai-panel"
                 order={4}
-                defaultSize={25}
+                defaultSize={20}
                 minSize={20}
-                maxSize={40}
+                maxSize={35}
               >
                 <AIPanel />
               </ResizablePanel>

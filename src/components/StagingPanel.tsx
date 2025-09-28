@@ -1,5 +1,5 @@
 // src/components/StagingPanel.tsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
@@ -35,41 +35,31 @@ export function StagingPanel() {
   } = useAppActions();
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const prevChangeCountRef = useRef(0);
 
+  // All hooks must be called before any early return
   const totalStats = useMemo(() => {
     let added = 0;
     let removed = 0;
     for (const change of stagedFileChanges.values()) {
-      if (change.changeType === "create") {
-        // For new files, all lines are additions. We need to get the content.
-        // This is a simplification; a better approach would be to read the file content here.
-        // For now, we rely on the stats calculated at staging time.
-        added += change.stats.added;
-      } else if (change.changeType === "delete") {
-        removed += change.stats.removed;
-      } else if (change.changeType === "modify" && change.originalContent) {
-        // This part is tricky as we don't have the *current* content here without reading the file.
-        // We'll rely on the stats passed during staging.
-        added += change.stats.added;
-        removed += change.stats.removed;
-      }
+      added += change.stats.added;
+      removed += change.stats.removed;
     }
     return { added, removed, count: stagedFileChanges.size };
   }, [stagedFileChanges]);
 
-  if (totalStats.count === 0) {
-    if (isExpanded) {
-      setIsExpanded(false); // Auto-collapse when empty
+  useEffect(() => {
+    // Auto-collapse when all changes are gone
+    if (totalStats.count === 0 && isExpanded) {
+      setIsExpanded(false);
     }
+    // Update the ref for the next render
+    prevChangeCountRef.current = totalStats.count;
+  }, [totalStats.count, isExpanded]);
+
+  if (totalStats.count === 0) {
     return null;
   }
-
-  // Auto-expand when changes appear
-  useState(() => {
-    if (totalStats.count > 0 && !isExpanded) {
-      setIsExpanded(true);
-    }
-  });
 
   const StagedFileItem = ({
     filePath,
