@@ -116,7 +116,7 @@ export function WelcomeScene() {
                 </h2>
                 <ScrollArea className="max-h-64 w-full rounded-md border bg-background/50 p-2">
                   <div className="space-y-1">
-                    {recentPaths.map((path) => (
+                    {recentPaths.slice(0, 4).map((path) => (
                       <Button
                         key={path}
                         variant="ghost"

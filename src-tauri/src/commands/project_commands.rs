@@ -180,6 +180,10 @@ pub fn save_file_content(
 ) -> Result<(), String> {
     let root_path = std::path::Path::new(&root_path_str);
     let full_path = root_path.join(file_rel_path);
+    if let Some(parent_dir) = full_path.parent() {
+        fs::create_dir_all(parent_dir)
+            .map_err(|e| format!("Không thể tạo thư mục cha: {}", e))?;
+    }
     fs::write(full_path, content).map_err(|e| format!("Không thể ghi file: {}", e))
 }
 #[command]
