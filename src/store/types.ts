@@ -37,7 +37,6 @@ export interface FileMetadata {
   size: number;
   mtime: number;
   token_count: number;
-  links: string[];
   excluded_ranges?: [number, number][];
 }
 

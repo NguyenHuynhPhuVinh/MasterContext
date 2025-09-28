@@ -1,5 +1,4 @@
 // src-tauri/src/project_scanner.rs
-use crate::dependency_analyzer;
 use crate::group_updater;
 use crate::models::{
     CachedProjectData, FileMetadata, FileNode, ProjectStats,
@@ -57,8 +56,6 @@ pub fn perform_smart_scan_and_rebuild(
         .collect();
     // --- KẾT THÚC THAY ĐỔI ---
     
-    let aliases = Arc::new(dependency_analyzer::parse_config_aliases(root_path));
-
     // --- CẬP NHẬT: Xây dựng bộ lọc loại trừ ---
     let override_builder = {
         let mut builder = OverrideBuilder::new(root_path);
@@ -129,8 +126,6 @@ pub fn perform_smart_scan_and_rebuild(
         let root_path = root_path.to_path_buf();
         let old_metadata_cache = Arc::clone(&old_metadata_cache);
         let bpe = Arc::clone(&bpe);
-        let aliases = Arc::clone(&aliases);
-        let all_valid_files = Arc::clone(&all_valid_files);
         let window = window.clone();
         let final_non_analyzable_extensions = final_non_analyzable_extensions.clone();
 
@@ -153,14 +148,12 @@ pub fn perform_smart_scan_and_rebuild(
                     .unwrap_or(0);
 
                 let mut token_count = 0;
-                let mut links = Vec::new();
                 let mut excluded_ranges = None;
 
                 // Kiểm tra cache trước
                 if let Some(cached_meta) = old_metadata_cache.get(&relative_path_str) {
                     if cached_meta.size == metadata.len() && cached_meta.mtime == current_mtime {
                         token_count = cached_meta.token_count;
-                        links = cached_meta.links.clone();
                         excluded_ranges = cached_meta.excluded_ranges.clone();
                     }
                 }
@@ -169,13 +162,6 @@ pub fn perform_smart_scan_and_rebuild(
                 if token_count == 0 && !should_skip_analysis {
                     if let Ok(content) = fs::read_to_string(&absolute_path) {
                         token_count = bpe.encode_with_special_tokens(&content).len();
-
-                        links = dependency_analyzer::analyze_dependencies(
-                                &content,
-                                &relative_path,
-                                &all_valid_files,
-                                &aliases,
-                            );
                     }
                 }
 
@@ -183,7 +169,6 @@ pub fn perform_smart_scan_and_rebuild(
                     size: metadata.len(),
                     mtime: current_mtime,
                     token_count,
-                    links,
                     excluded_ranges,
                 };
 

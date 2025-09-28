@@ -3,7 +3,6 @@
 // Khai báo các module
 pub mod commands;
 pub mod git_utils;
-pub mod dependency_analyzer;
 pub mod group_updater;
 mod context_generator;
 mod file_cache;

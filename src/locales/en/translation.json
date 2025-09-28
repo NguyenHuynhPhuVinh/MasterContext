@@ -108,7 +108,6 @@
       "attachToAi": "Attach to AI",
       "copyContext": "Copy Context",
       "exportContext": "Export Context",
-      "crossSync": "Cross-sync",
       "delete": "Delete group"
     },
     "deleteDialog": {
@@ -145,7 +144,6 @@
     "description": "Select files and folders to include in the context.",
     "selectAll": "Select all",
     "deselectAll": "Deselect all",
-    "autoSelectLinked": "Auto-select linked files",
     "searchPlaceholder": "Search for a file or folder...",
     "filterExcludedTooltip": "Filter for files with excluded ranges",
     "unfilterExcludedTooltip": "Remove filter",

@@ -108,7 +108,6 @@
       "attachToAi": "Đính kèm vào AI",
       "copyContext": "Sao chép Ngữ cảnh",
       "exportContext": "Xuất Ngữ cảnh",
-      "crossSync": "Đồng bộ chéo",
       "delete": "Xóa nhóm"
     },
     "deleteDialog": {
@@ -145,7 +144,6 @@
     "description": "Chọn các tệp và thư mục để đưa vào ngữ cảnh.",
     "selectAll": "Chọn tất cả",
     "deselectAll": "Bỏ chọn tất cả",
-    "autoSelectLinked": "Tự động chọn file liên quan",
     "searchPlaceholder": "Tìm kiếm tệp hoặc thư mục...",
     "filterExcludedTooltip": "Lọc file có vùng bị loại trừ",
     "unfilterExcludedTooltip": "Bỏ lọc",

@@ -3,19 +3,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-// --- THÊM CÁC STRUCT MỚI Ở ĐẦU FILE ---
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct TsConfig {
-    pub compiler_options: Option<CompilerOptions>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CompilerOptions {
-    pub base_url: Option<String>,
-    pub paths: Option<BTreeMap<String, Vec<String>>>,
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -171,7 +158,6 @@ pub struct FileMetadata {
     pub size: u64,
     pub mtime: u64,
     pub token_count: usize,
-    pub links: Vec<String>,
     pub excluded_ranges: Option<Vec<(usize, usize)>>,
 }
 
