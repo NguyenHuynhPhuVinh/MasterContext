@@ -551,16 +551,19 @@ export const createAiChatActions: StateCreator<
           createdFilesInTurn,
         }
       );
-
-      let restoredStagedChanges = new Map();
-      if (restoredStagedChangesJson) {
+      let finalStagedChanges = new Map();
+      // Only restore staged changes if there are currently un-applied changes.
+      // If the user already applied/discarded them, we don't bring them back.
+      if (get().stagedFileChanges.size > 0 && restoredStagedChangesJson) {
         try {
           const parsedArray = JSON.parse(restoredStagedChangesJson);
           if (Array.isArray(parsedArray)) {
-            restoredStagedChanges = new Map(parsedArray);
+            finalStagedChanges = new Map(parsedArray);
           }
         } catch (e) {
           console.error("Failed to parse restored staged changes:", e);
+          // Fallback to empty if parsing fails
+          finalStagedChanges = new Map();
         }
       }
 
@@ -568,7 +571,7 @@ export const createAiChatActions: StateCreator<
       const newMessages = chatMessages.slice(0, turnStartIndex); // Cut before the user message
       set({
         chatMessages: newMessages,
-        stagedFileChanges: restoredStagedChanges,
+        stagedFileChanges: finalStagedChanges,
         currentTurnCheckpointId: null, // Reset this
         // Set the prompt and attachments for the UI to restore
         revertedPromptContent: userMessageToRevert.content,
