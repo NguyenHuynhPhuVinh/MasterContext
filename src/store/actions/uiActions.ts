@@ -35,7 +35,8 @@ export interface UIActions {
   ) => Promise<{
     success: boolean;
     message: string;
-    stats: { added: number; removed: number };
+    incrementalStats: { added: number; removed: number };
+    cumulativeStats: { added: number; removed: number };
   }>;
   discardStagedChange: (filePath: string) => void;
   discardAllStagedChanges: () => void;
@@ -236,12 +237,15 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       return {
         success: false,
         message: "Error: Project path not found.",
-        stats: { added: 0, removed: 0 },
+        incrementalStats: { added: 0, removed: 0 },
+        cumulativeStats: { added: 0, removed: 0 },
       };
     }
 
     try {
       let newPatch: string;
+      let incrementalStats: { added: number; removed: number };
+      let cumulativeStats: { added: number; removed: number };
       let finalPatchedContent: string | false;
       let originalContentForStaging: string;
       let changeTypeForStaging: "create" | "modify" | "delete";
@@ -265,6 +269,16 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
           end_line
         );
 
+        // Incremental patch: from intermediate to final
+        const incrementalPatch = createPatch(
+          file_path,
+          intermediateContent,
+          finalContent,
+          "",
+          ""
+        );
+        incrementalStats = calculateStatsFromPatch(incrementalPatch);
+
         newPatch = createPatch(
           file_path,
           existingChange.originalContent ?? "",
@@ -272,6 +286,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
           "",
           ""
         );
+        cumulativeStats = calculateStatsFromPatch(newPatch);
         finalPatchedContent = finalContent;
         originalContentForStaging = existingChange.originalContent ?? "";
         changeTypeForStaging = existingChange.changeType; // Type doesn't change
@@ -309,6 +324,8 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
           "",
           ""
         );
+        incrementalStats = calculateStatsFromPatch(newPatch);
+        cumulativeStats = incrementalStats;
       }
 
       // 2. Perform the actual file operation
@@ -325,21 +342,8 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
         });
       }
 
-      // 3. Calculate final diff stats for UI feedback
-      const finalDiff = createPatch(
-        "file",
-        originalContentForStaging,
-        finalPatchedContent as string,
-        "",
-        ""
-      );
-      let added = 0;
-      let removed = 0;
-      finalDiff.split("\n").forEach((line) => {
-        if (line.startsWith("+") && !line.startsWith("+++")) added++;
-        if (line.startsWith("-") && !line.startsWith("---")) removed++;
-      });
-      const stats = { added, removed };
+      // 3. Calculate CUMULATIVE diff stats for staging panel
+      // cumulativeStats already calculated above
 
       // 4. Stage the change for potential revert
       set((state) => {
@@ -348,7 +352,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
           originalContent: originalContentForStaging,
           patch: newPatch,
           changeType: changeTypeForStaging,
-          stats,
+          stats: cumulativeStats, // Store cumulative stats in the staging area
         });
         return { stagedFileChanges: newChanges };
       });
@@ -356,13 +360,15 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       return {
         success: true,
         message: `Successfully applied and staged change for ${file_path}.`,
-        stats,
+        incrementalStats, // Return incremental stats for chat UI
+        cumulativeStats,
       };
     } catch (e) {
       return {
         success: false,
         message: `Error during file operation for ${file_path}: ${String(e)}`,
-        stats: { added: 0, removed: 0 },
+        incrementalStats: { added: 0, removed: 0 },
+        cumulativeStats: { added: 0, removed: 0 },
       };
     }
   },
@@ -449,4 +455,15 @@ const applyLineChanges = (
   const endIndex = endLine ? endLine : startIndex;
   originalLines.splice(startIndex, endIndex - startIndex, ...newLines);
   return originalLines.join("\n");
+};
+
+// Helper to calculate stats from a patch string
+const calculateStatsFromPatch = (patch: string) => {
+  let added = 0;
+  let removed = 0;
+  patch.split("\n").forEach((line) => {
+    if (line.startsWith("+") && !line.startsWith("+++")) added++;
+    if (line.startsWith("-") && !line.startsWith("---")) removed++;
+  });
+  return { added, removed };
 };

@@ -1,47 +1,38 @@
 # Master Context: Trợ lý Xây dựng Ngữ cảnh Thông minh cho Lập trình viên
 
 [![Phiên bản](https://img.shields.io/badge/version-0.1.4-blue.svg)](package.json)
+[![Vấn đề GitHub](https://img.shields.io/github/issues/NguyenHuynhPhuVinh/MasterContext)](https://github.com/NguyenHuynhPhuVinh/MasterContext/issues)
+[![Ngôi sao GitHub](https://img.shields.io/github/stars/NguyenHuynhPhuVinh/MasterContext)](https://github.com/NguyenHuynhPhuVinh/MasterContext/stargazers)
+[![Fork GitHub](https://img.shields.io/github/forks/NguyenHuynhPhuVinh/MasterContext)](https://github.com/NguyenHuynhPhuVinh/MasterContext/network/members)
 [![Giấy phép](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Nền tảng](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://tauri.app)
 
-**Tiếng Việt | [English](./README.en.md)**
+**[English](./README.en.md) | Tiếng Việt**
 
----
 
-**Master Context** là một ứng dụng desktop mạnh mẽ được thiết kế để tối ưu hóa quy trình làm việc của bạn với các Mô hình Ngôn ngữ Lớn (LLM). Thay vì sao chép thủ công, ứng dụng cho phép bạn quét, lựa chọn và tạo ra các file ngữ cảnh (context) một cách thông minh và có tổ chức từ mã nguồn dự án, giúp tăng tốc độ phát triển và đảm bảo chất lượng đầu ra từ AI.
 
-![Giao diện Master Context](public/screenshot.png) <!-- Cần cập nhật ảnh chụp màn hình mới với giao diện đa panel -->
-
-## Tại sao lại là Master Context?
+## Tại sao lại là Master Context? 🚀
 
 Trong kỷ nguyên của AI tạo sinh, việc cung cấp ngữ cảnh (context) đầy đủ và chính xác về một dự án là yếu tố then chốt để nhận được kết quả chất lượng. Tuy nhiên, việc thủ công chọn lọc và sao chép nội dung từ hàng chục, thậm chí hàng trăm file là một quy trình tốn thời gian, dễ gây ra lỗi và thiếu sót.
 
-**Master Context** giải quyết triệt để vấn đề này bằng cách cung cấp một bộ công cụ toàn diện và tự động hóa, biến việc tạo ngữ cảnh từ một gánh nặng thành một lợi thế chiến lược.
+**Master Context** giải quyết triệt để vấn đề này bằng cách cung cấp một bộ công cụ toàn diện và tự động hóa, biến việc tạo ngữ cảnh từ một gánh nặng thành một lợi thế chiến lược cho lập trình viên hiện đại.
 
-## Tính năng Vượt trội
 
-Master Context được trang bị một loạt các tính năng mạnh mẽ, biến nó thành một trung tâm điều khiển cho quy trình làm việc của bạn.
+## Tại sao lại là Master Context?
+
+
+## Tính năng Chính 🚀
+
+Master Context được trang bị một loạt các tính năng mạnh mẽ, biến nó thành một trung tâm điều khiển cho quy trình làm việc của bạn với AI và mã nguồn.
 
 ### 1. Tích hợp Git Sâu (Deep Git Integration)
 
 - **Lịch sử Commit Trực quan:** Xem toàn bộ lịch sử commit của dự án ngay trong ứng dụng, với thông tin chi tiết về tác giả, ngày tháng và thông điệp.
 - **Tạo Ngữ cảnh/Diff từ Commit:** Xuất toàn bộ ngữ cảnh các file đã thay đổi trong một commit hoặc chỉ xuất file `.diff` để review code hoặc hỏi AI về các thay đổi cụ thể.
-- **Checkout Trạng thái:** Quay về trạng thái của một commit bất kỳ để kiểm tra code tại một thời điểm trong quá khứ (Detached HEAD).
+- **Checkout Trạng thái:** Quay về trạng thái của một commit bất kỳ để kiểm tra code tại một thời điểm trong quá khứ (Detached HEAD), giúp phân tích lịch sử dễ dàng.
 - **Hiển thị Trạng thái File:** Cây thư mục sẽ đánh dấu rõ ràng các file đã bị thay đổi (`M`), mới được thêm (`A`), hoặc đã bị xóa (`D`) so với commit gần nhất.
-- **Clone & Mở:** Dán URL của một kho Git vào màn hình chào mừng để clone và bắt đầu làm việc ngay lập tức.
+- **Clone & Mở:** Dán URL của một kho Git vào màn hình chào mừng để clone và bắt đầu làm việc ngay lập tức, tiết kiệm thời gian setup.
 
-### 2. Trình xem & Vá lỗi File Tích hợp (Integrated File Viewer & Patcher)
-
-- **Xem Nhanh Nội dung:** Nhấp vào bất kỳ file nào để xem nội dung của nó trong một panel riêng biệt mà không cần rời khỏi ứng dụng.
-- **Áp dụng Diff/Patch:** Dán nội dung của một file vá lỗi (`.diff`, `.patch`) vào ứng dụng để xem trước các thay đổi sẽ được áp dụng lên file gốc như thế nào.
-- **Loại trừ Mã Nguồn:** Dễ dàng bôi đen và loại trừ các đoạn code không mong muốn khỏi ngữ cảnh mà không cần sửa file gốc.
-- **Lưu Thay đổi:** Sau khi xem trước, bạn có thể chọn áp dụng vĩnh viễn các thay đổi từ file vá lỗi vào file gốc trên đĩa.
-
-### 3. Quản lý & Phân tích Dự án Thông minh
-
-- **Quét Song song Hiệu suất cao**: Tận dụng toàn bộ sức mạnh của CPU đa lõi, Master Context quét và phân tích dự án của bạn với tốc độ vượt trội.
-- **Quét lại Siêu tốc (Smart Scan)**: Sử dụng cơ chế cache siêu dữ liệu (metadata caching) dựa trên thời gian sửa đổi và kích thước file, ứng dụng chỉ xử lý những tệp đã thay đổi, giúp các lần quét lại diễn ra gần như tức thì.
-- **Tôn trọng `.gitignore`**: Tự động bỏ qua các tệp và thư mục được định nghĩa trong file `.gitignore` của dự án.
 - **Bộ lọc Loại trừ Tùy chỉnh**: Cho phép bạn định nghĩa các mẫu glob (ví dụ: `dist/`, `*.log`, `node_modules/`) để loại trừ thêm các file không mong muốn, áp dụng cho toàn bộ dự án.
 - **Bỏ qua Phân tích Nội dung**: Tùy chỉnh các loại file (ví dụ: `.png`, `.lock`, `.svg`) để chỉ quét siêu dữ liệu mà không cần đọc nội dung, giúp tăng tốc độ quét đáng kể cho các dự án lớn.
 
@@ -58,19 +49,13 @@ Master Context được trang bị một loạt các tính năng mạnh mẽ, bi
 - **Hỗ trợ Alias Path**: Đọc và phân giải các đường dẫn alias từ `tsconfig.json` hoặc `jsconfig.json` (ví dụ: `@/*`, `~/*`), hiểu được cấu trúc dự án hiện đại.
 - **Đồng bộ chéo (Cross-sync)**: Khi được kích hoạt cho một nhóm, tính năng này sẽ tự động tìm và thêm các tệp phụ thuộc vào nhóm mỗi khi bạn quét lại dự án, đảm bảo ngữ cảnh luôn đầy đủ và không bỏ sót.
 
-### 6. Xuất File Mạnh mẽ & Linh hoạt
 
-- **Sao chép vào Clipboard**: Nhanh chóng sao chép toàn bộ ngữ cảnh của một nhóm hoặc cả dự án vào clipboard chỉ với một cú nhấp chuột.
-- **Tùy chọn Cây thư mục**: Lựa chọn xuất ngữ cảnh với cây thư mục tối giản (chỉ chứa các file đã chọn) hoặc cây thư mục đầy đủ của dự án.
-- **Tùy chỉnh Nội dung**:
-  - **Thêm Số dòng**: Tự động thêm số dòng vào đầu mỗi dòng mã.
-  - **Loại bỏ Chú thích**: Giảm thiểu số token bằng cách tự động xóa bỏ các khối comment (`//`, `/* */`, `#`, `<!-- -->`).
-  - **Loại bỏ Debug Logs**: Tự động xóa các câu lệnh gỡ lỗi như `console.log`, `dbg!`, `println!`.
-  - **Xuất Siêu nén (Super Compressed)**: Nén toàn bộ nội dung file thành một dòng duy nhất và đặt ngay cạnh tên file trong cây thư mục—lý tưởng cho việc review tổng quan nhanh.
-- **Loại trừ File theo Đuôi mở rộng**: Dễ dàng loại bỏ các loại file không mong muốn (ví dụ: `.png`, `.svg`) khỏi file ngữ cảnh cuối cùng.
-- **Văn bản Luôn Áp dụng**: Định nghĩa một đoạn văn bản (ví dụ: một chỉ thị, một câu hỏi) sẽ tự động được thêm vào cuối mỗi file ngữ cảnh được xuất ra.
+### 2. Trình xem & Vá lỗi File Tích hợp 📄
 
-### 7. Tối ưu hóa Luồng làm việc
+- **Xem Nhanh Nội dung:** Nhấp vào bất kỳ file nào để xem nội dung của nó trong một panel riêng biệt mà không cần rời khỏi ứng dụng, giúp review code nhanh chóng.
+- **Áp dụng Diff/Patch:** Dán nội dung của một file vá lỗi (`.diff`, `.patch`) vào ứng dụng để xem trước các thay đổi sẽ được áp dụng lên file gốc như thế nào, hỗ trợ tích hợp với các công cụ CI/CD.
+- **Loại trừ Mã Nguồn:** Dễ dàng bôi đen và loại trừ các đoạn code không mong muốn khỏi ngữ cảnh mà không cần sửa file gốc, giữ nguyên tính toàn vẹn dữ liệu.
+- **Lưu Thay đổi:** Sau khi xem trước, bạn có thể chọn áp dụng vĩnh viễn các thay đổi từ file vá lỗi vào file gốc trên đĩa, an toàn và dễ dàng.
 
 - **Theo dõi Thời gian thực (Live Watch)**: Tự động quét lại dự án khi phát hiện có sự thay đổi trong hệ thống tệp, giữ cho dữ liệu của bạn luôn được cập nhật.
 - **Đồng bộ Tự động (Auto-sync)**: Tự động xuất file ngữ cảnh của các nhóm và toàn bộ dự án ra một thư mục được chỉ định mỗi khi có thay đổi, tích hợp liền mạch với các công cụ khác.
@@ -78,26 +63,16 @@ Master Context được trang bị một loạt các tính năng mạnh mẽ, bi
 
 ### 8. Trải nghiệm Người dùng Hiện đại & Linh hoạt
 
-- **Giao diện Trực quan**: Được xây dựng với Shadcn UI và Tailwind CSS, mang lại trải nghiệm mượt mà và dễ sử dụng.
-- **Chủ đề Sáng/Tối (Light/Dark Mode)**: Chuyển đổi giao diện để phù hợp với môi trường làm việc của bạn.
-- **Bảng điều khiển Linh hoạt**: Giao diện đa panel (Dự án, Git, Editor) có thể thay đổi kích thước và ẩn/hiện, cho phép bạn tùy chỉnh không gian làm việc theo ý muốn.
-- **Thông báo Hệ thống**: Nhận phản hồi tức thì cho các hành động quan trọng như quét xong, sao chép thành công, hoặc khi có lỗi xảy ra.
 
-## Công nghệ Sử dụng
 
-- **Frontend**:
+### 3. Quản lý & Phân tích Dự án Thông minh ⚡
 
-  - **Framework**: [React](https://reactjs.org/), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/)
-  - **Quản lý State**: [Zustand](https://github.com/pmndrs/zustand)
-  - **UI**: [Shadcn UI](https://ui.shadcn.com/), [Tailwind CSS](https://tailwindcss.com/)
-  - **Diffing**: `diff`
-  - **Thông báo**: [Tauri Notification Plugin](https://tauri.app/v1/api/js/plugins/notification/)
+- **Quét Song song Hiệu suất cao**: Tận dụng toàn bộ sức mạnh của CPU đa lõi, Master Context quét và phân tích dự án của bạn với tốc độ vượt trội, lý tưởng cho các dự án lớn.
+- **Quét lại Siêu tốc (Smart Scan)**: Sử dụng cơ chế cache siêu dữ liệu (metadata caching) dựa trên thời gian sửa đổi và kích thước file, ứng dụng chỉ xử lý những tệp đã thay đổi, giúp các lần quét lại diễn ra gần như tức thì.
+- **Tôn trọng `.gitignore`**: Tự động bỏ qua các tệp và thư mục được định nghĩa trong file `.gitignore` của dự án, tránh lãng phí tài nguyên.
+- **Bộ lọc Loại trừ Tùy chỉnh**: Cho phép bạn định nghĩa các mẫu glob (ví dụ: `dist/`, `*.log`, `node_modules/`) để loại trừ thêm các file không mong muốn, áp dụng cho toàn bộ dự án.
+- **Bỏ qua Phân tích Nội dung**: Tùy chỉnh các loại file (ví dụ: `.png`, `.lock`, `.svg`) để chỉ quét siêu dữ liệu mà không cần đọc nội dung, giúp tăng tốc độ quét đáng kể cho các dự án lớn.
 
-- **Backend (Rust)**:
-  - **Framework**: [Tauri](https://tauri.app/)
-  - **Quét Hệ thống Tệp**: `ignore`
-  - **Theo dõi Thay đổi**: `notify`
-  - **Phân tích Phụ thuộc**: `regex`
   - **Đếm Token**: `tiktoken-rs`
   - **Xử lý Dữ liệu**: `serde`, `serde_json`
   - **Tạo ID Dự án**: `sha2`

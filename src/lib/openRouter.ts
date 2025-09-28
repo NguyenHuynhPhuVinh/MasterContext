@@ -155,12 +155,12 @@ export const handleToolCalls = async (
       toolSucceeded = result.success;
       toolResultContent = result.message;
 
-      // Update the message in the UI with diff stats from the result
+      // Update the message in the UI with the INCREMENTAL diff stats from the result
       setState((state: AppState) => {
         const newMessages = [...state.chatMessages];
         const lastMessage = newMessages[newMessages.length - 1];
         if (lastMessage?.role === "assistant" && lastMessage.tool_calls) {
-          lastMessage.tool_calls[0].diffStats = result.stats;
+          lastMessage.tool_calls[0].diffStats = result.incrementalStats;
         }
         return { chatMessages: newMessages };
       });
