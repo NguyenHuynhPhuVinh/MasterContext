@@ -23,17 +23,24 @@ export interface AiChatActions {
   sendChatMessage: (prompt: string) => Promise<void>;
   fetchAiResponse: () => Promise<void>;
   stopAiResponse: () => void;
-  revertToTurnCheckpoint: (checkpointId: string) => Promise<void>;
+  revertToTurnCheckpoint: (
+    checkpointId: string,
+    isSilentRevert?: boolean
+  ) => Promise<void>;
   // New actions for confirmation flow
   regenerateResponse: (fromIndex: number) => void;
   confirmRevert: () => void;
   declineRevertAndProceed: () => void;
   cancelRevertConfirmation: () => void;
   // Internal actions that contain the original logic
-  _internal_regenerateResponse: (fromIndex: number) => Promise<void>;
+  _internal_regenerateResponse: (
+    fromIndex: number,
+    skipCheckpointDeletion?: boolean
+  ) => Promise<void>;
   _internal_editAndResubmit: (
     prompt: string,
-    fromIndex: number
+    fromIndex: number,
+    skipCheckpointDeletion?: boolean
   ) => Promise<void>;
 }
 
@@ -116,7 +123,11 @@ export const createAiChatActions: StateCreator<
         });
       } else {
         // Otherwise, proceed directly
-        await actions._internal_editAndResubmit(prompt, editingMessageIndex);
+        await actions._internal_editAndResubmit(
+          prompt,
+          editingMessageIndex,
+          false
+        );
       }
       // We return here because the dialog flow or the internal function will handle the rest.
       return;
@@ -429,7 +440,7 @@ export const createAiChatActions: StateCreator<
       });
     } else {
       // No checkpoint, proceed directly
-      actions._internal_regenerateResponse(fromIndex);
+      actions._internal_regenerateResponse(fromIndex, false);
     }
   },
 
@@ -440,29 +451,23 @@ export const createAiChatActions: StateCreator<
     // Close the dialog immediately
     set({ revertConfirmation: null });
 
-    // Perform the async operations in the background
+    // Perform the async operations in the background.
+    // The key change is to call the internal actions *after* the silent revert.
+    // These internal actions will handle the message truncation and re-sending.
     (async () => {
-      const { type, checkpointId } = revertConfirmation;
+      const { type, checkpointId, fromIndex, newPromptForEdit } =
+        revertConfirmation;
 
-      // This action handles file revert, rescan, and message truncation
-      await actions.revertToTurnCheckpoint(checkpointId);
-
-      // After revert, the state is ready for the next step.
-      // `revertToTurnCheckpoint` sets `revertedPromptContent` and `aiAttachedFiles`.
-      const { revertedPromptContent } = get();
+      await actions.revertToTurnCheckpoint(checkpointId, true); // Perform a silent revert
 
       if (type === "regenerate") {
-        // For regeneration, we immediately send the original prompt again.
-        if (revertedPromptContent) {
-          // The attachments are already in the state from the revert action.
-          await actions.sendChatMessage(revertedPromptContent);
-        }
-      } else {
-        // 'edit'
-        const newPrompt = revertConfirmation.newPromptForEdit;
-        if (newPrompt) {
-          await actions.sendChatMessage(newPrompt);
-        }
+        await actions._internal_regenerateResponse(fromIndex, true);
+      } else if (type === "edit" && newPromptForEdit) {
+        await actions._internal_editAndResubmit(
+          newPromptForEdit,
+          fromIndex,
+          true
+        );
       }
     })();
   },
@@ -478,9 +483,9 @@ export const createAiChatActions: StateCreator<
 
     // Start the long-running process without waiting for it to finish
     if (type === "regenerate") {
-      actions._internal_regenerateResponse(fromIndex);
+      actions._internal_regenerateResponse(fromIndex, false);
     } else if (type === "edit" && newPromptForEdit) {
-      actions._internal_editAndResubmit(newPromptForEdit, fromIndex);
+      actions._internal_editAndResubmit(newPromptForEdit, fromIndex, false);
     }
   },
 
@@ -489,7 +494,10 @@ export const createAiChatActions: StateCreator<
     set({ editingMessageIndex: null, revertConfirmation: null });
   },
 
-  _internal_regenerateResponse: async (fromIndex: number) => {
+  _internal_regenerateResponse: async (
+    fromIndex: number,
+    skipCheckpointDeletion = false
+  ) => {
     // Dừng mọi phản hồi đang diễn ra trước để tránh race condition.
     if (get().isAiPanelLoading) {
       get().actions.stopAiResponse();
@@ -515,15 +523,17 @@ export const createAiChatActions: StateCreator<
 
     // Discard old checkpoint since we are not reverting
     const userMessage = chatMessages[lastUserMessageIndex];
-    if (userMessage.checkpointId && rootPath && activeProfile) {
-      try {
-        await invoke("delete_checkpoint", {
-          projectPath: rootPath,
-          profileName: activeProfile,
-          checkpointId: userMessage.checkpointId,
-        });
-      } catch (e) {
-        console.error("Failed to discard checkpoint:", e);
+    if (!skipCheckpointDeletion) {
+      if (userMessage.checkpointId && rootPath && activeProfile) {
+        try {
+          await invoke("delete_checkpoint", {
+            projectPath: rootPath,
+            profileName: activeProfile,
+            checkpointId: userMessage.checkpointId,
+          });
+        } catch (e) {
+          console.error("Failed to discard checkpoint:", e);
+        }
       }
     }
     set({ currentTurnCheckpointId: null });
@@ -548,7 +558,11 @@ export const createAiChatActions: StateCreator<
     }
   },
 
-  _internal_editAndResubmit: async (newPrompt: string, fromIndex: number) => {
+  _internal_editAndResubmit: async (
+    newPrompt: string,
+    fromIndex: number,
+    skipCheckpointDeletion = false
+  ) => {
     set({ editingMessageIndex: null }); // Reset editing state
     // Dừng mọi phản hồi đang diễn ra trước
     if (get().isAiPanelLoading) {
@@ -558,15 +572,17 @@ export const createAiChatActions: StateCreator<
     const { chatMessages, aiAttachedFiles, rootPath, activeProfile } = get();
 
     const originalMessage = chatMessages[fromIndex];
-    if (originalMessage.checkpointId && rootPath && activeProfile) {
-      try {
-        await invoke("delete_checkpoint", {
-          projectPath: rootPath,
-          profileName: activeProfile,
-          checkpointId: originalMessage.checkpointId,
-        });
-      } catch (e) {
-        console.error("Failed to discard checkpoint:", e);
+    if (!skipCheckpointDeletion) {
+      if (originalMessage.checkpointId && rootPath && activeProfile) {
+        try {
+          await invoke("delete_checkpoint", {
+            projectPath: rootPath,
+            profileName: activeProfile,
+            checkpointId: originalMessage.checkpointId,
+          });
+        } catch (e) {
+          console.error("Failed to discard checkpoint:", e);
+        }
       }
     }
     set({ currentTurnCheckpointId: null });
@@ -596,7 +612,10 @@ export const createAiChatActions: StateCreator<
     await get().actions.saveCurrentChatSession(finalMessages);
     await get().actions.fetchAiResponse();
   },
-  revertToTurnCheckpoint: async (checkpointId: string) => {
+  revertToTurnCheckpoint: async (
+    checkpointId: string,
+    isSilentRevert = false
+  ) => {
     const { rootPath, activeProfile, chatMessages, actions, isAiPanelLoading } =
       get();
 
@@ -669,17 +688,19 @@ export const createAiChatActions: StateCreator<
       }
 
       // Truncate chat history
-      const newMessages = chatMessages.slice(0, turnStartIndex); // Cut before the user message
-      set({
-        chatMessages: newMessages,
-        stagedFileChanges: finalStagedChanges,
-        currentTurnCheckpointId: null, // Reset this
-        // Set the prompt and attachments for the UI to restore
-        revertedPromptContent: userMessageToRevert.content,
-        aiAttachedFiles: userMessageToRevert.attachedFiles || [],
-      });
+      if (!isSilentRevert) {
+        const newMessages = chatMessages.slice(0, turnStartIndex); // Cut before the user message
+        set({
+          chatMessages: newMessages,
+          stagedFileChanges: finalStagedChanges,
+          currentTurnCheckpointId: null, // Reset this
+          revertedPromptContent: userMessageToRevert.content,
+          aiAttachedFiles: userMessageToRevert.attachedFiles || [],
+        });
 
-      await actions.saveCurrentChatSession(newMessages);
+        await actions.saveCurrentChatSession(newMessages);
+      }
+
       await actions.rescanProject();
     } catch (e) {
       console.error("Failed to revert to checkpoint:", e);
