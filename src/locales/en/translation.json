@@ -182,6 +182,9 @@
       "title": "Confirm Clear All History?",
       "description": "This action will permanently delete ALL chat sessions. This cannot be undone."
     },
+    "editPrompt": "Edit and resubmit",
+    "cancelEdit": "Cancel edit",
+    "editingMode": "Editing a previous message...",
     "regenerate": "Regenerate response",
     "sessionTokensTooltip": "Session Tokens / Max Context",
     "modes": {

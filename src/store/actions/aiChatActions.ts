@@ -24,7 +24,53 @@ export interface AiChatActions {
   fetchAiResponse: () => Promise<void>;
   stopAiResponse: () => void;
   regenerateResponse: (fromIndex: number) => Promise<void>;
+  editAndResubmit: (prompt: string, fromIndex: number) => Promise<void>;
 }
+
+/**
+ * (Private helper) Generates the hidden context string from attached items.
+ * @param get A Zustand `get` function to access the store's state.
+ * @param items The array of items to process.
+ * @returns A promise that resolves to the combined context string or undefined.
+ */
+const _generateHiddenContent = async (
+  get: () => AppState,
+  items: AttachedItem[]
+): Promise<string | undefined> => {
+  const { rootPath, activeProfile } = get();
+  if (items.length === 0 || !rootPath || !activeProfile) {
+    return undefined;
+  }
+
+  const contentPromises = items.map(async (item: AttachedItem) => {
+    if (item.type === "folder") {
+      const treeStructure = await invoke<string>("generate_directory_tree", {
+        rootPathStr: rootPath,
+        dirRelPath: item.id,
+      });
+      return `--- START OF DIRECTORY STRUCTURE FOR ${item.name} ---\n${treeStructure}\n--- END OF DIRECTORY STRUCTURE FOR ${item.name} ---`;
+    } else if (item.type === "group") {
+      const groupContext = await invoke<string>(
+        "generate_group_context_for_ai",
+        {
+          rootPathStr: rootPath,
+          profileName: activeProfile,
+          groupId: item.id,
+        }
+      );
+      return `--- START OF CONTEXT FOR GROUP "${item.name}" ---\n${groupContext}\n--- END OF CONTEXT FOR GROUP "${item.name}" ---`;
+    } else {
+      // 'file'
+      const fileContent = await invoke<string>("get_file_content", {
+        rootPathStr: rootPath,
+        fileRelPath: item.id,
+      });
+      return `--- START OF FILE ${item.name} ---\n${fileContent}\n--- END OF FILE ${item.name} ---`;
+    }
+  });
+  const allContents = await Promise.all(contentPromises);
+  return allContents.join("\n\n");
+};
 
 export const createAiChatActions: StateCreator<
   AppState,
@@ -36,12 +82,18 @@ export const createAiChatActions: StateCreator<
     const {
       openRouterApiKey,
       googleApiKey,
-      aiAttachedFiles,
       rootPath,
       allAvailableModels,
       selectedAiModel,
+      editingMessageIndex,
     } = get();
+
+    if (editingMessageIndex !== null) {
+      get().actions.editAndResubmit(prompt, editingMessageIndex);
+      return;
+    }
     const model = allAvailableModels.find((m) => m.id === selectedAiModel);
+    const aiAttachedFiles = get().aiAttachedFiles;
 
     if (
       (model?.provider === "openrouter" && !openRouterApiKey) ||
@@ -84,43 +136,7 @@ export const createAiChatActions: StateCreator<
         }));
       }
 
-      let hiddenContent: string | undefined = undefined;
-      if (aiAttachedFiles.length > 0 && rootPath) {
-        const contentPromises = aiAttachedFiles.map(
-          async (item: AttachedItem) => {
-            if (item.type === "folder") {
-              const treeStructure = await invoke<string>(
-                "generate_directory_tree",
-                {
-                  rootPathStr: rootPath,
-                  dirRelPath: item.id, // path is in id
-                }
-              );
-              return `--- START OF DIRECTORY STRUCTURE FOR ${item.name} ---\n${treeStructure}\n--- END OF DIRECTORY STRUCTURE FOR ${item.name} ---`;
-            } else if (item.type === "group") {
-              const groupContext = await invoke<string>(
-                "generate_group_context_for_ai",
-                {
-                  rootPathStr: rootPath,
-                  profileName: get().activeProfile,
-                  groupId: item.id,
-                }
-              );
-              return `--- START OF CONTEXT FOR GROUP "${item.name}" ---\n${groupContext}\n--- END OF CONTEXT FOR GROUP "${item.name}" ---`;
-            } else {
-              // 'file'
-              const fileContent = await invoke<string>("get_file_content", {
-                rootPathStr: rootPath,
-                fileRelPath: item.id, // path is in id
-              });
-              return `--- START OF FILE ${item.name} ---\n${fileContent}\n--- END OF FILE ${item.name} ---`;
-            }
-          }
-        );
-
-        const allContents = await Promise.all(contentPromises);
-        hiddenContent = allContents.join("\n\n");
-      }
+      const hiddenContent = await _generateHiddenContent(get, aiAttachedFiles);
       const newUserMessage: ChatMessage = {
         role: "user",
         content: prompt,
@@ -387,6 +403,41 @@ export const createAiChatActions: StateCreator<
       console.error("Error during regeneration:", error);
       set({ isAiPanelLoading: false });
     }
+  },
+  editAndResubmit: async (newPrompt, fromIndex) => {
+    // Dừng mọi phản hồi đang diễn ra trước
+    if (get().isAiPanelLoading) {
+      get().actions.stopAiResponse();
+    }
+
+    const { chatMessages } = get();
+
+    // Cắt lịch sử chat đến ngay trước tin nhắn đang được sửa
+    const truncatedMessages = chatMessages.slice(0, fromIndex);
+    const messageToEdit = chatMessages[fromIndex];
+
+    // Chuẩn bị tin nhắn mới với nội dung đã sửa
+    // Sử dụng lại file đính kèm từ tin nhắn cũ nếu có
+    const attachments = messageToEdit.attachedFiles || [];
+    const hiddenContent = await _generateHiddenContent(get, attachments);
+
+    const newUserMessage: ChatMessage = {
+      role: "user",
+      content: newPrompt,
+      hiddenContent,
+      attachedFiles: attachments,
+    };
+
+    const finalMessages = [...truncatedMessages, newUserMessage];
+
+    set({
+      isAiPanelLoading: true,
+      chatMessages: finalMessages,
+      editingMessageIndex: null, // Thoát chế độ edit
+    });
+
+    await get().actions.saveCurrentChatSession(finalMessages);
+    await get().actions.fetchAiResponse();
   },
 });
 

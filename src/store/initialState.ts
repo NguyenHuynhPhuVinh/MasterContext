@@ -75,6 +75,7 @@ export const initialState = {
   systemPrompt: "",
   streamResponse: true,
   selectedAiModel: "openai/gpt-3.5-turbo",
+  editingMessageIndex: null,
   aiAttachedFiles: [] as AttachedItem[],
 };
 

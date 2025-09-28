@@ -26,6 +26,8 @@ interface ChatMessageProps {
   onRegenerate: (index: number) => void;
   isAiPanelLoading: boolean;
   isLastAssistantMessageInTurn: boolean;
+  editingMessageIndex: number | null;
+  onStartEdit: (index: number) => void;
 }
 
 export function ChatMessage({
@@ -34,6 +36,8 @@ export function ChatMessage({
   onRegenerate,
   isAiPanelLoading,
   isLastAssistantMessageInTurn,
+  editingMessageIndex,
+  onStartEdit,
 }: ChatMessageProps) {
   const { t } = useTranslation();
 
@@ -328,10 +332,18 @@ export function ChatMessage({
         "group flex w-full items-start gap-2",
         message.role === "user" ? "justify-end" : "justify-start"
       )}
+      // Kích hoạt chỉnh sửa khi click vào tin nhắn của user
+      onClick={
+        message.role === "user" && !message.hidden
+          ? () => onStartEdit(index)
+          : undefined
+      }
     >
       <div
         className={cn(
-          "flex flex-col",
+          "flex flex-col transition-all",
+          editingMessageIndex === index &&
+            "rounded-lg ring-2 ring-primary ring-offset-2 ring-offset-background",
           message.role === "user" ? "items-end" : "items-start"
         )}
       >

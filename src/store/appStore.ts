@@ -139,6 +139,7 @@ export interface AppState {
   systemPrompt: string;
   streamResponse: boolean;
   selectedAiModel: string;
+  editingMessageIndex: number | null;
   aiAttachedFiles: AttachedItem[];
 
   actions: ProjectActions &

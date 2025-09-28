@@ -44,6 +44,7 @@ export function AIPanel() {
     activeChatSession,
     aiAttachedFiles,
     stagedFileChanges,
+    editingMessageIndex,
   } = useAppStore(
     useShallow((state) => ({
       chatMessages: state.chatMessages,
@@ -55,6 +56,7 @@ export function AIPanel() {
       activeChatSession: state.activeChatSession,
       aiAttachedFiles: state.aiAttachedFiles,
       stagedFileChanges: state.stagedFileChanges,
+      editingMessageIndex: state.editingMessageIndex,
     }))
   );
 
@@ -62,6 +64,13 @@ export function AIPanel() {
   const [view, setView] = useState<"chat" | "history">("chat");
   const [isStagingDialogOpen, setIsStagingDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [localEditingMessageIndex, setLocalEditingMessageIndex] = useState<
+    number | null
+  >(null);
+
+  useEffect(() => {
+    useAppStore.setState({ editingMessageIndex: localEditingMessageIndex });
+  }, [localEditingMessageIndex]);
 
   useEffect(() => {
     loadChatSessions();
@@ -98,6 +107,19 @@ export function AIPanel() {
     }
   };
 
+  const handleStartEdit = (index: number) => {
+    const messageToEdit = chatMessages[index];
+    if (messageToEdit && messageToEdit.role === "user") {
+      setPrompt(messageToEdit.content || "");
+      setLocalEditingMessageIndex(index);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setLocalEditingMessageIndex(null);
+    setPrompt(""); // Clear the input when cancelling edit
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !isAiPanelLoading) {
       e.preventDefault();
@@ -115,6 +137,8 @@ export function AIPanel() {
         <ChatMessageList
           chatMessages={chatMessages}
           isAiPanelLoading={isAiPanelLoading}
+          editingMessageIndex={editingMessageIndex}
+          onStartEdit={handleStartEdit}
         />
         <AIPromptInput
           prompt={prompt}
@@ -130,6 +154,8 @@ export function AIPanel() {
           models={aiModels}
           selectedModel={selectedAiModel}
           setSelectedModel={setSelectedAiModel}
+          isEditing={editingMessageIndex !== null}
+          onCancelEdit={handleCancelEdit}
         />
       </>
     );

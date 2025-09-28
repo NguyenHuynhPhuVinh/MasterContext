@@ -182,6 +182,9 @@
       "title": "Xác nhận xóa toàn bộ lịch sử?",
       "description": "Hành động này sẽ xóa vĩnh viễn TẤT CẢ các cuộc trò chuyện. Không thể hoàn tác."
     },
+    "editPrompt": "Chỉnh sửa và gửi lại",
+    "cancelEdit": "Hủy chỉnh sửa",
+    "editingMode": "Đang chỉnh sửa tin nhắn cũ...",
     "regenerate": "Tạo lại phản hồi",
     "sessionTokensTooltip": "Token đã dùng / Tối đa",
     "modes": {

@@ -11,11 +11,15 @@ import { useAppActions } from "@/store/appStore";
 interface ChatMessageListProps {
   chatMessages: ChatMessageType[];
   isAiPanelLoading: boolean;
+  editingMessageIndex: number | null;
+  onStartEdit: (index: number) => void;
 }
 
 export function ChatMessageList({
   chatMessages,
   isAiPanelLoading,
+  editingMessageIndex,
+  onStartEdit,
 }: ChatMessageListProps) {
   const { regenerateResponse } = useAppActions();
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -93,6 +97,8 @@ export function ChatMessageList({
               isLastAssistantMessageInTurn={lastAssistantMessageIndices.has(
                 index
               )}
+              editingMessageIndex={editingMessageIndex}
+              onStartEdit={onStartEdit}
             />
           )
         )}
