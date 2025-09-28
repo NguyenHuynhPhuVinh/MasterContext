@@ -3,7 +3,7 @@ import { useState, useRef, useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
-import { diffLines } from "diff";
+import { applyPatch, diffLines } from "diff";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +59,18 @@ export function EditorPanel() {
 
   const activeChange =
     activeEditorFile && stagedFileChanges.get(activeEditorFile);
+
+  const patchedContent = useMemo(() => {
+    if (!activeChange) {
+      return null;
+    }
+    // Apply the cumulative patch to the ORIGINAL content to get the final state
+    const result = applyPatch(
+      activeChange.originalContent ?? "",
+      activeChange.patch
+    );
+    return result === false ? null : result;
+  }, [activeChange]);
 
   const language = useMemo(() => {
     if (!activeEditorFile) return "plaintext";
@@ -315,23 +327,22 @@ export function EditorPanel() {
     if (activeChange) {
       switch (activeChange.changeType) {
         case "create": {
-          // For a new file, the current content on disk is the "added" content.
-          return (activeEditorFileContent ?? "")
-            .split("\n")
-            .map((line, index) => (
-              <div key={index} className="flex bg-green-500/10">
-                <span className="w-8 text-right pr-2 select-none text-muted-foreground">
-                  +
-                </span>
-                <span className="flex-1">
-                  <HighlightedCode code={line} lang={language} />
-                </span>
-              </div>
-            ));
+          // The patched content is the full content of the new file
+          const newContent = applyPatch("", activeChange.patch) as string;
+          return newContent.split("\n").map((line, index) => (
+            <div key={index} className="flex bg-green-500/10">
+              <span className="w-8 text-right pr-2 select-none text-muted-foreground">
+                +
+              </span>
+              <span className="flex-1">
+                <HighlightedCode code={line} lang={language} />
+              </span>
+            </div>
+          ));
         }
         case "delete": {
-          // For a deleted file, the "original content" is what was removed.
-          return (activeChange.originalContent ?? "")
+          // For a deleted file, the "original content" stored in the change is what was removed.
+          return (activeChange.originalContent ?? "") // Use original content for display
             .split("\n") // Use original content for display
             .map((line, index) => (
               <div key={index} className="flex bg-red-500/10">
@@ -345,13 +356,11 @@ export function EditorPanel() {
             ));
         }
         case "modify": {
-          const original = activeChange.originalContent;
-          const current = activeEditorFileContent;
+          if (patchedContent === null || activeChange.originalContent === null)
+            return null;
 
-          if (original === null || current === null) return null;
-
-          // Diff the stored original content against the current content on disk
-          const diff = diffLines(original, current);
+          // Diff the stored original content against the final patched content
+          const diff = diffLines(activeChange.originalContent, patchedContent);
 
           let lineNum = 1;
           return diff.flatMap((part, index) => {
@@ -392,6 +401,7 @@ export function EditorPanel() {
       language,
       isEditorLoading,
       activeChange,
+      patchedContent,
     ]
   );
 

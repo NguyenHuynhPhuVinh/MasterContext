@@ -82,9 +82,10 @@ export interface AppState {
   stagedFileChanges: Map<
     string,
     {
-      originalContent: string | null; // null for new files
+      originalContent: string | null; // The content before ANY staged changes
+      patch: string; // The cumulative patch from the original content
       changeType: "create" | "modify" | "delete";
-      stats: { added: number; removed: number }; // For UI display
+      stats: { added: number; removed: number };
     }
   >; // filePath -> { patch, stats, changeType }
 

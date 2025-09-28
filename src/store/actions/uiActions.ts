@@ -1,6 +1,6 @@
 // src/store/actions/uiActions.ts
 import { StateCreator } from "zustand";
-import { diffLines } from "diff";
+import { applyPatch, createPatch } from "diff";
 import { invoke } from "@tauri-apps/api/core";
 import { message } from "@tauri-apps/plugin-dialog";
 import { type FileMetadata } from "../types";
@@ -230,7 +230,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     }
   },
   stageFileChangeFromAI: async (toolName, args) => {
-    const { rootPath } = _get();
+    const { rootPath, stagedFileChanges } = _get();
     const { file_path } = args;
     if (!rootPath) {
       return {
@@ -240,73 +240,116 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
       };
     }
 
-    let originalContent: string | null = null;
-    let newContent: string | null = null;
-    let changeType: "create" | "modify" | "delete" = "modify";
-
     try {
-      // 1. Determine original and new content based on the tool
-      if (toolName === "create_file") {
-        changeType = "create";
-        originalContent = null;
-        newContent = args.content || "";
-      } else if (toolName === "delete_file") {
-        changeType = "delete";
-        originalContent = await invoke<string>("get_file_content", {
-          rootPathStr: rootPath,
-          fileRelPath: file_path,
-        });
-        newContent = null;
-      } else {
-        // write_file
-        changeType = "modify";
-        originalContent = await invoke<string>("get_file_content", {
-          rootPathStr: rootPath,
-          fileRelPath: file_path,
-        });
+      let newPatch: string;
+      let finalPatchedContent: string | false;
+      let originalContentForStaging: string;
+      let changeTypeForStaging: "create" | "modify" | "delete";
 
-        const { content, start_line, end_line } = args;
-        if (start_line) {
-          const originalLines = originalContent.split("\n");
-          const newLines = content.split("\n");
-          const startIndex = start_line - 1;
-          const endIndex = end_line ? end_line : startIndex;
-          originalLines.splice(startIndex, endIndex - startIndex, ...newLines);
-          newContent = originalLines.join("\n");
+      const existingChange = stagedFileChanges.get(file_path);
+
+      if (existingChange) {
+        // --- LOGIC FOR MODIFYING AN ALREADY STAGED FILE ---
+        const intermediateContent = applyPatch(
+          existingChange.originalContent ?? "",
+          existingChange.patch
+        );
+        if (intermediateContent === false)
+          throw new Error("Could not apply existing patch.");
+
+        const { content, start_line, end_line } = args; // Assuming write_file
+        const finalContent = applyLineChanges(
+          intermediateContent,
+          content,
+          start_line,
+          end_line
+        );
+
+        newPatch = createPatch(
+          file_path,
+          existingChange.originalContent ?? "",
+          finalContent,
+          "",
+          ""
+        );
+        finalPatchedContent = finalContent;
+        originalContentForStaging = existingChange.originalContent ?? "";
+        changeTypeForStaging = existingChange.changeType; // Type doesn't change
+      } else {
+        // --- LOGIC FOR A NEW CHANGE ---
+        if (toolName === "create_file") {
+          originalContentForStaging = "";
+          finalPatchedContent = args.content || "";
+          changeTypeForStaging = "create";
         } else {
-          newContent = content;
+          // delete or modify
+          originalContentForStaging = await invoke<string>("get_file_content", {
+            rootPathStr: rootPath,
+            fileRelPath: file_path,
+          });
+          if (toolName === "delete_file") {
+            finalPatchedContent = ""; // Represent deletion with empty content
+            changeTypeForStaging = "delete";
+          } else {
+            // modify
+            const { content, start_line, end_line } = args;
+            finalPatchedContent = applyLineChanges(
+              originalContentForStaging,
+              content,
+              start_line,
+              end_line
+            );
+            changeTypeForStaging = "modify";
+          }
         }
+        newPatch = createPatch(
+          file_path,
+          originalContentForStaging,
+          finalPatchedContent as string,
+          "",
+          ""
+        );
       }
 
       // 2. Perform the actual file operation
-      if (newContent !== null) {
-        await invoke("save_file_content", {
-          rootPathStr: rootPath,
-          fileRelPath: file_path,
-          content: newContent,
-        });
-      } else {
-        // This is a delete operation
+      if (changeTypeForStaging === "delete") {
         await invoke("delete_file", {
           rootPathStr: rootPath,
           fileRelPath: file_path,
         });
+      } else {
+        await invoke("save_file_content", {
+          rootPathStr: rootPath,
+          fileRelPath: file_path,
+          content: finalPatchedContent as string, // It won't be false here
+        });
       }
 
-      // 3. Calculate diff stats for UI feedback
-      const diff = diffLines(originalContent ?? "", newContent ?? "");
+      // 3. Calculate final diff stats for UI feedback
+      const finalDiff = createPatch(
+        "file",
+        originalContentForStaging,
+        finalPatchedContent as string,
+        "",
+        ""
+      );
       let added = 0;
       let removed = 0;
-      diff.forEach((part) => {
-        if (part.added) added += part.count ?? 0;
-        if (part.removed) removed += part.count ?? 0;
+      finalDiff.split("\n").forEach((line) => {
+        if (line.startsWith("+") && !line.startsWith("+++")) added++;
+        if (line.startsWith("-") && !line.startsWith("---")) removed++;
       });
       const stats = { added, removed };
 
       // 4. Stage the change for potential revert
       set((state) => {
         const newChanges = new Map(state.stagedFileChanges);
-        newChanges.set(file_path, { originalContent, changeType, stats });
+        newChanges.set(file_path, {
+          originalContent: originalContentForStaging,
+          patch: newPatch,
+          changeType: changeTypeForStaging,
+          stats,
+        });
         return { stagedFileChanges: newChanges };
       });
 
@@ -318,7 +361,7 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     } catch (e) {
       return {
         success: false,
-        message: `Error during file operation for ${file_path}: ${e}`,
+        message: `Error during file operation for ${file_path}: ${String(e)}`,
         stats: { added: 0, removed: 0 },
       };
     }
@@ -387,3 +430,23 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     _get().actions.rescanProject();
   },
 });
+
+// Helper function to apply line-based changes to content
+const applyLineChanges = (
+  originalContent: string,
+  newContent: string,
+  startLine?: number,
+  endLine?: number
+): string => {
+  if (!startLine) {
+    return newContent; // Overwrite whole file
+  }
+  const originalLines = originalContent.split("\n");
+  const newLines = newContent.split("\n");
+  const startIndex = startLine - 1;
+  // If endLine is not provided, it means we are replacing from start_line until the end of the new content.
+  // If endLine is provided, it's a replacement of a specific range.
+  const endIndex = endLine ? endLine : startIndex;
+  originalLines.splice(startIndex, endIndex - startIndex, ...newLines);
+  return originalLines.join("\n");
+};
