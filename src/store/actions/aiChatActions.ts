@@ -671,6 +671,7 @@ export const createAiChatActions: StateCreator<
           createdFilesInTurn,
         }
       );
+
       let finalStagedChanges = new Map();
       // Only restore staged changes if there are currently un-applied changes.
       // If the user already applied/discarded them, we don't bring them back.
@@ -682,18 +683,21 @@ export const createAiChatActions: StateCreator<
           }
         } catch (e) {
           console.error("Failed to parse restored staged changes:", e);
-          // Fallback to empty if parsing fails
           finalStagedChanges = new Map();
         }
       }
 
-      // Truncate chat history
+      // Luôn khôi phục trạng thái staged changes và reset checkpointId
+      set({
+        stagedFileChanges: finalStagedChanges,
+        currentTurnCheckpointId: null,
+      });
+
+      // Chỉ cập nhật UI (tin nhắn, textarea) nếu không phải là revert "im lặng"
       if (!isSilentRevert) {
-        const newMessages = chatMessages.slice(0, turnStartIndex); // Cut before the user message
+        const newMessages = chatMessages.slice(0, turnStartIndex);
         set({
           chatMessages: newMessages,
-          stagedFileChanges: finalStagedChanges,
-          currentTurnCheckpointId: null, // Reset this
           revertedPromptContent: userMessageToRevert.content,
           aiAttachedFiles: userMessageToRevert.attachedFiles || [],
         });
