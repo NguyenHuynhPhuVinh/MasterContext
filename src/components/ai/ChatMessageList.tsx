@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ChatMessage, LoadingIndicator } from "./ChatMessage";
 import { type ChatMessage as ChatMessageType } from "@/store/types";
 import { cn } from "@/lib/utils";
+import { useAppActions } from "@/store/appStore";
 
 interface ChatMessageListProps {
   chatMessages: ChatMessageType[];
@@ -16,6 +17,7 @@ export function ChatMessageList({
   chatMessages,
   isAiPanelLoading,
 }: ChatMessageListProps) {
+  const { regenerateResponse } = useAppActions();
   const viewportRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -48,6 +50,10 @@ export function ChatMessageList({
     setShowScrollButton(!isNearBottom);
   };
 
+  const handleRegenerate = (index: number) => {
+    regenerateResponse(index);
+  };
+
   return (
     <ScrollArea
       className="flex-1 p-4 min-h-0 relative" // Add relative positioning here
@@ -55,9 +61,17 @@ export function ChatMessageList({
       onScroll={handleScroll}
     >
       <div className="space-y-4">
-        {chatMessages.map((msg, index) => (
-          <ChatMessage key={index} message={msg} />
-        ))}
+        {chatMessages.map((msg, index) =>
+          msg.hidden ? null : (
+            <ChatMessage
+              key={index}
+              message={msg}
+              index={index}
+              onRegenerate={handleRegenerate}
+              isAiPanelLoading={isAiPanelLoading}
+            />
+          )
+        )}
         {isAiPanelLoading && <LoadingIndicator />}
         <div ref={messagesEndRef} />
       </div>

@@ -13,16 +13,26 @@ import {
   FileEdit,
   Scissors,
   XCircle,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { type ChatMessage as ChatMessageType } from "@/store/types";
+import { Button } from "@/components/ui/button";
 
 interface ChatMessageProps {
   message: ChatMessageType;
+  index: number;
+  onRegenerate: (index: number) => void;
+  isAiPanelLoading: boolean;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  index,
+  onRegenerate,
+  isAiPanelLoading,
+}: ChatMessageProps) {
   const { t } = useTranslation();
 
   if (message.hidden) {
@@ -313,59 +323,77 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div
       className={cn(
-        "flex w-full",
+        "group flex w-full items-start gap-2",
         message.role === "user" ? "justify-end" : "justify-start"
       )}
     >
       <div
         className={cn(
-          "max-w-xs md:max-w-md lg:max-w-lg text-sm rounded-lg",
-          message.role === "user" ? "bg-muted px-3 py-2" : ""
+          "flex flex-col",
+          message.role === "user" ? "items-end" : "items-start"
         )}
       >
-        {message.role === "user" ? (
-          <div className="flex flex-col gap-2">
-            {message.attachedFiles && message.attachedFiles.length > 0 && (
-              <div className="border-b border-background/50 pb-2">
-                <div className="flex flex-wrap gap-1.5">
-                  {message.attachedFiles.map((item) => (
-                    <Badge
-                      key={item.id}
-                      variant="outline"
-                      className="font-normal bg-background/50"
-                    >
-                      {item.type === "file" && (
-                        <FileText className="h-3 w-3 mr-1.5" />
-                      )}
-                      {item.type === "folder" && (
-                        <Folder className="h-3 w-3 mr-1.5" />
-                      )}
-                      {item.type === "group" && (
-                        <ListChecks className="h-3 w-3 mr-1.5" />
-                      )}
-                      {item.name}
-                    </Badge>
-                  ))}
+        <div
+          className={cn(
+            "max-w-xs md:max-w-md lg:max-w-lg text-sm rounded-lg",
+            message.role === "user" ? "bg-muted px-3 py-2" : ""
+          )}
+        >
+          {message.role === "user" ? (
+            <div className="flex flex-col gap-2">
+              {message.attachedFiles && message.attachedFiles.length > 0 && (
+                <div className="border-b border-background/50 pb-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {message.attachedFiles.map((item) => (
+                      <Badge
+                        key={item.id}
+                        variant="outline"
+                        className="font-normal bg-background/50"
+                      >
+                        {item.type === "file" && (
+                          <FileText className="h-3 w-3 mr-1.5" />
+                        )}
+                        {item.type === "folder" && (
+                          <Folder className="h-3 w-3 mr-1.5" />
+                        )}
+                        {item.type === "group" && (
+                          <ListChecks className="h-3 w-3 mr-1.5" />
+                        )}
+                        {item.name}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-            <div className="whitespace-pre-wrap">{message.content}</div>
-          </div>
-        ) : message.role === "assistant" && message.tool_calls ? (
-          <div className="space-y-2">
-            {message.tool_calls.map(renderToolCall)}
-          </div>
-        ) : (
-          <div className="markdown-content">
-            {message.role === "assistant" ? (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeHighlight]}
-              >
-                {message.content || ""}
-              </ReactMarkdown>
-            ) : null}
-          </div>
+              )}
+              <div className="whitespace-pre-wrap">{message.content}</div>
+            </div>
+          ) : message.role === "assistant" && message.tool_calls ? (
+            <div className="space-y-2">
+              {message.tool_calls.map(renderToolCall)}
+            </div>
+          ) : (
+            <div className="markdown-content">
+              {message.role === "assistant" ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                >
+                  {message.content || ""}
+                </ReactMarkdown>
+              ) : null}
+            </div>
+          )}
+        </div>
+        {message.role === "assistant" && !isAiPanelLoading && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 -mt-3"
+            onClick={() => onRegenerate(index)}
+            title={t("aiPanel.regenerate")}
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
         )}
       </div>
     </div>
@@ -375,7 +403,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
 export function LoadingIndicator() {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center justify-start gap-2 text-muted-foreground italic text-sm">
+    <div className="flex items-center justify-start gap-2 text-muted-foreground italic text-sm -mt-2">
       <Loader2 className="h-4 w-4 animate-spin" />
       <p>{t("aiPanel.responding")}</p>
     </div>

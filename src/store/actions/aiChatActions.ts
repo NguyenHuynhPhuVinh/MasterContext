@@ -23,6 +23,7 @@ export interface AiChatActions {
   sendChatMessage: (prompt: string) => Promise<void>;
   fetchAiResponse: () => Promise<void>;
   stopAiResponse: () => void;
+  regenerateResponse: (fromIndex: number) => Promise<void>;
 }
 
 export const createAiChatActions: StateCreator<
@@ -345,6 +346,46 @@ export const createAiChatActions: StateCreator<
     if (abortController) {
       abortController.abort();
       set({ abortController: null, isAiPanelLoading: false });
+    }
+  },
+  regenerateResponse: async (fromIndex: number) => {
+    // Dừng mọi phản hồi đang diễn ra trước để tránh race condition.
+    if (get().isAiPanelLoading) {
+      get().actions.stopAiResponse();
+    }
+    const { chatMessages } = get();
+
+    // Find the index of the last VISIBLE user message at or before the assistant message index
+    let lastUserMessageIndex = -1;
+    for (let i = fromIndex - 1; i >= 0; i--) {
+      // Find a user message that is NOT hidden (i.e., not a tool result)
+      if (chatMessages[i].role === "user" && !chatMessages[i].hidden) {
+        lastUserMessageIndex = i;
+        break;
+      }
+    }
+
+    if (lastUserMessageIndex === -1) {
+      console.error(
+        "Could not find a visible user message to regenerate from."
+      );
+      return;
+    }
+
+    // Truncate the history to include up to the last visible user message
+    const truncatedMessages = chatMessages.slice(0, lastUserMessageIndex + 1);
+
+    set({
+      isAiPanelLoading: true,
+      chatMessages: truncatedMessages,
+    });
+
+    try {
+      await get().actions.saveCurrentChatSession(truncatedMessages);
+      await get().actions.fetchAiResponse();
+    } catch (error) {
+      console.error("Error during regeneration:", error);
+      set({ isAiPanelLoading: false });
     }
   },
 });
