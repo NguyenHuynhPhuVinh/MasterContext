@@ -308,6 +308,10 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
         }
       );
       _get().actions._updateFileMetadata(filePath, updatedMetadata);
+      // If the modified file is currently open in the editor, update its exclusion state
+      if (_get().activeEditorFile === filePath) {
+        set({ activeEditorFileExclusions: mergedRanges });
+      }
 
       return {
         success: true,

@@ -204,6 +204,8 @@
       "deleteFileSuccess": "Đã đưa vào hàng đợi xóa tệp",
       "deleteFileError": "Không thể đưa vào hàng đợi xóa tệp"
     },
+    "addedExclusion": "Đã thêm vùng loại trừ cho",
+    "addedExclusionError": "Không thể thêm vùng loại trừ cho",
     "stagingDialog": {
       "title": "Xác nhận áp dụng thay đổi",
       "description": "Bạn có các thay đổi chưa được áp dụng. Bạn muốn áp dụng tất cả thay đổi hay hủy bỏ chúng trước khi tiếp tục?",

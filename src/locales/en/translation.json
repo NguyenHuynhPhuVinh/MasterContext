@@ -204,6 +204,8 @@
       "deleteFileSuccess": "Staged deletion for",
       "deleteFileError": "Failed to stage deletion for"
     },
+    "addedExclusion": "Added exclusion for",
+    "addedExclusionError": "Failed to add exclusion for",
     "stagingDialog": {
       "title": "Confirm Apply Changes",
       "description": "You have unapplied changes. Do you want to apply all changes or discard them before proceeding?",

@@ -11,6 +11,7 @@ import {
   FilePlus,
   FileMinus,
   FileEdit,
+  Scissors,
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
     tool: NonNullable<ChatMessageType["tool_calls"]>[0]
   ) => {
     let toolContent: React.ReactNode;
+    let ToolIcon: React.ElementType | null = null;
 
     switch (tool.function.name) {
       case "get_project_file_tree":
@@ -43,6 +45,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         break;
 
       case "read_file":
+        ToolIcon = FileText;
         try {
           const args = JSON.parse(tool.function.arguments);
           const filePath = args.file_path || "unknown file";
@@ -132,6 +135,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         break;
 
       case "create_file":
+        ToolIcon = FilePlus;
         try {
           const args = JSON.parse(tool.function.arguments);
           const filePath = args.file_path ?? "unknown file";
@@ -163,6 +167,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         break;
 
       case "delete_file":
+        ToolIcon = FileMinus;
         try {
           const args = JSON.parse(tool.function.arguments);
           const filePath = args.file_path ?? "unknown file";
@@ -194,6 +199,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         break;
 
       case "write_file":
+        ToolIcon = FileEdit;
         try {
           const args = JSON.parse(tool.function.arguments);
           const filePath = args.file_path ?? "unknown file";
@@ -243,6 +249,42 @@ export function ChatMessage({ message }: ChatMessageProps) {
         }
         break;
 
+      case "add_exclusion_range_to_file":
+        ToolIcon = Scissors;
+        try {
+          const args = JSON.parse(tool.function.arguments);
+          const filePath = args.file_path ?? "unknown file";
+          const fileName = filePath.split("/").pop() ?? filePath;
+          const success = tool.status !== "error";
+          const lineInfo = `${args.start_line}-${args.end_line}`;
+
+          toolContent = (
+            <div className="flex items-baseline gap-1.5">
+              <span
+                className={cn(
+                  "font-medium",
+                  success ? "text-foreground" : "text-destructive"
+                )}
+              >
+                {t(
+                  success
+                    ? "aiPanel.toolCall.addedExclusion"
+                    : "aiPanel.toolCall.addedExclusionError"
+                )}
+              </span>
+              <code className="font-medium" title={filePath}>
+                {fileName}
+              </code>
+              <span className="text-xs text-muted-foreground">
+                ({lineInfo})
+              </span>
+            </div>
+          );
+        } catch (e) {
+          toolContent = <p>{t("aiPanel.toolCall.addedExclusionError")}</p>;
+        }
+        break;
+
       default:
         toolContent = <p>{tool.function.name}</p>;
         break;
@@ -259,17 +301,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
           ) : (
             <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
           )}
-          {tool.function.name === "create_file" && (
-            <FilePlus className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-          )}
-          {tool.function.name === "delete_file" && (
-            <FileMinus className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-          )}
-          {tool.function.name === "write_file" && (
-            <FileEdit className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-          )}
-          {tool.function.name === "read_file" && (
-            <FileText className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+          {ToolIcon && (
+            <ToolIcon className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
           )}
         </div>
         {toolContent}
