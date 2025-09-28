@@ -332,25 +332,27 @@ export function ChatMessage({
         "group flex w-full items-start gap-2",
         message.role === "user" ? "justify-end" : "justify-start"
       )}
-      // Kích hoạt chỉnh sửa khi click vào tin nhắn của user
-      onClick={
-        message.role === "user" && !message.hidden
-          ? () => onStartEdit(index)
-          : undefined
-      }
     >
       <div
         className={cn(
           "flex flex-col transition-all",
           editingMessageIndex === index &&
             "rounded-lg ring-2 ring-primary ring-offset-2 ring-offset-background",
+          message.role === "user" && !message.hidden && "cursor-pointer",
           message.role === "user" ? "items-end" : "items-start"
         )}
+        onClick={
+          message.role === "user" && !message.hidden
+            ? () => onStartEdit(index)
+            : undefined
+        }
       >
         <div
           className={cn(
             "max-w-xs md:max-w-md lg:max-w-lg text-sm rounded-lg",
-            message.role === "user" ? "bg-muted px-3 py-2" : ""
+            message.role === "user"
+              ? "bg-muted px-3 py-2 group-hover:bg-accent"
+              : ""
           )}
         >
           {message.role === "user" ? (

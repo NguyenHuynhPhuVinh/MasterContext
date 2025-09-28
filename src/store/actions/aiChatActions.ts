@@ -87,6 +87,8 @@ export const createAiChatActions: StateCreator<
       selectedAiModel,
       editingMessageIndex,
     } = get();
+    // Reset editing state regardless of the outcome
+    set({ editingMessageIndex: null });
 
     if (editingMessageIndex !== null) {
       get().actions.editAndResubmit(prompt, editingMessageIndex);
@@ -361,7 +363,11 @@ export const createAiChatActions: StateCreator<
     const { abortController } = get();
     if (abortController) {
       abortController.abort();
-      set({ abortController: null, isAiPanelLoading: false });
+      set({
+        abortController: null,
+        isAiPanelLoading: false,
+        editingMessageIndex: null,
+      });
     }
   },
   regenerateResponse: async (fromIndex: number) => {

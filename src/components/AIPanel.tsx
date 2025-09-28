@@ -44,7 +44,6 @@ export function AIPanel() {
     activeChatSession,
     aiAttachedFiles,
     stagedFileChanges,
-    editingMessageIndex,
   } = useAppStore(
     useShallow((state) => ({
       chatMessages: state.chatMessages,
@@ -56,21 +55,14 @@ export function AIPanel() {
       activeChatSession: state.activeChatSession,
       aiAttachedFiles: state.aiAttachedFiles,
       stagedFileChanges: state.stagedFileChanges,
-      editingMessageIndex: state.editingMessageIndex,
     }))
   );
+  const editingMessageIndex = useAppStore((state) => state.editingMessageIndex);
 
   const [prompt, setPrompt] = useState("");
   const [view, setView] = useState<"chat" | "history">("chat");
   const [isStagingDialogOpen, setIsStagingDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
-  const [localEditingMessageIndex, setLocalEditingMessageIndex] = useState<
-    number | null
-  >(null);
-
-  useEffect(() => {
-    useAppStore.setState({ editingMessageIndex: localEditingMessageIndex });
-  }, [localEditingMessageIndex]);
 
   useEffect(() => {
     loadChatSessions();
@@ -111,12 +103,12 @@ export function AIPanel() {
     const messageToEdit = chatMessages[index];
     if (messageToEdit && messageToEdit.role === "user") {
       setPrompt(messageToEdit.content || "");
-      setLocalEditingMessageIndex(index);
+      useAppStore.setState({ editingMessageIndex: index });
     }
   };
 
   const handleCancelEdit = () => {
-    setLocalEditingMessageIndex(null);
+    useAppStore.setState({ editingMessageIndex: null });
     setPrompt(""); // Clear the input when cancelling edit
   };
 
