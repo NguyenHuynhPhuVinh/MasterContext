@@ -82,7 +82,8 @@ pub fn run() {
             commands::delete_all_chat_sessions,
             // Checkpoint Commands
             commands::create_checkpoint,
-            commands::revert_to_checkpoint
+            commands::revert_to_checkpoint,
+            commands::delete_checkpoint
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

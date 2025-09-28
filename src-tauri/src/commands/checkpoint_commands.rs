@@ -119,3 +119,21 @@ pub fn revert_to_checkpoint(
 
     Ok(staged_changes_content)
 }
+
+#[command]
+pub fn delete_checkpoint(
+    app: AppHandle,
+    project_path: String,
+    profile_name: String,
+    checkpoint_id: String,
+) -> Result<(), String> {
+    let checkpoints_dir = get_checkpoints_dir(&app, &project_path, &profile_name)?;
+    let checkpoint_path = checkpoints_dir.join(&checkpoint_id);
+
+    if checkpoint_path.is_dir() {
+        fs::remove_dir_all(&checkpoint_path)
+            .map_err(|e| format!("Không thể xóa checkpoint: {}", e))?;
+    }
+    // If it doesn't exist, that's fine, consider it deleted.
+    Ok(())
+}

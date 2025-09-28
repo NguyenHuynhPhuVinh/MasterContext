@@ -382,7 +382,7 @@ export const createAiChatActions: StateCreator<
     if (get().isAiPanelLoading) {
       get().actions.stopAiResponse();
     }
-    const { chatMessages } = get();
+    const { chatMessages, rootPath, activeProfile } = get();
 
     // Find the index of the last VISIBLE user message at or before the assistant message index
     let lastUserMessageIndex = -1;
@@ -401,8 +401,32 @@ export const createAiChatActions: StateCreator<
       return;
     }
 
+    // --- NEW LOGIC: DISCARD OLD CHECKPOINT ---
+    const userMessage = chatMessages[lastUserMessageIndex];
+    if (userMessage.checkpointId && rootPath && activeProfile) {
+      try {
+        await invoke("delete_checkpoint", {
+          projectPath: rootPath,
+          profileName: activeProfile,
+          checkpointId: userMessage.checkpointId,
+        });
+      } catch (e) {
+        console.error(
+          "Failed to discard old checkpoint during regeneration:",
+          e
+        );
+      }
+    }
+    set({ currentTurnCheckpointId: null });
+
     // Truncate the history to include up to the last visible user message
     const truncatedMessages = chatMessages.slice(0, lastUserMessageIndex + 1);
+
+    // Remove checkpointId from the user message we are keeping
+    const lastMessage = truncatedMessages[truncatedMessages.length - 1];
+    if (lastMessage && lastMessage.checkpointId) {
+      delete lastMessage.checkpointId;
+    }
 
     set({
       isAiPanelLoading: true,
