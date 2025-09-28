@@ -42,7 +42,7 @@ export function MainPanel() {
     <div className="relative h-full w-full">
       <ResizablePanelGroup direction="horizontal">
         {isGroupEditorPanelVisible && (
-          <ResizablePanel defaultSize={50} minSize={30}>
+          <ResizablePanel defaultSize={50} minSize={30} order={1}>
             {editingGroupId ? (
               <GroupEditorPanel />
             ) : (
@@ -58,7 +58,7 @@ export function MainPanel() {
           <ResizableHandle withHandle />
         )}
         {isEditorPanelVisible && (
-          <ResizablePanel defaultSize={50} minSize={30}>
+          <ResizablePanel defaultSize={50} minSize={30} order={2}>
             {activeEditorFile ? (
               <EditorPanel />
             ) : (
