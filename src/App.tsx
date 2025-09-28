@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import {
@@ -95,6 +95,8 @@ function App() {
   } = useAppActions();
 
   const { t } = useTranslation();
+
+  const appMenuRef = useRef<Menu | null>(null);
 
   // --- Effect áp dụng theme (giữ nguyên) ---
   useEffect(() => {
@@ -245,7 +247,7 @@ function App() {
 
   // --- CẬP NHẬT LOGIC TẠO MENU ---
   // Effect này sẽ chạy mỗi khi `selectedPath` hoặc `isScanning` thay đổi
-  useEffect(() => {
+  const createMenu = async () => {
     const setupMenu = async () => {
       try {
         const openFolderItem = await MenuItem.new({
@@ -344,6 +346,7 @@ function App() {
 
         // Đặt menu cho cửa sổ hiện tại
         await appMenu.setAsAppMenu();
+        appMenuRef.current = appMenu; // Lưu lại menu để cập nhật sau
       } catch (error) {
         console.error("Failed to create application menu:", error);
         await message(t("appMenu.errors.initFailed"), {
@@ -360,6 +363,7 @@ function App() {
           items: [],
         });
         await emptyMenu.setAsAppMenu();
+        appMenuRef.current = null;
       } catch (error) {
         console.error("Failed to clear application menu:", error);
       }
@@ -368,37 +372,66 @@ function App() {
     // Logic chính:
     // Nếu có selectedPath VÀ không đang quét, thì tạo menu
     if (selectedPath && !isScanning) {
-      // <-- THAY ĐỔI ĐIỀU KIỆN TẠI ĐÂY
       setupMenu();
     } else {
       // Nếu không có (đang ở Welcome hoặc đang quét), thì gỡ menu
       clearMenu();
     }
+  };
+
+  // Effect để tạo menu chỉ một lần khi cần
+  useEffect(() => {
+    createMenu();
   }, [
-    // CẬP NHẬT DEPENDENCY ĐỂ MENU TỰ ĐỘNG CẬP NHẬT
     selectedPath,
-    isScanning, // <-- THÊM VÀO DEPENDENCY
-    isRescanning,
-    isSidebarVisible,
-    isGitPanelVisible,
-    isEditorPanelVisible,
-    isAiPanelVisible,
-    isGroupEditorPanelVisible,
+    isScanning,
+    t, // Chạy lại nếu ngôn ngữ thay đổi
     openFolderFromMenu,
     rescanProject,
-    showSettingsScene,
     exportProject,
     copyProjectToClipboard,
     toggleProjectPanelVisibility,
     toggleGitPanelVisibility,
-    t,
     toggleEditorPanelVisibility,
     toggleGroupEditorPanelVisibility,
-    isAiPanelVisible, // THÊM STATE
-    toggleAiPanelVisibility, // THÊM ACTION
+    toggleAiPanelVisibility,
     _setRecentPaths,
     reset,
-  ]); // <-- Thêm dependency
+  ]);
+
+  // Effects riêng để cập nhật trạng thái checked của từng menu item
+  // Điều này hiệu quả hơn rất nhiều so với việc tạo lại toàn bộ menu
+  const updateMenuCheckedState = async (id: string, checked: boolean) => {
+    if (appMenuRef.current) {
+      const item = (await appMenuRef.current.get(id)) as CheckMenuItem;
+      if (item && (await item.isChecked()) !== checked) {
+        await item.setChecked(checked);
+      }
+    }
+  };
+
+  useEffect(() => {
+    updateMenuCheckedState("toggle_project_panel", isSidebarVisible);
+  }, [isSidebarVisible]);
+
+  useEffect(() => {
+    updateMenuCheckedState("toggle_git_panel", isGitPanelVisible);
+  }, [isGitPanelVisible]);
+
+  useEffect(() => {
+    updateMenuCheckedState(
+      "toggle_group_editor_panel",
+      isGroupEditorPanelVisible
+    );
+  }, [isGroupEditorPanelVisible]);
+
+  useEffect(() => {
+    updateMenuCheckedState("toggle_editor_panel", isEditorPanelVisible);
+  }, [isEditorPanelVisible]);
+
+  useEffect(() => {
+    updateMenuCheckedState("toggle_ai_panel", isAiPanelVisible);
+  }, [isAiPanelVisible]);
 
   const throttledSetScanProgress = useMemo(
     () => throttle((file: string) => _setScanProgress(file), 10),
