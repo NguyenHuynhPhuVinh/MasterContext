@@ -6,6 +6,8 @@ use std::path::PathBuf;
 use sha2::{Digest, Sha256}; // <-- THÊM IMPORT
 use tauri::{AppHandle, Manager}; // <-- THÊM IMPORT
 
+const PROJECT_DATA_FILENAME: &str = "project_data.json";
+
 // --- HÀM MỚI: TÁCH RIÊNG LOGIC LẤY THƯ MỤC CẤU HÌNH ---
 pub fn get_project_config_dir(app: &AppHandle, project_path_str: &str) -> Result<PathBuf, String> {
     // 1. Lấy thư mục cấu hình chung của ứng dụng
@@ -35,7 +37,7 @@ pub fn get_project_config_path(
     project_path_str: &str,
 ) -> Result<PathBuf, String> {
     let config_dir = get_project_config_dir(app, project_path_str)?;
-    Ok(config_dir.join("project_data.json"))
+    Ok(config_dir.join(PROJECT_DATA_FILENAME))
 }
 
 // --- CẬP NHẬT: Nhận thêm `app` và `profile_name` ---

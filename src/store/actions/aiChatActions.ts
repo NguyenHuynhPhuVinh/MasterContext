@@ -54,8 +54,8 @@ const _generateHiddenContent = async (
   get: () => AppState,
   items: AttachedItem[]
 ): Promise<string | undefined> => {
-  const { rootPath, activeProfile } = get();
-  if (items.length === 0 || !rootPath || !activeProfile) {
+  const { rootPath } = get();
+  if (items.length === 0 || !rootPath) {
     return undefined;
   }
 
@@ -71,7 +71,6 @@ const _generateHiddenContent = async (
         "generate_group_context_for_ai",
         {
           rootPathStr: rootPath,
-          profileName: activeProfile,
           groupId: item.id,
         }
       );
@@ -154,13 +153,11 @@ export const createAiChatActions: StateCreator<
 
       // If there's no active session, create one on the backend first
       if (!currentSession) {
-        const { activeProfile } = get();
-        if (!rootPath || !activeProfile) {
-          throw new Error("Project path or profile not set.");
+        if (!rootPath) {
+          throw new Error("Project path not set.");
         }
         const newSession = await invoke<AIChatSession>("create_chat_session", {
           projectPath: rootPath,
-          profileName: activeProfile,
           title: prompt.substring(0, 50),
         });
 
@@ -502,7 +499,7 @@ export const createAiChatActions: StateCreator<
     if (get().isAiPanelLoading) {
       get().actions.stopAiResponse();
     }
-    const { chatMessages, rootPath, activeProfile } = get();
+    const { chatMessages, rootPath } = get();
 
     // Find the index of the last VISIBLE user message at or before the assistant message index
     let lastUserMessageIndex = -1;
@@ -524,11 +521,10 @@ export const createAiChatActions: StateCreator<
     // Discard old checkpoint since we are not reverting
     const userMessage = chatMessages[lastUserMessageIndex];
     if (!skipCheckpointDeletion) {
-      if (userMessage.checkpointId && rootPath && activeProfile) {
+      if (userMessage.checkpointId && rootPath) {
         try {
           await invoke("delete_checkpoint", {
             projectPath: rootPath,
-            profileName: activeProfile,
             checkpointId: userMessage.checkpointId,
           });
         } catch (e) {
@@ -569,15 +565,14 @@ export const createAiChatActions: StateCreator<
       get().actions.stopAiResponse();
     }
 
-    const { chatMessages, aiAttachedFiles, rootPath, activeProfile } = get();
+    const { chatMessages, aiAttachedFiles, rootPath } = get();
 
     const originalMessage = chatMessages[fromIndex];
     if (!skipCheckpointDeletion) {
-      if (originalMessage.checkpointId && rootPath && activeProfile) {
+      if (originalMessage.checkpointId && rootPath) {
         try {
           await invoke("delete_checkpoint", {
             projectPath: rootPath,
-            profileName: activeProfile,
             checkpointId: originalMessage.checkpointId,
           });
         } catch (e) {
@@ -616,15 +611,14 @@ export const createAiChatActions: StateCreator<
     checkpointId: string,
     isSilentRevert = false
   ) => {
-    const { rootPath, activeProfile, chatMessages, actions, isAiPanelLoading } =
-      get();
+    const { rootPath, chatMessages, actions, isAiPanelLoading } = get();
 
     // Stop any ongoing AI response before reverting
     if (isAiPanelLoading) {
       actions.stopAiResponse();
     }
 
-    if (!rootPath || !activeProfile) return;
+    if (!rootPath) return;
 
     // Find the user message and the subsequent messages to identify created files
     const turnStartIndex = chatMessages.findIndex(
@@ -666,7 +660,6 @@ export const createAiChatActions: StateCreator<
         "revert_to_checkpoint",
         {
           projectPath: rootPath,
-          profileName: activeProfile,
           checkpointId,
           createdFilesInTurn,
         }

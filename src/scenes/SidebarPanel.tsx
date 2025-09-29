@@ -1,5 +1,5 @@
 // src/scenes/SidebarPanel.tsx
-import { useSidebarPanel } from "@/hooks/useSidebarPanel";
+import { useDashboard } from "@/hooks/useDashboard";
 import { useTranslation } from "react-i18next";
 import { GroupManager } from "@/components/GroupManager";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,12 @@ export function SidebarPanel() {
     handleStartRenameGroup,
     onCancelGroupEdit,
     onGroupSubmitInline,
-  } = useSidebarPanel();
+  } = useDashboard();
 
   return (
     <div className="flex flex-col h-full bg-card">
       <header className="flex items-center justify-between p-4 border-b flex-shrink-0">
-        <h1 className="text-xl font-bold">{t("sidebarPanel.groups")}</h1>
+        <h1 className="text-xl font-bold">{t("sidebarPanel.title")}</h1>
         <Button
           variant="outline"
           size="sm"
