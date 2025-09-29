@@ -119,7 +119,6 @@
     "noGroups": "Không có nhóm nào."
   },
   "inlineInputs": {
-    "profilePlaceholder": "Tên hồ sơ...",
     "groupPlaceholder": "Tên nhóm..."
   },
   "statusBar": {
@@ -199,13 +198,13 @@
       "executingTool": "Thực thi công cụ",
       "modifiedGroup": "Đã sửa đổi nhóm ngữ cảnh",
       "listingGroupFiles": "Liệt kê tệp trong nhóm hiện tại",
-      "writingFileGeneric": "Đưa thao tác tệp vào hàng đợi",
-      "writeFileSuccess": "Đã đưa vào hàng đợi sửa đổi cho",
-      "writeFileError": "Không thể đưa vào hàng đợi sửa đổi cho",
-      "createFileSuccess": "Đã đưa vào hàng đợi tạo tệp",
-      "createFileError": "Không thể đưa vào hàng đợi tạo tệp",
-      "deleteFileSuccess": "Đã đưa vào hàng đợi xóa tệp",
-      "deleteFileError": "Không thể đưa vào hàng đợi xóa tệp"
+      "writingFileGeneric": "Chuẩn bị thay đổi tệp",
+      "writeFileSuccess": "Đã chuẩn bị sửa đổi cho",
+      "writeFileError": "Lỗi khi chuẩn bị sửa đổi cho",
+      "createFileSuccess": "Đã chuẩn bị tạo tệp",
+      "createFileError": "Lỗi khi chuẩn bị tạo tệp",
+      "deleteFileSuccess": "Đã chuẩn bị xóa tệp",
+      "deleteFileError": "Lỗi khi chuẩn bị xóa tệp"
     },
     "addedExclusion": "Đã thêm vùng loại trừ cho",
     "addedExclusionError": "Không thể thêm vùng loại trừ cho",
@@ -238,11 +237,9 @@
   "settings": {
     "title": "Cài đặt",
     "description": "Tùy chỉnh các thiết lập cho ứng dụng.",
-    "profileBadge": "Hồ sơ",
     "tabs": {
       "appearance": "Giao diện",
       "project": "Dự án",
-      "profile": "Hồ sơ",
       "export": "Xuất File",
       "ai": "AI"
     },
@@ -271,42 +268,39 @@
         "title": "Vùng nguy hiểm",
         "deleteData": {
           "label": "Xóa dữ liệu dự án",
-          "description": "Hành động này sẽ xóa tất cả hồ sơ, nhóm và cài đặt cho dự án này. Không thể hoàn tác.",
+          "description": "Hành động này sẽ xóa tất cả các nhóm và cài đặt cho dự án này. Không thể hoàn tác.",
           "button": "Xóa dữ liệu"
         },
         "deleteDialog": {
           "title": "Bạn có chắc chắn không?",
-          "description": "Toàn bộ dữ liệu của dự án này (bao gồm tất cả các hồ sơ và nhóm) sẽ bị xóa vĩnh viễn. Hành động này không thể được hoàn tác.",
+          "description": "Toàn bộ dữ liệu của dự án này (bao gồm tất cả các nhóm) sẽ bị xóa vĩnh viễn. Hành động này không thể được hoàn tác.",
           "confirm": "Tôi hiểu, hãy xóa"
         }
       }
     },
-    "profile": {
-      "title": "Cài đặt cho Hồ sơ Hiện tại",
-      "autoSync": {
-        "title": "Đồng bộ tự động",
-        "enable": {
-          "label": "Bật đồng bộ nền",
-          "description": "Tự động xuất lại khi có thay đổi."
-        },
-        "folder": {
-          "label": "Thư mục đồng bộ",
-          "placeholder": "Chưa chọn..."
-        }
+    "autoSync": {
+      "title": "Đồng bộ tự động",
+      "enable": {
+        "label": "Bật đồng bộ nền",
+        "description": "Tự động xuất lại khi có thay đổi."
       },
-      "git": {
-        "title": "Tích hợp Git",
-        "contextMode": {
-          "label": "Chế độ xuất ngữ cảnh",
-          "description": "Bật để sao chép/xuất ra ngữ cảnh thay vì file diff."
-        }
-      },
-      "alwaysApply": {
-        "title": "Văn bản Luôn Áp dụng",
-        "description": "Nội dung này sẽ được thêm vào cuối mỗi file ngữ cảnh được xuất ra.",
-        "placeholder": "Ví dụ: Luôn trả lời bằng tiếng Việt.",
-        "saveButton": "Lưu văn bản"
+      "folder": {
+        "label": "Thư mục đồng bộ",
+        "placeholder": "Chưa chọn..."
       }
+    },
+    "git": {
+      "title": "Tích hợp Git",
+      "contextMode": {
+        "label": "Chế độ xuất ngữ cảnh",
+        "description": "Bật để sao chép/xuất ra ngữ cảnh thay vì file diff."
+      }
+    },
+    "alwaysApply": {
+      "title": "Văn bản Luôn Áp dụng",
+      "description": "Nội dung này sẽ được thêm vào cuối mỗi file ngữ cảnh được xuất ra.",
+      "placeholder": "Ví dụ: Luôn trả lời bằng tiếng Việt.",
+      "saveButton": "Lưu văn bản"
     },
     "export": {
       "title": "Cài đặt Xuất File",
@@ -395,26 +389,13 @@
       "export_no_files": "Nhóm này không chứa file nào để xuất.",
       "generate_context_no_files": "Nhóm này không chứa file nào để tạo ngữ cảnh."
     },
-    "profile": {
-      "cannot_delete_default": "Không thể xóa hồ sơ 'default'.",
-      "not_exist": "Hồ sơ không tồn tại.",
-      "cannot_rename_default": "Không thể đổi tên hồ sơ 'default'.",
-      "old_not_exist": "Hồ sơ cũ không tồn tại.",
-      "new_name_exist": "Tên hồ sơ mới đã tồn tại.",
-      "invalid_name": "Tên hồ sơ không hợp lệ."
-    },
     "project": {
       "export_no_files": "Dự án không có file nào để xuất.",
       "generate_context_no_files": "Dự án không có file nào để tạo ngữ cảnh."
     }
   },
   "sidebarPanel": {
-    "title": "Hồ sơ & Nhóm",
-    "createProfile": "Tạo hồ sơ",
-    "createGroup": "Tạo nhóm mới",
-    "renameProfile": "Đổi tên hồ sơ",
-    "deleteProfile": "Xóa hồ sơ",
-    "deleteProfileTitle": "Xác nhận xóa hồ sơ?",
-    "deleteProfileDescription": "Hành động này sẽ xóa vĩnh viễn hồ sơ '{{profile}}' và tất cả các nhóm bên trong nó. Bạn có chắc chắn không?"
+    "groups": "Nhóm",
+    "createGroup": "Tạo nhóm mới"
   }
 }

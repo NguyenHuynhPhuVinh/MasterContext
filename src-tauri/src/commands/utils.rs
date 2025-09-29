@@ -15,7 +15,7 @@ fn save_context_to_path_internal(path: String, content: String) -> Result<(), St
     fs::write(file_path, content).map_err(|e| format!("Không thể ghi vào file: {}", e))
 }
 
-pub fn perform_auto_export(project_path: &str, _profile_name: &str, data: &models::CachedProjectData) {
+pub fn perform_auto_export(project_path: &str, data: &models::CachedProjectData) {
     let sync_path_base = PathBuf::from(data.sync_path.as_ref().unwrap());
     let use_full_tree = data.export_use_full_tree.unwrap_or(false);
     let with_line_numbers = data.export_with_line_numbers.unwrap_or(true);

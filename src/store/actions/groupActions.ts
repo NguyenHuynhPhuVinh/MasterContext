@@ -37,14 +37,12 @@ export const createGroupActions: StateCreator<
   GroupActions
 > = (set, get, _store) => {
   const updateGroupsOnBackend = async () => {
-    const { rootPath, allGroups, activeProfile } = get();
-    const activeGroups = allGroups.get(activeProfile) || [];
+    const { rootPath, groups } = get();
     if (rootPath) {
       try {
         await invoke("update_groups_in_project_data", {
           path: rootPath,
-          profileName: activeProfile,
-          groups: activeGroups,
+          groups,
         });
       } catch (error) {
         console.error("Lỗi khi cập nhật nhóm trên backend:", error);
@@ -61,50 +59,27 @@ export const createGroupActions: StateCreator<
         stats: defaultGroupStats(),
         tokenLimit: newGroup.tokenLimit || undefined,
       };
-      set((state) => {
-        const newAllGroups = new Map(state.allGroups);
-        const currentGroups = newAllGroups.get(state.activeProfile) || [];
-        newAllGroups.set(state.activeProfile, [
-          ...currentGroups,
-          groupWithDefaults,
-        ]);
-        return {
-          allGroups: newAllGroups,
-          groups: newAllGroups.get(state.activeProfile) || [],
-          editingGroupId: groupWithDefaults.id,
-        };
-      });
+      set((state) => ({
+        groups: [...state.groups, groupWithDefaults],
+        editingGroupId: groupWithDefaults.id,
+      }));
       get().actions.startEditingGroup(groupWithDefaults.id);
       updateGroupsOnBackend();
     },
     updateGroup: (updatedGroup) => {
-      set((state) => {
-        const newAllGroups = new Map(state.allGroups);
-        const currentGroups = newAllGroups.get(state.activeProfile) || [];
-        const updatedGroups = currentGroups.map((g) =>
+      set((state) => ({
+        groups: state.groups.map((g) =>
           g.id === updatedGroup.id ? { ...g, ...updatedGroup } : g
-        );
-        newAllGroups.set(state.activeProfile, updatedGroups);
-        return {
-          allGroups: newAllGroups,
-          groups: updatedGroups,
-        };
-      });
+        ),
+      }));
       updateGroupsOnBackend();
     },
     deleteGroup: (groupId) => {
-      set((state) => {
-        const newAllGroups = new Map(state.allGroups);
-        const currentGroups = newAllGroups.get(state.activeProfile) || [];
-        const updatedGroups = currentGroups.filter((g) => g.id !== groupId);
-        newAllGroups.set(state.activeProfile, updatedGroups);
-        return {
-          allGroups: newAllGroups,
-          groups: updatedGroups,
-          editingGroupId:
-            state.editingGroupId === groupId ? null : state.editingGroupId,
-        };
-      });
+      set((state) => ({
+        groups: state.groups.filter((g) => g.id !== groupId),
+        editingGroupId:
+          state.editingGroupId === groupId ? null : state.editingGroupId,
+      }));
       updateGroupsOnBackend();
     },
     editGroupContent: (groupId) => {
@@ -112,30 +87,22 @@ export const createGroupActions: StateCreator<
       get().actions.startEditingGroup(groupId);
     },
     updateGroupPaths: (groupId, paths) => {
-      const { rootPath, activeProfile } = get();
+      const { rootPath } = get();
       if (!rootPath) return;
       set({ isUpdatingGroupId: groupId });
       invoke("start_group_update", {
         groupId,
         rootPathStr: rootPath,
-        profileName: activeProfile,
         paths,
       });
     },
     _setGroupUpdateComplete: ({ groupId, stats, paths }) => {
-      set((state) => {
-        const newAllGroups = new Map(state.allGroups);
-        const currentGroups = newAllGroups.get(state.activeProfile) || [];
-        const updatedGroups = currentGroups.map((g) =>
+      set((state) => ({
+        groups: state.groups.map((g) =>
           g.id === groupId ? { ...g, paths: paths, stats: stats } : g
-        );
-        newAllGroups.set(state.activeProfile, updatedGroups);
-        return {
-          allGroups: newAllGroups,
-          groups: updatedGroups,
-          isUpdatingGroupId: null,
-        };
-      });
+        ),
+        isUpdatingGroupId: null,
+      }));
     },
     startEditingGroup: (groupId: string) => {
       const { groups, fileTree } = get();
@@ -217,18 +184,11 @@ export const createGroupActions: StateCreator<
     },
     _updateGroupFromAi: (updatedGroup) => {
       const { fileTree, editingGroupId } = get();
-      set((state) => {
-        const newAllGroups = new Map(state.allGroups);
-        const currentGroups = newAllGroups.get(state.activeProfile) || [];
-        const updatedGroups = currentGroups.map((g) =>
+      set((state) => ({
+        groups: state.groups.map((g) =>
           g.id === updatedGroup.id ? updatedGroup : g
-        );
-        newAllGroups.set(state.activeProfile, updatedGroups);
-        return {
-          allGroups: newAllGroups,
-          groups: updatedGroups,
-        };
-      });
+        ),
+      }));
       // If the updated group is the one currently being edited, refresh the selection tree
       if (fileTree && updatedGroup.id === editingGroupId) {
         const expanded = expandPaths(fileTree, new Set(updatedGroup.paths));

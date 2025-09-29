@@ -22,7 +22,6 @@ pub fn run() {
             // commands::open_project,
             commands::scan_project, // <-- COMMAND MỚI
             commands::delete_project_data,
-            commands::load_profile_data, // <-- COMMAND MỚI
             // ... (các command còn lại)
             commands::get_file_content,
             commands::read_file_with_lines,
@@ -41,16 +40,9 @@ pub fn run() {
             commands::generate_group_context,
             commands::generate_project_context,
             commands::update_custom_ignore_patterns,
-            // Các command mới để quản lý hồ sơ
-            commands::list_profiles,
-            commands::create_profile,
-            commands::delete_profile,
-            commands::rename_profile,
             commands::set_file_watching_setting,
             commands::start_file_watching,
             commands::stop_file_watching,
-            commands::list_groups_for_profile,
-            commands::clone_profile,
             commands::set_export_use_full_tree_setting,
             commands::set_export_with_line_numbers_setting,
             commands::set_export_without_comments_setting, // <-- COMMAND MỚI

@@ -4,19 +4,13 @@ import { useAppStore, useAppActions } from "@/store/appStore";
 import { useShallow } from "zustand/react/shallow";
 import { open, message } from "@tauri-apps/plugin-dialog";
 
-export type SettingsTab =
-  | "appearance"
-  | "project"
-  | "profile"
-  | "export"
-  | "ai";
+export type SettingsTab = "appearance" | "project" | "export" | "ai";
 
 export function useSettingsScene() {
   const {
     syncEnabled,
     syncPath,
     customIgnorePatterns,
-    activeProfile,
     isWatchingFiles,
     rootPath,
     exportUseFullTree,
@@ -41,7 +35,6 @@ export function useSettingsScene() {
       syncEnabled: state.syncEnabled,
       syncPath: state.syncPath,
       customIgnorePatterns: state.customIgnorePatterns,
-      activeProfile: state.activeProfile,
       isWatchingFiles: state.isWatchingFiles,
       rootPath: state.rootPath,
       exportUseFullTree: state.exportUseFullTree,
@@ -141,7 +134,6 @@ export function useSettingsScene() {
     syncEnabled,
     syncPath,
     customIgnorePatterns,
-    activeProfile,
     isWatchingFiles,
     rootPath,
     exportUseFullTree,

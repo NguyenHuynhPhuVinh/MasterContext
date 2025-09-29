@@ -119,7 +119,6 @@
     "noGroups": "No groups yet."
   },
   "inlineInputs": {
-    "profilePlaceholder": "Profile name...",
     "groupPlaceholder": "Group name..."
   },
   "statusBar": {
@@ -199,13 +198,13 @@
       "executingTool": "Executing tool",
       "modifiedGroup": "Modified context group",
       "listingGroupFiles": "Listing files in current group",
-      "writingFileGeneric": "Staging file operation",
-      "writeFileSuccess": "Staged modification for",
-      "writeFileError": "Failed to stage modification for",
-      "createFileSuccess": "Staged creation for",
-      "createFileError": "Failed to stage creation for",
-      "deleteFileSuccess": "Staged deletion for",
-      "deleteFileError": "Failed to stage deletion for"
+      "writingFileGeneric": "Preparing file change",
+      "writeFileSuccess": "Prepared modification for",
+      "writeFileError": "Failed to prepare modification for",
+      "createFileSuccess": "Prepared creation for",
+      "createFileError": "Failed to prepare creation for",
+      "deleteFileSuccess": "Prepared deletion for",
+      "deleteFileError": "Failed to prepare deletion for"
     },
     "addedExclusion": "Added exclusion for",
     "addedExclusionError": "Failed to add exclusion for",
@@ -238,11 +237,9 @@
   "settings": {
     "title": "Settings",
     "description": "Customize settings for the application.",
-    "profileBadge": "Profile",
     "tabs": {
       "appearance": "Appearance",
       "project": "Project",
-      "profile": "Profile",
       "export": "Export",
       "ai": "AI"
     },
@@ -271,42 +268,39 @@
         "title": "Danger Zone",
         "deleteData": {
           "label": "Delete project data",
-          "description": "This will delete all profiles, groups, and settings for this project. This cannot be undone.",
+          "description": "This will delete all groups and settings for this project. This cannot be undone.",
           "button": "Delete Data"
         },
         "deleteDialog": {
           "title": "Are you absolutely sure?",
-          "description": "All data for this project (including all profiles and groups) will be permanently deleted. This action cannot be undone.",
+          "description": "All data for this project (including all groups) will be permanently deleted. This action cannot be undone.",
           "confirm": "I understand, delete"
         }
       }
     },
-    "profile": {
-      "title": "Settings for Current Profile",
-      "autoSync": {
-        "title": "Auto-sync",
-        "enable": {
-          "label": "Enable background sync",
-          "description": "Automatically re-export on changes."
-        },
-        "folder": {
-          "label": "Sync folder",
-          "placeholder": "Not selected..."
-        }
+    "autoSync": {
+      "title": "Auto-sync",
+      "enable": {
+        "label": "Enable background sync",
+        "description": "Automatically re-export on changes."
       },
-      "git": {
-        "title": "Git Integration",
-        "contextMode": {
-          "label": "Context export mode",
-          "description": "Enable to copy/export context instead of a diff file."
-        }
-      },
-      "alwaysApply": {
-        "title": "Always Apply Text",
-        "description": "This content will be appended to every exported context file.",
-        "placeholder": "Example: Always reply in English.",
-        "saveButton": "Save Text"
+      "folder": {
+        "label": "Sync folder",
+        "placeholder": "Not selected..."
       }
+    },
+    "git": {
+      "title": "Git Integration",
+      "contextMode": {
+        "label": "Context export mode",
+        "description": "Enable to copy/export context instead of a diff file."
+      }
+    },
+    "alwaysApply": {
+      "title": "Always Apply Text",
+      "description": "This content will be appended to every exported context file.",
+      "placeholder": "Example: Always reply in English.",
+      "saveButton": "Save Text"
     },
     "export": {
       "title": "Export Settings",
@@ -384,8 +378,6 @@
     "fileExportFailed": "An error occurred while exporting the file: {{error}}",
     "startExportFailed": "Could not start file export: {{error}}",
     "copyFailed": "Could not copy: {{error}}",
-    "profileNameRequired": "Profile name cannot be empty.",
-    "profileNameInvalid": "Name can only contain letters, numbers, underscores, and hyphens.",
     "groupNameRequired": "Group name cannot be empty.",
     "git": {
       "uncommitted_changes": "You have uncommitted changes or untracked files. Please commit, stash, or clean your working directory first."
@@ -395,26 +387,13 @@
       "export_no_files": "This group contains no files to export.",
       "generate_context_no_files": "This group contains no files to generate context from."
     },
-    "profile": {
-      "cannot_delete_default": "Cannot delete the 'default' profile.",
-      "not_exist": "Profile does not exist.",
-      "cannot_rename_default": "Cannot rename the 'default' profile.",
-      "old_not_exist": "The old profile does not exist.",
-      "new_name_exist": "The new profile name already exists.",
-      "invalid_name": "Invalid profile name."
-    },
     "project": {
       "export_no_files": "The project has no files to export.",
       "generate_context_no_files": "The project has no files to generate context from."
     }
   },
   "sidebarPanel": {
-    "title": "Profiles & Groups",
-    "createProfile": "Create profile",
-    "createGroup": "Create new group",
-    "renameProfile": "Rename profile",
-    "deleteProfile": "Delete profile",
-    "deleteProfileTitle": "Confirm Profile Deletion?",
-    "deleteProfileDescription": "This action will permanently delete the '{{profile}}' profile and all its groups. Are you sure?"
+    "groups": "Groups",
+    "createGroup": "Create new group"
   }
 }

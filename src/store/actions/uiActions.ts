@@ -18,7 +18,6 @@ export interface UIActions {
   setInlineEditingGroup: (
     state: {
       mode: "create" | "rename";
-      profileName: string;
       groupId?: string;
     } | null
   ) => void;
@@ -58,12 +57,9 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     set({
       rootPath: null,
       selectedPath: null,
-      allGroups: new Map(),
       groups: [],
       activeScene: "dashboard",
       editingGroupId: null,
-      profiles: ["default"],
-      activeProfile: "default",
       isGroupEditorPanelVisible: false,
     }),
   showDashboard: () => {
@@ -134,14 +130,8 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     });
   },
   addExclusionRange: async (start, end) => {
-    const {
-      rootPath,
-      activeProfile,
-      activeEditorFile,
-      activeEditorFileExclusions,
-    } = _get();
-    if (!rootPath || !activeProfile || !activeEditorFile || start >= end)
-      return;
+    const { rootPath, activeEditorFile, activeEditorFileExclusions } = _get();
+    if (!rootPath || !activeEditorFile || start >= end) return;
 
     const newRanges = [
       ...(activeEditorFileExclusions || []),
@@ -170,7 +160,6 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
         "update_file_exclusions",
         {
           path: rootPath,
-          profileName: activeProfile,
           fileRelPath: activeEditorFile,
           ranges: mergedRanges,
         }
@@ -182,19 +171,8 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     }
   },
   removeExclusionRange: async (rangeToRemove) => {
-    const {
-      rootPath,
-      activeProfile,
-      activeEditorFile,
-      activeEditorFileExclusions,
-    } = _get();
-    if (
-      !rootPath ||
-      !activeProfile ||
-      !activeEditorFile ||
-      !activeEditorFileExclusions
-    )
-      return;
+    const { rootPath, activeEditorFile, activeEditorFileExclusions } = _get();
+    if (!rootPath || !activeEditorFile || !activeEditorFileExclusions) return;
     const newRanges = activeEditorFileExclusions.filter(
       (r) => r[0] !== rangeToRemove[0] || r[1] !== rangeToRemove[1]
     );
@@ -204,7 +182,6 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
         "update_file_exclusions",
         {
           path: rootPath,
-          profileName: activeProfile,
           fileRelPath: activeEditorFile,
           ranges: newRanges,
         }
@@ -216,14 +193,13 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
   },
   clearExclusionRanges: async () => {
     set({ activeEditorFileExclusions: [] });
-    const { rootPath, activeProfile, activeEditorFile } = _get();
-    if (!rootPath || !activeProfile || !activeEditorFile) return;
+    const { rootPath, activeEditorFile } = _get();
+    if (!rootPath || !activeEditorFile) return;
     try {
       const updatedMetadata = await invoke<FileMetadata>(
         "update_file_exclusions",
         {
           path: rootPath,
-          profileName: activeProfile,
           fileRelPath: activeEditorFile,
           ranges: [],
         }
@@ -234,8 +210,8 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
     }
   },
   addExclusionRangeFromAI: async (filePath, startLine, endLine) => {
-    const { rootPath, activeProfile, fileMetadataCache } = _get();
-    if (!rootPath || !activeProfile) {
+    const { rootPath, fileMetadataCache } = _get();
+    if (!rootPath) {
       return { success: false, message: "Error: Project path not found." };
     }
     if (startLine > endLine) {
@@ -300,7 +276,6 @@ export const createUIActions: StateCreator<AppState, [], [], UIActions> = (
         "update_file_exclusions",
         {
           path: rootPath,
-          profileName: activeProfile,
           fileRelPath: filePath,
           ranges: mergedRanges,
         }

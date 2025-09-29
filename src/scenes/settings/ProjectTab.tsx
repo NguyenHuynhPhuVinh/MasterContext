@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, FolderUp, GitBranch } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +27,12 @@ interface ProjectTabProps {
   isDeleteProjectDialogOpen: boolean;
   setIsDeleteProjectDialogOpen: (isOpen: boolean) => void;
   handleConfirmDeleteProjectData: () => void;
+  syncEnabled: boolean;
+  handleToggleSync: (enabled: boolean) => void;
+  syncPath: string | null;
+  handleChooseSyncPath: () => void;
+  gitExportModeIsContext: boolean;
+  setGitExportMode: (enabled: boolean) => Promise<void>;
 }
 
 export function ProjectTab({
@@ -40,6 +46,12 @@ export function ProjectTab({
   isDeleteProjectDialogOpen,
   setIsDeleteProjectDialogOpen,
   handleConfirmDeleteProjectData,
+  syncEnabled,
+  handleToggleSync,
+  syncPath,
+  handleChooseSyncPath,
+  gitExportModeIsContext,
+  setGitExportMode,
 }: ProjectTabProps) {
   const { t } = useTranslation();
   return (
@@ -64,6 +76,65 @@ export function ProjectTab({
             checked={isWatchingFiles}
             onCheckedChange={setFileWatching}
             disabled={!rootPath}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4 rounded-lg border p-4">
+        <h3 className="font-semibold">{t("settings.autoSync.title")}</h3>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="sync-toggle" className="flex flex-col items-start">
+            <span>{t("settings.autoSync.enable.label")}</span>
+            <span className="text-xs text-muted-foreground">
+              {t("settings.autoSync.enable.description")}
+            </span>
+          </Label>
+          <Switch
+            id="sync-toggle"
+            checked={syncEnabled}
+            onCheckedChange={handleToggleSync}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="sync-path">
+            {t("settings.autoSync.folder.label")}
+          </Label>
+          <div className="flex items-center gap-2">
+            <div
+              id="sync-path"
+              className="flex-grow truncate rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground"
+            >
+              {syncPath || t("settings.autoSync.folder.placeholder")}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleChooseSyncPath}
+            >
+              <FolderUp className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4 rounded-lg border p-4">
+        <h3 className="font-semibold flex items-center gap-2">
+          <GitBranch className="h-4 w-4" /> {t("settings.git.title")}
+        </h3>
+        <div className="flex items-center justify-between">
+          <Label
+            htmlFor="git-export-mode-toggle"
+            className="flex flex-col items-start"
+          >
+            <span>{t("settings.git.contextMode.label")}</span>
+            <span className="text-xs text-muted-foreground">
+              {t("settings.git.contextMode.description")}
+            </span>
+          </Label>
+          <Switch
+            id="git-export-mode-toggle"
+            checked={gitExportModeIsContext}
+            onCheckedChange={setGitExportMode}
           />
         </div>
       </div>

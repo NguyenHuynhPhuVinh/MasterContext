@@ -11,10 +11,9 @@ use crate::models::AIGroupUpdateResult;
 pub fn update_groups_in_project_data(
     app: AppHandle,
     path: String,
-    profile_name: String,
     groups: Vec<models::Group>,
 ) -> Result<(), String> {
-    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+    let mut project_data = file_cache::load_project_data(&app, &path)?;
     let old_groups = project_data.groups.clone();
 
     if project_data.sync_enabled.unwrap_or(false) {
@@ -54,20 +53,19 @@ pub fn update_groups_in_project_data(
     project_data.groups = groups;
 
     if project_data.sync_enabled.unwrap_or(false) && project_data.sync_path.is_some() {
-        perform_auto_export(&path, &profile_name, &project_data);
+        perform_auto_export(&path, &project_data);
     }
 
-    file_cache::save_project_data(&app, &path, &profile_name, &project_data)
+    file_cache::save_project_data(&app, &path, &project_data)
 }
 
 #[command]
 pub fn calculate_group_stats_from_cache(
     app: AppHandle,
     root_path_str: String,
-    profile_name: String,
     paths: Vec<String>,
 ) -> Result<models::GroupStats, String> {
-    let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
+    let project_data = file_cache::load_project_data(&app, &root_path_str)?;
     let root_path = Path::new(&root_path_str);
     Ok(group_updater::recalculate_stats_for_paths(
         &paths,
@@ -82,27 +80,26 @@ pub fn start_group_update(
     app: AppHandle,
     group_id: String,
     root_path_str: String,
-    profile_name: String,
     paths: Vec<String>,
 ) {
     let app_clone = app.clone();
     std::thread::spawn(move || {
         let result =
-            calculate_group_stats_from_cache(app_clone, root_path_str.clone(), profile_name.clone(), paths.clone());
+            calculate_group_stats_from_cache(app_clone, root_path_str.clone(), paths.clone());
         match result {
             Ok(new_stats) => {
                 if let Ok(mut project_data) =
-                    file_cache::load_project_data(&app, &root_path_str, &profile_name)
+                    file_cache::load_project_data(&app, &root_path_str)
                 {
                     if let Some(group) = project_data.groups.iter_mut().find(|g| g.id == group_id) {
                         group.paths = paths.clone();
                         group.stats = new_stats;
 
                         if project_data.sync_enabled.unwrap_or(false) && project_data.sync_path.is_some() {
-                            perform_auto_export(&root_path_str, &profile_name, &project_data);
+                            perform_auto_export(&root_path_str, &project_data);
                         }
                     }
-                    let _ = file_cache::save_project_data(&app, &root_path_str, &profile_name, &project_data);
+                    let _ = file_cache::save_project_data(&app, &root_path_str, &project_data);
                 }
                 let _ = window.emit(
                     "group_update_complete",
@@ -122,11 +119,10 @@ pub fn start_group_export(
     app: AppHandle,
     group_id: String,
     root_path_str: String,
-    profile_name: String,
 ) {
     std::thread::spawn(move || {
         let result: Result<String, String> = (|| {
-            let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
+            let project_data = file_cache::load_project_data(&app, &root_path_str)?;
             let use_full_tree = project_data.export_use_full_tree.unwrap_or(false);
             let with_line_numbers = project_data.export_with_line_numbers.unwrap_or(true);
             let without_comments = project_data.export_without_comments.unwrap_or(false);
@@ -181,14 +177,13 @@ pub fn generate_group_context(
     app: AppHandle,
     group_id: String,
     root_path_str: String,
-    profile_name: String,
     use_full_tree: bool,
     with_line_numbers: bool,
     without_comments: bool,
     remove_debug_logs: bool,
     super_compressed: bool,
 ) -> Result<String, String> {
-    let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
+    let project_data = file_cache::load_project_data(&app, &root_path_str)?;
     let always_apply_text = project_data.always_apply_text;
     let exclude_extensions = project_data.export_exclude_extensions;
     let root_path = Path::new(&root_path_str);
@@ -225,9 +220,8 @@ pub fn generate_group_context_for_ai(
     app: AppHandle,
     group_id: String,
     root_path_str: String,
-    profile_name: String,
 ) -> Result<String, String> {
-    let project_data = file_cache::load_project_data(&app, &root_path_str, &profile_name)?;
+    let project_data = file_cache::load_project_data(&app, &root_path_str)?;
     let root_path = Path::new(&root_path_str);
     let group = project_data
         .groups
@@ -264,12 +258,11 @@ pub fn generate_group_context_for_ai(
 pub fn update_group_paths_from_ai(
     app: AppHandle,
     path: String,
-    profile_name: String,
     group_id: String,
     paths_to_add: Vec<String>,
     paths_to_remove: Vec<String>,
 ) -> Result<AIGroupUpdateResult, String> {
-    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+    let mut project_data = file_cache::load_project_data(&app, &path)?;
     let root_path = Path::new(&path);
     let metadata_cache_clone = project_data.file_metadata_cache.clone();
 
@@ -323,7 +316,7 @@ pub fn update_group_paths_from_ai(
         );
 
         // Now that the borrow on `group` is finished, we can save the entire `project_data`.
-        file_cache::save_project_data(&app, &path, &profile_name, &project_data)?;
+        file_cache::save_project_data(&app, &path, &project_data)?;
 
         Ok(AIGroupUpdateResult {
             updated_group: updated_group_clone,
@@ -338,10 +331,9 @@ pub fn update_group_paths_from_ai(
 pub fn get_expanded_files_for_group(
     app: AppHandle,
     path: String,
-    profile_name: String,
     group_id: String,
 ) -> Result<Vec<String>, String> {
-    let project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+    let project_data = file_cache::load_project_data(&app, &path)?;
     let root_path = Path::new(&path);
 
     if let Some(group) = project_data.groups.iter().find(|g| g.id == group_id) {

@@ -2,21 +2,12 @@
 import { useSettingsScene } from "@/hooks/useSettingsScene";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import {
-  FileText,
-  X,
-  Palette,
-  FolderCog,
-  User,
-  FileOutput,
-  Bot,
-} from "lucide-react";
+import { X, Palette, FolderCog, FileOutput, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AppearanceTab } from "./settings/AppearanceTab";
 import { ProjectTab } from "./settings/ProjectTab";
-import { ProfileTab } from "./settings/ProfileTab";
 import { ExportTab } from "./settings/ExportTab";
 import { AITab } from "./settings/AITab"; // THÊM IMPORT
 import { type SettingsTab } from "@/hooks/useSettingsScene";
@@ -28,7 +19,6 @@ export function SettingsScene() {
     setActiveTab,
     syncEnabled,
     syncPath,
-    activeProfile,
     isWatchingFiles,
     rootPath,
     exportUseFullTree,
@@ -49,7 +39,6 @@ export function SettingsScene() {
     maxTokens,
     streamResponse,
     updateAppSettings,
-    setGitExportMode,
     showDashboard,
     setFileWatching,
     setExportUseFullTree,
@@ -59,6 +48,7 @@ export function SettingsScene() {
     setExportSuperCompressed,
     setAlwaysApplyText,
     setExportExcludeExtensions,
+    setGitExportMode,
     handleToggleSync,
     handleChooseSyncPath,
     ignoreText,
@@ -77,7 +67,6 @@ export function SettingsScene() {
       icon: Palette,
     },
     { id: "project", label: t("settings.tabs.project"), icon: FolderCog },
-    { id: "profile", label: t("settings.tabs.profile"), icon: User },
     { id: "export", label: t("settings.tabs.export"), icon: FileOutput },
     { id: "ai", label: t("settings.tabs.ai"), icon: Bot }, // THÊM TAB
   ];
@@ -90,6 +79,12 @@ export function SettingsScene() {
         return (
           <ProjectTab
             isWatchingFiles={isWatchingFiles}
+            syncEnabled={syncEnabled}
+            syncPath={syncPath}
+            handleToggleSync={handleToggleSync}
+            handleChooseSyncPath={handleChooseSyncPath}
+            gitExportModeIsContext={gitExportModeIsContext}
+            setGitExportMode={setGitExportMode}
             setFileWatching={setFileWatching}
             rootPath={rootPath}
             ignoreText={ignoreText}
@@ -99,19 +94,6 @@ export function SettingsScene() {
             isDeleteProjectDialogOpen={isDeleteProjectDialogOpen}
             setIsDeleteProjectDialogOpen={setIsDeleteProjectDialogOpen}
             handleConfirmDeleteProjectData={handleConfirmDeleteProjectData}
-          />
-        );
-      case "profile":
-        return (
-          <ProfileTab
-            syncEnabled={syncEnabled}
-            handleToggleSync={handleToggleSync}
-            syncPath={syncPath}
-            handleChooseSyncPath={handleChooseSyncPath}
-            alwaysApplyText={alwaysApplyText}
-            setAlwaysApplyText={setAlwaysApplyText}
-            gitExportModeIsContext={gitExportModeIsContext}
-            setGitExportMode={setGitExportMode}
           />
         );
       case "export":
@@ -129,6 +111,8 @@ export function SettingsScene() {
             setExportRemoveDebugLogs={setExportRemoveDebugLogs}
             exportExcludeExtensions={exportExcludeExtensions}
             setExportExcludeExtensions={setExportExcludeExtensions}
+            alwaysApplyText={alwaysApplyText}
+            setAlwaysApplyText={setAlwaysApplyText}
           />
         );
       case "ai":
@@ -167,14 +151,7 @@ export function SettingsScene() {
     <div className="flex flex-col h-screen bg-background">
       <header className="flex items-center justify-between p-4 border-b shrink-0">
         <div className="flex flex-col">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
-            <Badge variant="secondary" className="gap-2">
-              <FileText className="h-4 w-4" />
-              {t("settings.profileBadge")}:{" "}
-              <span className="font-semibold">{activeProfile}</span>
-            </Badge>
-          </div>
+          <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
           <p className="text-muted-foreground">{t("settings.description")}</p>
         </div>
         <Button variant="ghost" size="icon" onClick={showDashboard}>

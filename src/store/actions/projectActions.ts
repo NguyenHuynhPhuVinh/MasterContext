@@ -1,11 +1,7 @@
 // src/store/actions/projectActions.ts
 import { StateCreator } from "zustand";
 import { AppState } from "../appStore";
-import {
-  type CachedProjectData,
-  type Group,
-  type FileMetadata,
-} from "../types";
+import { type CachedProjectData, type FileMetadata } from "../types";
 import { invoke } from "@tauri-apps/api/core";
 import { open, message } from "@tauri-apps/plugin-dialog";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -65,7 +61,7 @@ export const createProjectActions: StateCreator<
     invoke("set_recent_paths", { paths: newRecentPaths }).catch((e) => {
       console.error("Failed to save recent paths:", e);
     });
-    invoke("scan_project", { path, profileName: "default" });
+    invoke("scan_project", { path });
   },
   openFolderFromMenu: async () => {
     try {
@@ -124,7 +120,7 @@ export const createProjectActions: StateCreator<
     }
   },
   rescanProject: async () => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
     set({
       // <<-- THAY ĐỔI TẠI ĐÂY
@@ -134,7 +130,7 @@ export const createProjectActions: StateCreator<
         currentPhase: "scanning",
       },
     });
-    invoke("scan_project", { path: rootPath, profileName: activeProfile });
+    invoke("scan_project", { path: rootPath });
   },
   _setScanProgress: (file) => {
     set({ scanProgress: { currentFile: file, currentPhase: "scanning" } });
@@ -143,7 +139,7 @@ export const createProjectActions: StateCreator<
     set({ scanProgress: { currentFile: file, currentPhase: "analyzing" } });
   },
   _setScanComplete: async (payload: CachedProjectData) => {
-    const { rootPath, activeProfile, activeEditorFile, actions } = get();
+    const { activeEditorFile, actions } = get();
     const fileToReopen = activeEditorFile; // Store the currently open file before state updates
 
     set({
@@ -157,54 +153,21 @@ export const createProjectActions: StateCreator<
     });
 
     const loadedGroups = (payload.groups || []).map((g) => ({ ...g }));
-    set((state) => {
-      const newAllGroups = new Map(state.allGroups);
-      newAllGroups.set(activeProfile, loadedGroups);
-      return {
-        allGroups: newAllGroups,
-        groups: loadedGroups,
-        syncEnabled: payload.sync_enabled ?? false,
-        syncPath: payload.sync_path ?? null,
-        customIgnorePatterns: payload.custom_ignore_patterns ?? [],
-        isWatchingFiles: payload.is_watching_files ?? false,
-        exportUseFullTree: payload.export_use_full_tree ?? false,
-        exportWithLineNumbers: payload.export_with_line_numbers ?? true,
-        exportWithoutComments: payload.export_without_comments ?? false,
-        exportRemoveDebugLogs: payload.export_remove_debug_logs ?? false,
-        exportSuperCompressed: payload.export_super_compressed ?? false,
-        alwaysApplyText: payload.always_apply_text ?? null,
-        exportExcludeExtensions: payload.export_exclude_extensions ?? [],
-        gitExportModeIsContext: payload.git_export_mode_is_context ?? false,
-      };
+    set({
+      groups: loadedGroups,
+      syncEnabled: payload.sync_enabled ?? false,
+      syncPath: payload.sync_path ?? null,
+      customIgnorePatterns: payload.custom_ignore_patterns ?? [],
+      isWatchingFiles: payload.is_watching_files ?? false,
+      exportUseFullTree: payload.export_use_full_tree ?? false,
+      exportWithLineNumbers: payload.export_with_line_numbers ?? true,
+      exportWithoutComments: payload.export_without_comments ?? false,
+      exportRemoveDebugLogs: payload.export_remove_debug_logs ?? false,
+      exportSuperCompressed: payload.export_super_compressed ?? false,
+      alwaysApplyText: payload.always_apply_text ?? null,
+      exportExcludeExtensions: payload.export_exclude_extensions ?? [],
+      gitExportModeIsContext: payload.git_export_mode_is_context ?? false,
     });
-
-    if (rootPath) {
-      try {
-        const profiles = await invoke<string[]>("list_profiles", {
-          projectPath: rootPath,
-        });
-        set({ profiles });
-
-        const otherProfiles = profiles.filter((p) => p !== activeProfile);
-        const groupPromises = otherProfiles.map((p) =>
-          invoke<Group[]>("list_groups_for_profile", {
-            projectPath: rootPath,
-            profileName: p,
-          }).then((groups) => [p, groups] as [string, Group[]])
-        );
-
-        const otherProfileGroups = await Promise.all(groupPromises);
-        set((state) => {
-          const newAllGroups = new Map(state.allGroups);
-          otherProfileGroups.forEach(([profileName, groups]) => {
-            newAllGroups.set(profileName, groups);
-          });
-          return { allGroups: newAllGroups };
-        });
-      } catch (e) {
-        console.error("Không thể tải danh sách các hồ sơ khác:", e);
-      }
-    }
 
     // Luôn làm mới trạng thái Git sau khi quét xong
     await get().actions.checkGitRepo();
@@ -232,26 +195,23 @@ export const createProjectActions: StateCreator<
     });
   },
   exportProject: async () => {
-    const { rootPath, activeProfile } = get();
-    if (!rootPath || !activeProfile) return;
+    const { rootPath } = get();
+    if (!rootPath) return;
     invoke("start_project_export", {
       path: rootPath,
-      profileName: activeProfile,
     });
   },
   copyProjectToClipboard: async () => {
     const {
       rootPath,
-      activeProfile,
       exportWithLineNumbers,
       exportWithoutComments,
       exportRemoveDebugLogs,
     } = get();
-    if (!rootPath || !activeProfile) return;
+    if (!rootPath) return;
     try {
       const context = await invoke<string>("generate_project_context", {
         path: rootPath,
-        profileName: activeProfile,
         withLineNumbers: exportWithLineNumbers,
         withoutComments: exportWithoutComments,
         removeDebugLogs: exportRemoveDebugLogs,

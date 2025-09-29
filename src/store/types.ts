@@ -176,7 +176,6 @@ export interface AiFileActions {
 export interface AppState {
   rootPath: string | null;
   selectedPath: string | null;
-  allGroups: Map<string, Group[]>;
   groups: Group[]; // Derived state
 
   // Dữ liệu quét chung
@@ -189,7 +188,6 @@ export interface AppState {
   editingGroupId: string | null;
   inlineEditingGroup: {
     mode: "create" | "rename";
-    profileName: string;
     groupId?: string;
   } | null;
   isScanning: boolean;
@@ -227,9 +225,6 @@ export interface AppState {
   exportExcludeExtensions: string[];
   gitExportModeIsContext: boolean;
 
-  // Quản lý hồ sơ
-  profiles: string[];
-  activeProfile: string;
   isSidebarVisible: boolean;
   recentPaths: string[];
   nonAnalyzableExtensions: string[];

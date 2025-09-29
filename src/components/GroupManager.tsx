@@ -1,5 +1,5 @@
 // src/components/GroupManager.tsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { useAppStore, useAppActions } from "@/store/appStore";
@@ -12,10 +12,8 @@ import { useShallow } from "zustand/react/shallow";
 import { GroupItem } from "./GroupItem";
 
 interface GroupManagerProps {
-  profileName: string;
   inlineEditingGroup: {
     mode: "create" | "rename";
-    profileName: string;
     groupId?: string;
   } | null;
   onStartRename: (group: Group) => void;
@@ -24,7 +22,6 @@ interface GroupManagerProps {
 }
 
 export function GroupManager({
-  profileName,
   inlineEditingGroup,
   onStartRename,
   onConfirmRename,
@@ -33,32 +30,22 @@ export function GroupManager({
   const { t } = useTranslation();
   const {
     groups,
-    activeProfile,
     rootPath,
     exportWithLineNumbers,
     exportWithoutComments,
     exportRemoveDebugLogs,
   } = useAppStore(
-    useShallow((state) => {
-      const allGroups = state.allGroups ?? new Map();
-      return {
-        groups: allGroups.get(profileName) || [],
-        activeProfile: state.activeProfile,
-        rootPath: state.rootPath,
-        exportWithLineNumbers: state.exportWithLineNumbers,
-        // Lấy thêm các cài đặt export khác
-        exportWithoutComments: state.exportWithoutComments,
-        exportRemoveDebugLogs: state.exportRemoveDebugLogs,
-      };
-    })
+    useShallow((state) => ({
+      groups: state.groups,
+      rootPath: state.rootPath,
+      exportWithLineNumbers: state.exportWithLineNumbers,
+      // Lấy thêm các cài đặt export khác
+      exportWithoutComments: state.exportWithoutComments,
+      exportRemoveDebugLogs: state.exportRemoveDebugLogs,
+    }))
   );
-  const {
-    deleteGroup,
-    editGroupContent,
-    switchProfile,
-    attachItemToAi,
-    updateGroup,
-  } = useAppActions();
+  const { deleteGroup, editGroupContent, attachItemToAi, updateGroup } =
+    useAppActions();
 
   // ... (state và effects cho việc export/copy giữ nguyên)
   const [exportingGroupId, setExportingGroupId] = useState<string | null>(null);
@@ -134,90 +121,70 @@ export function GroupManager({
     }
   }, [pendingExportData]);
 
-  const performActionAfterSwitch = useCallback(
-    async (action: () => void) => {
-      if (profileName !== activeProfile) {
-        await switchProfile(profileName);
-      }
-      action();
-    },
-    [profileName, activeProfile, switchProfile]
-  );
-
   const handleExport = (group: Group) => {
-    performActionAfterSwitch(() => {
-      setExportingGroupId(group.id);
-      invoke("start_group_export", {
-        groupId: group.id,
-        rootPathStr: rootPath,
-        profileName,
-      }).catch((err) => {
-        message(t("errors.startExportFailed", { error: err }), {
-          title: t("common.error"),
-          kind: "error",
-        });
-        setExportingGroupId(null);
+    setExportingGroupId(group.id);
+    invoke("start_group_export", {
+      groupId: group.id,
+      rootPathStr: rootPath,
+    }).catch((err) => {
+      message(t("errors.startExportFailed", { error: err }), {
+        title: t("common.error"),
+        kind: "error",
       });
+      setExportingGroupId(null);
     });
   };
   const handleEditContentClick = (group: Group) => {
-    performActionAfterSwitch(() => editGroupContent(group.id));
+    editGroupContent(group.id);
   };
   const handleAttachToAi = (group: Group) => {
-    performActionAfterSwitch(() => {
-      attachItemToAi({
-        id: group.id,
-        type: "group",
-        name: group.name,
-      });
+    attachItemToAi({
+      id: group.id,
+      type: "group",
+      name: group.name,
     });
   };
   const handleCopyContext = (group: Group) => {
-    performActionAfterSwitch(async () => {
-      if (!rootPath) return;
-      setCopyingGroupId(group.id);
-      try {
-        const context = await invoke<string>("generate_group_context", {
-          groupId: group.id,
-          rootPathStr: rootPath,
-          profileName: profileName,
-          useFullTree: true,
-          withLineNumbers: exportWithLineNumbers, // Sử dụng giá trị từ state
-          withoutComments: exportWithoutComments, // Sử dụng giá trị từ state
-          removeDebugLogs: exportRemoveDebugLogs, // Sử dụng giá trị từ state
-          superCompressed: false, // Copy should not be compressed
-        });
-        await writeText(context);
+    if (!rootPath) return;
+    setCopyingGroupId(group.id);
+    invoke<string>("generate_group_context", {
+      groupId: group.id,
+      rootPathStr: rootPath,
+      useFullTree: true,
+      withLineNumbers: exportWithLineNumbers, // Sử dụng giá trị từ state
+      withoutComments: exportWithoutComments, // Sử dụng giá trị từ state
+      removeDebugLogs: exportRemoveDebugLogs, // Sử dụng giá trị từ state
+      superCompressed: false, // Copy should not be compressed
+    })
+      .then((context) => {
+        writeText(context);
         message(t("dialogs.copyGroupSuccess.body", { name: group.name }), {
           title: t("common.success"),
           kind: "info",
         });
-      } catch (error) {
+      })
+      .catch((error) => {
         message(t("errors.copyFailed", { error }), {
           title: t("common.error"),
           kind: "error",
         });
-      } finally {
+      })
+      .finally(() => {
         setCopyingGroupId(null);
-      }
-    });
+      });
   };
   const handleDeleteGroup = (group: Group) => {
-    performActionAfterSwitch(() => deleteGroup(group.id));
+    deleteGroup(group.id);
   };
   const handleSaveTokenLimit = (group: Group, limit?: number) => {
-    performActionAfterSwitch(() =>
-      // Chỉ gửi ID và trường cần cập nhật
-      updateGroup({ id: group.id, tokenLimit: limit })
-    );
+    // Chỉ gửi ID và trường cần cập nhật
+    updateGroup({ id: group.id, tokenLimit: limit });
   };
 
   return (
     <>
       {groups.length === 0 &&
-      (!inlineEditingGroup ||
-        inlineEditingGroup.profileName !== profileName ||
-        inlineEditingGroup.mode !== "create") ? (
+      (!inlineEditingGroup || inlineEditingGroup.mode !== "create") ? (
         <div className="text-left py-2 px-2">
           <p className="text-sm text-muted-foreground/80">
             {t("groupManager.noGroups")}

@@ -11,13 +11,13 @@ use std::fmt::Write as FmtWrite;
 use std::path::Path;
 
 #[command]
-pub fn scan_project(window: Window, path: String, profile_name: String) {
+pub fn scan_project(window: Window, path: String) {
     let window_clone = window.clone();
     let path_clone = path.clone();
     let app = window.app_handle().clone();
 
     std::thread::spawn(move || {
-        let old_data = file_cache::load_project_data(&app, &path, &profile_name).unwrap_or_default();
+        let old_data = file_cache::load_project_data(&app, &path).unwrap_or_default();
         let should_start_watching = old_data.is_watching_files.unwrap_or(false);
 
         // --- THÊM LOGIC ĐỌC CÀI ĐẶT ---
@@ -33,13 +33,13 @@ pub fn scan_project(window: Window, path: String, profile_name: String) {
             }
         ) {
             Ok((new_data, is_first_scan)) => { // <-- Nhận thêm cờ is_first_scan
-                if let Err(e) = file_cache::save_project_data(&app, &path, &profile_name, &new_data) {
+                if let Err(e) = file_cache::save_project_data(&app, &path, &new_data) {
                     let _ = window.emit("scan_error", e);
                     return;
                 }
 
                 if new_data.sync_enabled.unwrap_or(false) && new_data.sync_path.is_some() {
-                    perform_auto_export(&path, &profile_name, &new_data);
+                    perform_auto_export(&path, &new_data);
                 }
                 
                 // --- GỬI PAYLOAD MỚI VỀ FRONTEND ---
@@ -62,10 +62,10 @@ pub fn scan_project(window: Window, path: String, profile_name: String) {
 }
 
 #[command]
-pub fn start_project_export(window: Window, app: AppHandle, path: String, profile_name: String) {
+pub fn start_project_export(window: Window, app: AppHandle, path: String) {
     std::thread::spawn(move || {
         let result: Result<String, String> = (|| {
-            let project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+            let project_data = file_cache::load_project_data(&app, &path)?;
             let with_line_numbers = project_data.export_with_line_numbers.unwrap_or(true);
             let without_comments = project_data.export_without_comments.unwrap_or(false);
             let remove_debug_logs = project_data.export_remove_debug_logs.unwrap_or(false);
@@ -102,8 +102,8 @@ pub fn start_project_export(window: Window, app: AppHandle, path: String, profil
 }
 
 #[command]
-pub fn generate_project_context(app: AppHandle, path: String, profile_name: String, with_line_numbers: bool, without_comments: bool, remove_debug_logs: bool, super_compressed: bool) -> Result<String, String> {
-    let project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+pub fn generate_project_context(app: AppHandle, path: String, with_line_numbers: bool, without_comments: bool, remove_debug_logs: bool, super_compressed: bool) -> Result<String, String> {
+    let project_data = file_cache::load_project_data(&app, &path)?;
     let always_apply_text = project_data.always_apply_text;
     let exclude_extensions = project_data.export_exclude_extensions;
     let all_files: Vec<String> = project_data.file_metadata_cache.keys().cloned().collect();
@@ -285,11 +285,10 @@ pub fn delete_file(root_path_str: String, file_rel_path: String) -> Result<(), S
 pub fn update_file_exclusions(
     app: AppHandle,
     path: String,
-    profile_name: String,
     file_rel_path: String,
     ranges: Vec<(usize, usize)>,
 ) -> Result<models::FileMetadata, String> {
-    let mut project_data = file_cache::load_project_data(&app, &path, &profile_name)?;
+    let mut project_data = file_cache::load_project_data(&app, &path)?;
 
     let updated_metadata: models::FileMetadata;
 
@@ -305,7 +304,7 @@ pub fn update_file_exclusions(
         ));
     }
 
-    file_cache::save_project_data(&app, &path, &profile_name, &project_data)?;
+    file_cache::save_project_data(&app, &path, &project_data)?;
 
     Ok(updated_metadata)
 }

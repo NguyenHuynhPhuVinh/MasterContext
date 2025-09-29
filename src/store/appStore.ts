@@ -24,10 +24,6 @@ import {
 } from "./actions/projectActions";
 import { createGroupActions, type GroupActions } from "./actions/groupActions";
 import {
-  createProfileActions,
-  type ProfileActions,
-} from "./actions/profileActions";
-import {
   createSettingsActions,
   type SettingsActions,
 } from "./actions/settingsActions";
@@ -51,7 +47,6 @@ import { createAiFileActions } from "./actions/aiFileActions";
 export interface AppState {
   rootPath: string | null;
   selectedPath: string | null;
-  allGroups: Map<string, Group[]>;
   groups: Group[]; // Derived state
 
   // Dữ liệu quét chung
@@ -64,7 +59,6 @@ export interface AppState {
   editingGroupId: string | null;
   inlineEditingGroup: {
     mode: "create" | "rename";
-    profileName: string;
     groupId?: string;
   } | null;
   isScanning: boolean;
@@ -102,9 +96,6 @@ export interface AppState {
   exportExcludeExtensions: string[];
   gitExportModeIsContext: boolean;
 
-  // Quản lý hồ sơ
-  profiles: string[];
-  activeProfile: string;
   isSidebarVisible: boolean;
   recentPaths: string[];
   nonAnalyzableExtensions: string[];
@@ -152,7 +143,6 @@ export interface AppState {
 
   actions: ProjectActions &
     GroupActions &
-    ProfileActions &
     SettingsActions &
     UIActions &
     GitActions &
@@ -167,7 +157,6 @@ export const useAppStore = create<AppState>()((set, get, store) => ({
   actions: {
     ...createProjectActions(set, get, store),
     ...createGroupActions(set, get, store),
-    ...createProfileActions(set, get, store),
     ...createSettingsActions(set, get, store),
     ...createUIActions(set, get, store),
     ...createGitActions(set, get, store),

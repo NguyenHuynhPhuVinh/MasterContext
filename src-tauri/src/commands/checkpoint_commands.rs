@@ -10,10 +10,9 @@ use walkdir::WalkDir;
 fn get_checkpoints_dir(
     app: &AppHandle,
     project_path: &str,
-    profile_name: &str,
 ) -> Result<PathBuf, String> {
     let project_dir = file_cache::get_project_config_dir(app, project_path)?;
-    let checkpoints_dir = project_dir.join("checkpoints").join(profile_name);
+    let checkpoints_dir = project_dir.join("checkpoints");
     fs::create_dir_all(&checkpoints_dir)
         .map_err(|e| format!("Không thể tạo thư mục checkpoints: {}", e))?;
     Ok(checkpoints_dir)
@@ -23,12 +22,11 @@ fn get_checkpoints_dir(
 pub fn create_checkpoint(
     app: AppHandle,
     project_path: String,
-    profile_name: String,
     files_to_backup: Vec<String>,
     staged_changes_json: Option<String>,
 ) -> Result<String, String> {
     let checkpoint_id = Uuid::new_v4().to_string();
-    let checkpoints_dir = get_checkpoints_dir(&app, &project_path, &profile_name)?;
+    let checkpoints_dir = get_checkpoints_dir(&app, &project_path)?;
     let checkpoint_path = checkpoints_dir.join(&checkpoint_id);
 
     fs::create_dir_all(&checkpoint_path)
@@ -64,11 +62,10 @@ pub fn create_checkpoint(
 pub fn revert_to_checkpoint(
     app: AppHandle,
     project_path: String,
-    profile_name: String,
     checkpoint_id: String,
     created_files_in_turn: Vec<String>,
 ) -> Result<Option<String>, String> {
-    let checkpoints_dir = get_checkpoints_dir(&app, &project_path, &profile_name)?;
+    let checkpoints_dir = get_checkpoints_dir(&app, &project_path)?;
     let checkpoint_path = checkpoints_dir.join(&checkpoint_id);
 
     if !checkpoint_path.is_dir() {
@@ -124,10 +121,9 @@ pub fn revert_to_checkpoint(
 pub fn delete_checkpoint(
     app: AppHandle,
     project_path: String,
-    profile_name: String,
     checkpoint_id: String,
 ) -> Result<(), String> {
-    let checkpoints_dir = get_checkpoints_dir(&app, &project_path, &profile_name)?;
+    let checkpoints_dir = get_checkpoints_dir(&app, &project_path)?;
     let checkpoint_path = checkpoints_dir.join(&checkpoint_id);
 
     if checkpoint_path.is_dir() {

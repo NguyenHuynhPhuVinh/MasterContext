@@ -333,7 +333,6 @@ export function AITab({
           />
         </div>
         <div className="space-y-4 rounded-lg border p-4">
-          <h3 className="font-semibold">{t("settings.ai.parameters.title")}</h3>
           <div className="space-y-2">
             <div className="flex justify-between">
               <Label htmlFor="temperature-slider">

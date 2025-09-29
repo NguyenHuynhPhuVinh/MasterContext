@@ -33,26 +33,16 @@ pub fn get_project_config_dir(app: &AppHandle, project_path_str: &str) -> Result
 pub fn get_project_config_path(
     app: &AppHandle,
     project_path_str: &str,
-    profile_name: &str,
 ) -> Result<PathBuf, String> {
     let config_dir = get_project_config_dir(app, project_path_str)?;
-    // Sanitize profile name to prevent path traversal issues.
-    let sanitized_name: String = profile_name
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
-        .collect();
-    if sanitized_name.is_empty() {
-        return Err("profile.invalid_name".to_string());
-    }
-    Ok(config_dir.join(format!("data_{}.json", sanitized_name)))
+    Ok(config_dir.join("project_data.json"))
 }
 
 // --- CẬP NHẬT: Nhận thêm `app` và `profile_name` ---
-pub fn load_project_data(app: &AppHandle, path: &str, profile_name: &str) -> Result<CachedProjectData, String> {
-    let config_path = get_project_config_path(app, path, profile_name)?;
+pub fn load_project_data(app: &AppHandle, path: &str) -> Result<CachedProjectData, String> {
+    let config_path = get_project_config_path(app, path)?;
     if !config_path.exists() {
         // If file doesn't exist, return a default empty structure
-        // This is important for creating a new profile.
         return Ok(CachedProjectData::default());
     }
     let mut file =
@@ -70,10 +60,9 @@ pub fn load_project_data(app: &AppHandle, path: &str, profile_name: &str) -> Res
 pub fn save_project_data(
     app: &AppHandle,
     path: &str,
-    profile_name: &str,
     data: &CachedProjectData,
 ) -> Result<(), String> {
-    let config_path = get_project_config_path(app, path, profile_name)?;
+    let config_path = get_project_config_path(app, path)?;
     let json_string = serde_json::to_string_pretty(data)
         .map_err(|e| format!("Không thể serialize dữ liệu dự án: {}", e))?;
     let mut file = File::create(config_path)

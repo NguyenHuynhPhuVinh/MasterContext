@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Save, Loader2 } from "lucide-react";
 
 interface ExportTabProps {
@@ -21,6 +22,8 @@ interface ExportTabProps {
   setExportRemoveDebugLogs: (enabled: boolean) => void;
   exportExcludeExtensions: string[];
   setExportExcludeExtensions: (extensions: string[]) => Promise<void>;
+  alwaysApplyText: string | null;
+  setAlwaysApplyText: (text: string) => Promise<void>;
 }
 
 export function ExportTab({
@@ -36,14 +39,22 @@ export function ExportTab({
   setExportRemoveDebugLogs,
   exportExcludeExtensions,
   setExportExcludeExtensions,
+  alwaysApplyText,
+  setAlwaysApplyText,
 }: ExportTabProps) {
   const { t } = useTranslation();
   const [localExcludeText, setLocalExcludeText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [localAlwaysApplyText, setLocalAlwaysApplyText] = useState("");
+  const [isSavingText, setIsSavingText] = useState(false);
 
   useEffect(() => {
     setLocalExcludeText(exportExcludeExtensions.join(", "));
   }, [exportExcludeExtensions]);
+
+  useEffect(() => {
+    setLocalAlwaysApplyText(alwaysApplyText || "");
+  }, [alwaysApplyText]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -53,6 +64,12 @@ export function ExportTab({
       .filter(Boolean);
     await setExportExcludeExtensions([...new Set(extensions)]);
     setIsSaving(false);
+  };
+
+  const handleSaveText = async () => {
+    setIsSavingText(true);
+    await setAlwaysApplyText(localAlwaysApplyText);
+    setIsSavingText(false);
   };
   return (
     <div className="space-y-6">
@@ -178,6 +195,36 @@ export function ExportTab({
               <Save className="mr-2 h-4 w-4" />
             )}
             {t("settings.export.excludeExtensions.saveButton")}
+          </Button>
+        </div>
+        <div className="space-y-4 rounded-lg border p-4 flex flex-col pt-4 border-t">
+          <h3 className="font-semibold">{t("settings.alwaysApply.title")}</h3>
+          <div className="space-y-2 flex-grow flex flex-col">
+            <Label htmlFor="always-apply-text">
+              {t("settings.alwaysApply.description")}
+            </Label>
+            <Textarea
+              id="always-apply-text"
+              placeholder={t("settings.alwaysApply.placeholder")}
+              className="flex-1 resize-y min-h-[120px]"
+              value={localAlwaysApplyText}
+              onChange={(e) => setLocalAlwaysApplyText(e.target.value)}
+              disabled={isSavingText}
+            />
+          </div>
+          <Button
+            onClick={handleSaveText}
+            disabled={
+              isSavingText || localAlwaysApplyText === (alwaysApplyText || "")
+            }
+            className="w-full mt-4"
+          >
+            {isSavingText ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            {t("settings.alwaysApply.saveButton")}
           </Button>
         </div>
       </div>

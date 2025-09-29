@@ -35,12 +35,12 @@ export const createAiSessionActions: StateCreator<
     });
   },
   loadChatSessions: async () => {
-    const { rootPath, activeProfile } = get();
-    if (!rootPath || !activeProfile) return;
+    const { rootPath } = get();
+    if (!rootPath) return;
     try {
       const sessions = await invoke<AIChatSessionHeader[]>(
         "list_chat_sessions",
-        { projectPath: rootPath, profileName: activeProfile }
+        { projectPath: rootPath }
       );
       set({ chatSessions: sessions });
     } catch (e) {
@@ -49,12 +49,11 @@ export const createAiSessionActions: StateCreator<
     }
   },
   loadChatSession: async (sessionId: string) => {
-    const { rootPath, activeProfile } = get();
-    if (!rootPath || !activeProfile) return;
+    const { rootPath } = get();
+    if (!rootPath) return;
     try {
       const session = await invoke<AIChatSession>("load_chat_session", {
         projectPath: rootPath,
-        profileName: activeProfile,
         sessionId,
       });
       set({
@@ -67,11 +66,10 @@ export const createAiSessionActions: StateCreator<
     }
   },
   deleteChatSession: async (sessionId: string) => {
-    const { rootPath, activeProfile, activeChatSessionId } = get();
-    if (!rootPath || !activeProfile) return;
+    const { rootPath, activeChatSessionId } = get();
+    if (!rootPath) return;
     await invoke("delete_chat_session", {
       projectPath: rootPath,
-      profileName: activeProfile,
       sessionId,
     });
     set((state) => ({
@@ -82,11 +80,10 @@ export const createAiSessionActions: StateCreator<
     }
   },
   updateChatSessionTitle: async (sessionId: string, newTitle: string) => {
-    const { rootPath, activeProfile } = get();
-    if (!rootPath || !activeProfile) return;
+    const { rootPath } = get();
+    if (!rootPath) return;
     await invoke("update_chat_session_title", {
       projectPath: rootPath,
-      profileName: activeProfile,
       sessionId,
       newTitle,
     });
@@ -97,12 +94,11 @@ export const createAiSessionActions: StateCreator<
     }));
   },
   deleteAllChatSessions: async () => {
-    const { rootPath, activeProfile } = get();
-    if (!rootPath || !activeProfile) return;
+    const { rootPath } = get();
+    if (!rootPath) return;
     try {
       await invoke("delete_all_chat_sessions", {
         projectPath: rootPath,
-        profileName: activeProfile,
       });
       set({ chatSessions: [] });
       get().actions.createNewChatSession();
@@ -113,11 +109,10 @@ export const createAiSessionActions: StateCreator<
   saveCurrentChatSession: async (messagesOverride?: ChatMessage[]) => {
     const {
       rootPath,
-      activeProfile,
       activeChatSession,
       chatMessages: currentMessages,
     } = get();
-    if (rootPath && activeProfile && activeChatSession) {
+    if (rootPath && activeChatSession) {
       const messagesToSave = messagesOverride ?? currentMessages;
 
       // Find the last message with generationInfo to get the final session totals
@@ -149,7 +144,6 @@ export const createAiSessionActions: StateCreator<
       };
       await invoke("save_chat_session", {
         projectPath: rootPath,
-        profileName: activeProfile,
         session: sessionToSave,
       });
       // Keep the state in sync after saving

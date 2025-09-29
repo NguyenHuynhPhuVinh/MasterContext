@@ -11,7 +11,6 @@ export const defaultGroupStats = (): GroupStats => ({
 export const initialState = {
   rootPath: null,
   selectedPath: null,
-  allGroups: new Map(),
   groups: [],
   projectStats: null,
   fileTree: null,
@@ -43,8 +42,6 @@ export const initialState = {
   alwaysApplyText: null,
   exportExcludeExtensions: [],
   gitExportModeIsContext: false,
-  profiles: ["default"],
-  activeProfile: "default",
   isSidebarVisible: true,
   recentPaths: [],
   nonAnalyzableExtensions: [],

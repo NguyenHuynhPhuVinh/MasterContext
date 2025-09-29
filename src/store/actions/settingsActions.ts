@@ -30,7 +30,7 @@ export const createSettingsActions: StateCreator<
   SettingsActions
 > = (set, get, _store) => ({
   setSyncSettings: async ({ enabled, path }) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
 
     set({ syncEnabled: enabled, syncPath: path });
@@ -38,7 +38,6 @@ export const createSettingsActions: StateCreator<
     try {
       await invoke("update_sync_settings", {
         path: rootPath,
-        profileName: activeProfile,
         enabled,
         syncPath: path,
       });
@@ -51,7 +50,7 @@ export const createSettingsActions: StateCreator<
     }
   },
   setCustomIgnorePatterns: async (patterns: string[]) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
 
     set({ customIgnorePatterns: patterns });
@@ -59,7 +58,6 @@ export const createSettingsActions: StateCreator<
     try {
       await invoke("update_custom_ignore_patterns", {
         path: rootPath,
-        profileName: activeProfile,
         patterns,
       });
       await get().actions.rescanProject();
@@ -72,13 +70,12 @@ export const createSettingsActions: StateCreator<
     }
   },
   setFileWatching: async (enabled: boolean) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
 
     try {
       await invoke("set_file_watching_setting", {
         path: rootPath,
-        profileName: activeProfile,
         enabled,
       });
     } catch (error) {
@@ -106,13 +103,12 @@ export const createSettingsActions: StateCreator<
     }
   },
   setExportUseFullTree: async (enabled: boolean) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
     set({ exportUseFullTree: enabled });
     try {
       await invoke("set_export_use_full_tree_setting", {
         path: rootPath,
-        profileName: activeProfile,
         enabled,
       });
     } catch (error) {
@@ -124,13 +120,12 @@ export const createSettingsActions: StateCreator<
     }
   },
   setExportWithLineNumbers: async (enabled: boolean) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
     set({ exportWithLineNumbers: enabled });
     try {
       await invoke("set_export_with_line_numbers_setting", {
         path: rootPath,
-        profileName: activeProfile,
         enabled,
       });
     } catch (error) {
@@ -142,13 +137,12 @@ export const createSettingsActions: StateCreator<
     }
   },
   setExportWithoutComments: async (enabled: boolean) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
     set({ exportWithoutComments: enabled });
     try {
       await invoke("set_export_without_comments_setting", {
         path: rootPath,
-        profileName: activeProfile,
         enabled,
       });
     } catch (error) {
@@ -160,13 +154,12 @@ export const createSettingsActions: StateCreator<
     }
   },
   setExportRemoveDebugLogs: async (enabled: boolean) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
     set({ exportRemoveDebugLogs: enabled });
     try {
       await invoke("set_export_remove_debug_logs_setting", {
         path: rootPath,
-        profileName: activeProfile,
         enabled,
       });
     } catch (error) {
@@ -180,13 +173,12 @@ export const createSettingsActions: StateCreator<
     }
   },
   setExportSuperCompressed: async (enabled: boolean) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
     set({ exportSuperCompressed: enabled });
     try {
       await invoke("set_export_super_compressed_setting", {
         path: rootPath,
-        profileName: activeProfile,
         enabled,
       });
     } catch (error) {
@@ -198,13 +190,12 @@ export const createSettingsActions: StateCreator<
     }
   },
   setAlwaysApplyText: async (text: string) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
     set({ alwaysApplyText: text });
     try {
       await invoke("set_always_apply_text_setting", {
         path: rootPath,
-        profileName: activeProfile,
         text,
       });
     } catch (error) {
@@ -215,13 +206,12 @@ export const createSettingsActions: StateCreator<
     }
   },
   setExportExcludeExtensions: async (extensions: string[]) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
     set({ exportExcludeExtensions: extensions });
     try {
       await invoke("set_export_exclude_extensions_setting", {
         path: rootPath,
-        profileName: activeProfile,
         extensions,
       });
     } catch (error) {
@@ -233,13 +223,12 @@ export const createSettingsActions: StateCreator<
     }
   },
   setGitExportMode: async (enabled: boolean) => {
-    const { rootPath, activeProfile } = get();
+    const { rootPath } = get();
     if (!rootPath) return;
     set({ gitExportModeIsContext: enabled });
     try {
       await invoke("set_git_export_mode_setting", {
         path: rootPath,
-        profileName: activeProfile,
         enabled,
       });
     } catch (error) {
